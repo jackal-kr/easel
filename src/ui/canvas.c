@@ -3,6 +3,7 @@
 #include <math.h>
 #include <string.h>
 
+#include "core/history.h"
 #include "ui/cursors.h"
 
 #define MAX_SEQ 512 /* vertices of a polygon in progress */
@@ -45,6 +46,11 @@ struct _EaselCanvas
   gboolean   seq_moved;
   gint64     last_press_us;
 
+  /* Undo */
+  EaselHistory *history;
+  EaselRect     edit_rect;  /* pixels touched by the edit in progress */
+  uint32_t     *edit_base;  /* picture before a freehand edit (shape tools use `backup`) */
+
   /* Airbrush */
   guint    spray_source;
   uint32_t spray_rng;
@@ -59,7 +65,7 @@ struct _EaselCanvas
 
 G_DEFINE_FINAL_TYPE (EaselCanvas, easel_canvas, GTK_TYPE_WIDGET)
 
-enum { SIGNAL_POINTER_MOVED, SIGNAL_COLOR_PICKED, N_SIGNALS };
+enum { SIGNAL_POINTER_MOVED, SIGNAL_COLOR_PICKED, SIGNAL_HISTORY_CHANGED, N_SIGNALS };
 static guint signals[N_SIGNALS];
 
 /* One image pixel is one *device* pixel at zoom 1, even on HiDPI screens,
@@ -85,6 +91,7 @@ mark_dirty (EaselCanvas *self, EaselRect r)
 {
   if (r.width > 0 && r.height > 0)
     {
+      self->edit_rect = easel_rect_union (self->edit_rect, r);
       cairo_rectangle_int_t cr = { r.x, r.y, r.width, r.height };
       if (self->dirty == NULL)
         self->dirty = cairo_region_create_rectangle (&cr);
@@ -300,6 +307,32 @@ apply_stroke (EaselCanvas *self, int x0, int y0, int x1, int y1)
 
 static void restore_shape_area (EaselCanvas *self);
 
+/* Records the finished edit (whose "before" picture is `base`) for undo. */
+static void
+push_undo (EaselCanvas *self, const uint32_t *base)
+{
+  if (base != NULL && easel_history_push (self->history, self->doc, base, self->edit_rect))
+    g_signal_emit (self, signals[SIGNAL_HISTORY_CHANGED], 0);
+  self->edit_rect = (EaselRect) { 0, 0, 0, 0 };
+}
+
+static void
+begin_edit (EaselCanvas *self)
+{
+  g_free (self->edit_base);
+  self->edit_base = g_memdup2 (self->doc->pixels, (gsize) self->doc->width * self->doc->height * 4);
+  self->edit_rect = (EaselRect) { 0, 0, 0, 0 };
+}
+
+static void
+finish_edit (EaselCanvas *self)
+{
+  if (self->edit_base == NULL)
+    return;
+  push_undo (self, self->edit_base);
+  g_clear_pointer (&self->edit_base, g_free);
+}
+
 static void
 end_seq (EaselCanvas *self)
 {
@@ -360,6 +393,7 @@ commit_seq (EaselCanvas *self, gboolean closed)
   if (!self->seq_active)
     return;
   seq_render (self, closed, FALSE, 0, 0);
+  push_undo (self, self->backup);
   end_seq (self);
   self->drawing = FALSE;
 }
@@ -463,7 +497,10 @@ end_shape_drag (EaselCanvas *self, gboolean keep)
     {
       restore_shape_area (self);
       mark_dirty (self, self->shape_prev);
+      self->edit_rect = (EaselRect) { 0, 0, 0, 0 };
     }
+  else
+    push_undo (self, self->backup);
   self->shape_prev = (EaselRect) { 0, 0, 0, 0 };
   g_clear_pointer (&self->backup, g_free);
 }
@@ -505,6 +542,7 @@ on_drag_begin (GtkGestureDrag *gesture, double x, double y, EaselCanvas *self)
 
     case EASEL_TOOL_AIRBRUSH:
       self->drawing = TRUE;
+      begin_edit (self);
       spray_tick (self);
       g_clear_handle_id (&self->spray_source, g_source_remove);
       self->spray_source = g_timeout_add (30, spray_tick, self);
@@ -522,6 +560,7 @@ on_drag_begin (GtkGestureDrag *gesture, double x, double y, EaselCanvas *self)
                                       (gsize) self->doc->width * self->doc->height * 4);
             self->shape_prev = (EaselRect) { 0, 0, 0, 0 };
             self->seq_active = TRUE;
+            self->edit_rect = (EaselRect) { 0, 0, 0, 0 };
             self->seq[0] = self->seq[1] = (EaselPoint) { self->last_x, self->last_y };
             self->seq_n = 2;
           }
@@ -559,6 +598,7 @@ on_drag_begin (GtkGestureDrag *gesture, double x, double y, EaselCanvas *self)
                                       (gsize) self->doc->width * self->doc->height * 4);
             self->shape_prev = (EaselRect) { 0, 0, 0, 0 };
             self->seq_active = TRUE;
+            self->edit_rect = (EaselRect) { 0, 0, 0, 0 };
             self->seq_stage = 0;
             self->seq[0] = self->seq[1] = here;
           }
@@ -573,8 +613,10 @@ on_drag_begin (GtkGestureDrag *gesture, double x, double y, EaselCanvas *self)
       }
 
     case EASEL_TOOL_FILL:
+      begin_edit (self);
       mark_dirty (self, easel_raster_flood_fill (self->doc, self->last_x, self->last_y,
                                                  self->stroke_color));
+      finish_edit (self);
       break;
 
     case EASEL_TOOL_PICK_COLOR:
@@ -587,6 +629,7 @@ on_drag_begin (GtkGestureDrag *gesture, double x, double y, EaselCanvas *self)
     case EASEL_TOOL_ELLIPSE:
     case EASEL_TOOL_ROUNDED_RECTANGLE:
       self->drawing = TRUE;
+      self->edit_rect = (EaselRect) { 0, 0, 0, 0 };
       g_free (self->backup);
       self->backup = g_memdup2 (self->doc->pixels,
                                 (gsize) self->doc->width * self->doc->height * 4);
@@ -597,6 +640,7 @@ on_drag_begin (GtkGestureDrag *gesture, double x, double y, EaselCanvas *self)
     case EASEL_TOOL_BRUSH:
     case EASEL_TOOL_ERASER:
       self->drawing = TRUE;
+      begin_edit (self);
       mark_dirty (self, apply_stroke (self, self->last_x, self->last_y,
                                       self->last_x, self->last_y));
       break;
@@ -661,6 +705,7 @@ on_drag_end (GtkGestureDrag *gesture, double offset_x, double offset_y, EaselCan
   if (self->tool == EASEL_TOOL_AIRBRUSH)
     {
       g_clear_handle_id (&self->spray_source, g_source_remove);
+      finish_edit (self);
       return;
     }
 
@@ -730,6 +775,8 @@ on_drag_end (GtkGestureDrag *gesture, double offset_x, double offset_y, EaselCan
       g_signal_emit (self, signals[SIGNAL_COLOR_PICKED], 0,
                      (guint) self->picked, self->button == GDK_BUTTON_PRIMARY);
     }
+
+  finish_edit (self); /* pencil, brush, eraser */
 }
 
 static gboolean
@@ -786,6 +833,8 @@ easel_canvas_dispose (GObject *object)
   g_clear_pointer (&self->dirty, cairo_region_destroy);
   g_clear_pointer (&self->backup, g_free);
   g_clear_handle_id (&self->spray_source, g_source_remove);
+  g_clear_pointer (&self->edit_base, g_free);
+  g_clear_pointer (&self->history, easel_history_free);
   G_OBJECT_CLASS (easel_canvas_parent_class)->dispose (object);
 }
 
@@ -812,6 +861,9 @@ easel_canvas_class_init (EaselCanvasClass *klass)
   signals[SIGNAL_POINTER_MOVED] =
     g_signal_new ("pointer-moved", G_TYPE_FROM_CLASS (klass), G_SIGNAL_RUN_LAST,
                   0, NULL, NULL, NULL, G_TYPE_NONE, 2, G_TYPE_INT, G_TYPE_INT);
+  signals[SIGNAL_HISTORY_CHANGED] =
+    g_signal_new ("history-changed", G_TYPE_FROM_CLASS (klass), G_SIGNAL_RUN_LAST,
+                  0, NULL, NULL, NULL, G_TYPE_NONE, 0);
   signals[SIGNAL_COLOR_PICKED] =
     g_signal_new ("color-picked", G_TYPE_FROM_CLASS (klass), G_SIGNAL_RUN_LAST,
                   0, NULL, NULL, NULL, G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_BOOLEAN);
@@ -828,6 +880,7 @@ easel_canvas_init (EaselCanvas *self)
   self->brush_shape = EASEL_BRUSH_CIRCLE;
   self->line_width = 1;
   self->zoom_level = 2;
+  self->history = easel_history_new ((size_t) 512 << 20);
   self->spray_rng = 2463534242u;
   self->fill_style = EASEL_FILL_OUTLINE;
   self->hover_x = self->hover_y = -1;
@@ -1001,4 +1054,63 @@ easel_canvas_set_zoom_level (EaselCanvas *self, int level)
 {
   g_return_if_fail (EASEL_IS_CANVAS (self));
   self->zoom_level = CLAMP (level, 1, 8);
+}
+
+gboolean
+easel_canvas_can_undo (EaselCanvas *self)
+{
+  g_return_val_if_fail (EASEL_IS_CANVAS (self), FALSE);
+  return easel_history_can_undo (self->history);
+}
+
+gboolean
+easel_canvas_can_redo (EaselCanvas *self)
+{
+  g_return_val_if_fail (EASEL_IS_CANVAS (self), FALSE);
+  return easel_history_can_redo (self->history);
+}
+
+gboolean
+easel_canvas_undo (EaselCanvas *self)
+{
+  g_return_val_if_fail (EASEL_IS_CANVAS (self), FALSE);
+  EaselRect r;
+
+  if (self->seq_active) /* Undo during a polygon or curve abandons it */
+    {
+      cancel_seq (self);
+      return TRUE;
+    }
+  if (self->drawing || !easel_history_undo (self->history, self->doc, &r))
+    return FALSE;
+  mark_dirty (self, r);
+  self->edit_rect = (EaselRect) { 0, 0, 0, 0 };
+  g_signal_emit (self, signals[SIGNAL_HISTORY_CHANGED], 0);
+  return TRUE;
+}
+
+gboolean
+easel_canvas_redo (EaselCanvas *self)
+{
+  g_return_val_if_fail (EASEL_IS_CANVAS (self), FALSE);
+  EaselRect r;
+
+  if (self->drawing || self->seq_active || !easel_history_redo (self->history, self->doc, &r))
+    return FALSE;
+  mark_dirty (self, r);
+  self->edit_rect = (EaselRect) { 0, 0, 0, 0 };
+  g_signal_emit (self, signals[SIGNAL_HISTORY_CHANGED], 0);
+  return TRUE;
+}
+
+/* Fills the whole image (Image > Clear Image) as one undoable step. */
+void
+easel_canvas_clear (EaselCanvas *self, uint32_t argb)
+{
+  g_return_if_fail (EASEL_IS_CANVAS (self));
+  commit_seq (self, FALSE);
+  begin_edit (self);
+  easel_document_fill (self->doc, argb);
+  mark_all_dirty (self);
+  finish_edit (self);
 }

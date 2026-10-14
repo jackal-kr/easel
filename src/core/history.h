@@ -1,0 +1,29 @@
+/* Undo/redo. Each step stores only the rectangle of pixels it changed (the
+ * "before" and "after" contents), so steps on a big image stay small. Pure
+ * engine code: it never looks at how the change was made. */
+#pragma once
+
+#include <stddef.h>
+
+#include "core/document.h"
+
+typedef struct _EaselHistory EaselHistory;
+
+/* Oldest steps are dropped once the stored pixels exceed `max_bytes`. */
+EaselHistory *easel_history_new (size_t max_bytes);
+void          easel_history_free (EaselHistory *history);
+void          easel_history_clear (EaselHistory *history);
+
+/* Records a step. `doc` already holds the result; `before` is a full copy of
+ * the pixels (same size as `doc`) from before the edit; `area` is where the
+ * edit may have changed pixels. The area is trimmed to what really changed;
+ * returns false (and records nothing) if nothing did. Drops any redo steps. */
+bool easel_history_push (EaselHistory *history, const EaselDocument *doc,
+                         const uint32_t *before, EaselRect area);
+
+bool easel_history_can_undo (const EaselHistory *history);
+bool easel_history_can_redo (const EaselHistory *history);
+
+/* Apply a step to `doc`; `*changed` receives the rectangle that was touched. */
+bool easel_history_undo (EaselHistory *history, EaselDocument *doc, EaselRect *changed);
+bool easel_history_redo (EaselHistory *history, EaselDocument *doc, EaselRect *changed);

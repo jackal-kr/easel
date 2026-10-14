@@ -95,14 +95,35 @@ static void
 action_clear_image (GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
   EaselWindow *self = user_data;
-  easel_document_fill (easel_canvas_get_document (self->canvas),
-                       easel_color_box_get_background (self->colorbox));
-  easel_canvas_invalidate (self->canvas);
+  easel_canvas_clear (self->canvas, easel_color_box_get_background (self->colorbox));
+}
+
+static void
+action_undo (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+  easel_canvas_undo (((EaselWindow *) user_data)->canvas);
+}
+
+static void
+action_redo (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+  easel_canvas_redo (((EaselWindow *) user_data)->canvas);
+}
+
+static void
+on_history_changed (EaselCanvas *canvas, EaselWindow *self)
+{
+  g_simple_action_set_enabled (G_SIMPLE_ACTION (g_action_map_lookup_action (G_ACTION_MAP (self), "undo")),
+                               easel_canvas_can_undo (canvas));
+  g_simple_action_set_enabled (G_SIMPLE_ACTION (g_action_map_lookup_action (G_ACTION_MAP (self), "redo")),
+                               easel_canvas_can_redo (canvas));
 }
 
 static const GActionEntry window_actions[] = {
   { "swap-colors", action_swap_colors },
   { "clear-image", action_clear_image },
+  { "undo", action_undo },
+  { "redo", action_redo },
 };
 
 /* View > Tool Box / Color Box / Status Bar: a stateful action bound straight
@@ -235,6 +256,9 @@ easel_window_init (EaselWindow *self)
   add_visibility_action (self, "show-toolbox", GTK_WIDGET (self->toolbox));
   add_visibility_action (self, "show-colorbox", GTK_WIDGET (self->colorbox));
   add_visibility_action (self, "show-statusbar", self->status_bar);
+
+  g_signal_connect (self->canvas, "history-changed", G_CALLBACK (on_history_changed), self);
+  on_history_changed (self->canvas, self);
 
   on_colors_changed (self->colorbox, self);
   sync_canvas_tool (self);

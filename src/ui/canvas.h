@@ -29,12 +29,19 @@ void easel_canvas_set_zoom (EaselCanvas *self, int zoom, int ix, int iy);
 int  easel_canvas_get_zoom (EaselCanvas *self);
 void easel_canvas_set_zoom_level (EaselCanvas *self, int level); /* what a Magnifier click applies */
 
+gboolean easel_canvas_can_undo (EaselCanvas *self);
+gboolean easel_canvas_can_redo (EaselCanvas *self);
+gboolean easel_canvas_undo (EaselCanvas *self);
+gboolean easel_canvas_redo (EaselCanvas *self);
+void     easel_canvas_clear (EaselCanvas *self, uint32_t argb); /* undoable */
+
 /* Call after changing the document from outside the canvas. */
 void easel_canvas_invalidate (EaselCanvas *self);
 
 /* Signals:
  *  "pointer-moved" (int x, int y): image coordinates, or -1,-1 when the
  *                  pointer leaves the canvas.
+ *  "history-changed": undo/redo availability may have changed.
  *  "color-picked"  (guint argb, gboolean foreground): Pick Color released. */
 
 G_END_DECLS

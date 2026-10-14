@@ -1,8 +1,10 @@
 /* Core tests: no GTK, no display needed. */
 #include "core/document.h"
 #include "core/raster.h"
+#include "core/history.h"
 
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 
 #define WHITE EASEL_RGB (255, 255, 255)
@@ -396,6 +398,71 @@ test_polygon_curve_spray (void)
   easel_document_free (doc);
 }
 
+static void
+test_history (void)
+{
+  EaselDocument *doc = easel_document_new (50, 50, WHITE);
+  EaselHistory *h = easel_history_new (1 << 20);
+  EaselRect r;
+
+  CHECK (!easel_history_can_undo (h));
+
+  /* Edit 1: a box. */
+  uint32_t *base = malloc ((size_t) 50 * 50 * 4);
+  memcpy (base, doc->pixels, (size_t) 50 * 50 * 4);
+  EaselRect a = easel_raster_shape (doc, EASEL_SHAPE_RECT, 5, 5, 14, 14, 1, EASEL_FILL_SOLID, BLACK, RED);
+  CHECK (easel_history_push (h, doc, base, a));
+  int after1 = count_not (doc, WHITE);
+
+  /* Edit 2: fill, recorded with an over-large area; it is trimmed. */
+  memcpy (base, doc->pixels, (size_t) 50 * 50 * 4);
+  easel_raster_flood_fill (doc, 30, 30, RED);
+  CHECK (easel_history_push (h, doc, base, (EaselRect) { 0, 0, 50, 50 }));
+
+  /* A no-op edit records nothing. */
+  memcpy (base, doc->pixels, (size_t) 50 * 50 * 4);
+  CHECK (!easel_history_push (h, doc, base, (EaselRect) { 0, 0, 50, 50 }));
+
+  CHECK (easel_history_can_undo (h) && !easel_history_can_redo (h));
+  CHECK (easel_history_undo (h, doc, &r));
+  CHECK (count_not (doc, WHITE) == after1);
+  CHECK (easel_history_can_redo (h));
+  CHECK (easel_history_undo (h, doc, &r));
+  CHECK (count_not (doc, WHITE) == 0);
+  CHECK (!easel_history_undo (h, doc, &r));
+  CHECK (easel_history_redo (h, doc, &r));
+  CHECK (count_not (doc, WHITE) == after1);
+  CHECK (easel_history_redo (h, doc, &r));
+  CHECK (easel_document_get_pixel (doc, 30, 30) == RED);
+  CHECK (!easel_history_redo (h, doc, &r));
+
+  /* A new edit after undo drops the redo branch. */
+  easel_history_undo (h, doc, &r);
+  memcpy (base, doc->pixels, (size_t) 50 * 50 * 4);
+  easel_raster_line (doc, 0, 49, 49, 49, 1, BLACK);
+  CHECK (easel_history_push (h, doc, base, (EaselRect) { 0, 49, 50, 1 }));
+  CHECK (!easel_history_can_redo (h));
+
+  /* Memory cap: old steps fall away, newest survives. */
+  EaselHistory *small = easel_history_new (2000);
+  for (int i = 0; i < 20; i++)
+    {
+      memcpy (base, doc->pixels, (size_t) 50 * 50 * 4);
+      easel_raster_shape (doc, EASEL_SHAPE_RECT, 0, 0, 9, 9, 1, EASEL_FILL_SOLID,
+                          i % 2 ? BLACK : RED, RED);
+      easel_history_push (small, doc, base, (EaselRect) { 0, 0, 10, 10 });
+    }
+  int undone = 0;
+  while (easel_history_undo (small, doc, &r))
+    undone++;
+  CHECK (undone >= 1 && undone < 20);
+
+  easel_history_free (small);
+  easel_history_free (h);
+  free (base);
+  easel_document_free (doc);
+}
+
 int
 main (void)
 {
@@ -407,6 +474,7 @@ main (void)
   test_flood_fill ();
   test_shapes ();
   test_polygon_curve_spray ();
+  test_history ();
 
   if (failures != 0)
     {

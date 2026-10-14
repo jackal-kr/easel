@@ -2,7 +2,7 @@ src_inc = include_directories('.')
 
 # Engine: pure C, no GTK. Everything under core/ must stay UI-free.
 core_lib = static_library('easel-core',
-  ['core/document.c', 'core/raster.c'],
+  ['core/document.c', 'core/raster.c', 'core/history.c'],
   include_directories: src_inc,
 )
 

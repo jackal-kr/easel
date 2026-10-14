@@ -44,6 +44,10 @@ on_startup (GApplication *app)
   gtk_application_set_accels_for_action (GTK_APPLICATION (app), "app.quit", quit_accels);
   gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.swap-colors", swap_accels);
   gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.clear-image", clear_accels);
+  const char *undo_accels[] = { "<Primary>z", NULL };
+  const char *redo_accels[] = { "<Primary>y", "<Primary><Shift>z", NULL };
+  gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.undo", undo_accels);
+  gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.redo", redo_accels);
 
   GtkCssProvider *css = gtk_css_provider_new ();
   gtk_css_provider_load_from_resource (css, "/io/github/jackal_kr/Easel/style.css");
