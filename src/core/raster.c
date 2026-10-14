@@ -559,3 +559,44 @@ easel_raster_polygon_mask (const EaselPoint *pts, int n, EaselRect box)
     }
   return mask;
 }
+
+EaselRect
+easel_raster_gradient (EaselDocument *doc, EaselRect region, const uint8_t *mask,
+                       int x0, int y0, int x1, int y1, EaselGradientStyle style,
+                       uint32_t c0, uint32_t c1)
+{
+  EaselRect none = { 0, 0, 0, 0 };
+  double dx = x1 - x0, dy = y1 - y0, len2 = dx * dx + dy * dy, len = sqrt (len2);
+  int left = MAX (region.x, 0), top = MAX (region.y, 0);
+  int right = MIN (region.x + region.width, doc->width), bottom = MIN (region.y + region.height, doc->height);
+
+  if (len2 == 0 || left >= right || top >= bottom)
+    return none;
+
+  for (int y = top; y < bottom; y++)
+    for (int x = left; x < right; x++)
+      {
+        if (mask != NULL && !mask[(size_t) (y - region.y) * region.width + (x - region.x)])
+          continue;
+
+        double px = x + 0.5 - (x0 + 0.5), py = y + 0.5 - (y0 + 0.5), t;
+        if (style == EASEL_GRADIENT_RADIAL)
+          t = sqrt (px * px + py * py) / len;
+        else
+          {
+            t = (px * dx + py * dy) / len2;
+            if (style == EASEL_GRADIENT_REFLECTED)
+              t = fabs (t);
+          }
+        t = t < 0 ? 0 : t > 1 ? 1 : t;
+
+        uint32_t out = 0;
+        for (int sh = 0; sh <= 24; sh += 8)
+          {
+            double a = (c0 >> sh) & 0xFF, b = (c1 >> sh) & 0xFF;
+            out |= (uint32_t) (a + (b - a) * t + 0.5) << sh;
+          }
+        doc->pixels[(size_t) y * doc->width + x] = out;
+      }
+  return (EaselRect) { left, top, right - left, bottom - top };
+}

@@ -97,6 +97,17 @@ EaselRect easel_raster_curve (EaselDocument *doc, EaselPoint p0, EaselPoint c1, 
 EaselRect easel_raster_spray (EaselDocument *doc, int cx, int cy, int diameter, uint32_t color,
                               int count, uint32_t *rng);
 
+/* Gradient between two points: `c0` at (x0, y0) blending to `c1` at (x1, y1).
+ * Linear runs along the line, radial grows around the start, reflected
+ * mirrors the blend on both sides of the start. It fills `region` (clipped to
+ * the picture), only where `mask` (laid out for the unclipped region) is set.
+ * Returns the area changed. */
+typedef enum { EASEL_GRADIENT_LINEAR, EASEL_GRADIENT_RADIAL, EASEL_GRADIENT_REFLECTED } EaselGradientStyle;
+
+EaselRect easel_raster_gradient (EaselDocument *doc, EaselRect region, const uint8_t *mask,
+                                 int x0, int y0, int x1, int y1, EaselGradientStyle style,
+                                 uint32_t c0, uint32_t c1);
+
 /* Free-form selection shape: one byte per pixel of `box` (1 = inside the
  * closed polygon, edges included). Caller frees. NULL on failure. */
 uint8_t *easel_raster_polygon_mask (const EaselPoint *pts, int n, EaselRect box);

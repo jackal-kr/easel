@@ -667,6 +667,31 @@ test_transform (void)
   CHECK (c[0] == 0xFFEFDFCFu && c[1] == 0x80808080u);
 }
 
+static void
+test_gradient (void)
+{
+  EaselDocument *d = easel_document_new (11, 3, 0xFFFFFFFFu);
+  EaselRect r = easel_raster_gradient (d, (EaselRect) { 0, 0, 11, 3 }, NULL, 0, 1, 10, 1,
+                                       EASEL_GRADIENT_LINEAR, 0xFF000000u, 0xFFFFFFFFu);
+
+  CHECK (r.width == 11 && r.height == 3);
+  CHECK (d->pixels[0] < 0xFF202020u);                  /* dark at the start */
+  CHECK (d->pixels[10] > 0xFFE0E0E0u);                 /* light at the end */
+  CHECK ((d->pixels[5] & 0xFF) > (d->pixels[2] & 0xFF)); /* getting lighter */
+
+  easel_document_fill (d, 0xFFFFFFFFu);
+  uint8_t mask[33] = { 0 };
+  mask[0] = 1;
+  easel_raster_gradient (d, (EaselRect) { 0, 0, 11, 3 }, mask, 0, 0, 10, 0,
+                         EASEL_GRADIENT_LINEAR, 0xFF000000u, 0xFF000000u);
+  CHECK (d->pixels[0] == 0xFF000000u && d->pixels[1] == 0xFFFFFFFFu);   /* mask respected */
+
+  r = easel_raster_gradient (d, (EaselRect) { 0, 0, 11, 3 }, NULL, 4, 4, 4, 4,
+                             EASEL_GRADIENT_RADIAL, 0, 0);
+  CHECK (r.width == 0);                                 /* zero-length drag draws nothing */
+  easel_document_free (d);
+}
+
 int
 main (void)
 {
@@ -684,6 +709,7 @@ main (void)
   test_polygon_mask ();
   test_clip_scaled ();
   test_transform ();
+  test_gradient ();
 
   if (failures != 0)
     {

@@ -45,6 +45,7 @@ EaselClip *easel_canvas_get_selection (EaselCanvas *self); /* a copy; caller fre
 void     easel_canvas_set_font (EaselCanvas *self, const char *description);
 void     easel_canvas_set_text_opaque (EaselCanvas *self, gboolean opaque);
 void     easel_canvas_set_text_smooth (EaselCanvas *self, gboolean smooth);
+void     easel_canvas_set_gradient_style (EaselCanvas *self, int style); /* EaselGradientStyle */
 void     easel_canvas_text_apply_style (EaselCanvas *self, guint flag, gboolean on);
 gboolean easel_canvas_text_active (EaselCanvas *self);
 void     easel_canvas_text_select_all (EaselCanvas *self);

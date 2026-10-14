@@ -222,6 +222,6 @@ easel_cursor_for_tool (EaselTool tool)
 
   g_return_val_if_fail (tool >= 0 && tool < EASEL_N_TOOLS, NULL);
   if (cache[tool] == NULL)
-    cache[tool] = build_cursor (tool);
+    cache[tool] = tool == EASEL_TOOL_PAN ? gdk_cursor_new_from_name ("grab", NULL) : build_cursor (tool);
   return cache[tool];
 }

@@ -28,6 +28,7 @@ const char    *easel_toolbox_get_font (EaselToolbox *self); /* Pango description
 void           easel_toolbox_set_text_style (EaselToolbox *self, guint flags); /* EASEL_TEXT_* */
 gboolean       easel_toolbox_get_text_opaque (EaselToolbox *self);
 gboolean       easel_toolbox_get_text_smooth (EaselToolbox *self);
+int            easel_toolbox_get_gradient_style (EaselToolbox *self); /* EaselGradientStyle */
 gboolean       easel_toolbox_get_opaque (EaselToolbox *self); /* Draw Opaque (selections) */
 int            easel_toolbox_get_zoom_level (EaselToolbox *self);
 

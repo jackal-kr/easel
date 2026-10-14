@@ -11,37 +11,41 @@ typedef struct
 
 /* Order matches the classic two-column layout, row by row. */
 static const ToolDef tools[EASEL_N_TOOLS] = {
-  [EASEL_TOOL_FREE_FORM_SELECT] = { "Free-Form Select", "edit-select-lasso-symbolic", "FS",
+  [EASEL_TOOL_GRADIENT] = { "Gradient", "easel-gradient-symbolic", "Gr",
+    "Fills with a blend from the foreground to the background color. Drag to set direction and length.", TRUE },
+  [EASEL_TOOL_PAN] = { "Pan", "easel-pan-symbolic", "Pa",
+    "Click and drag to navigate the image.", TRUE },
+  [EASEL_TOOL_FREE_FORM_SELECT] = { "Free-Form Select", "easel-free-form-select-symbolic", "FS",
     "Selects a free-form part of the picture to move, copy, or edit.", TRUE },
-  [EASEL_TOOL_SELECT] = { "Select", "edit-select-all-symbolic", "Se",
+  [EASEL_TOOL_SELECT] = { "Select", "easel-select-symbolic", "Se",
     "Selects a rectangular part of the picture to move, copy, or edit.", TRUE },
-  [EASEL_TOOL_ERASER] = { "Eraser", "edit-clear-all-symbolic", "Er",
+  [EASEL_TOOL_ERASER] = { "Eraser", "easel-eraser-symbolic", "Er",
     "Erases a portion of the picture. Right button: replaces the foreground color with the background color.", TRUE },
-  [EASEL_TOOL_FILL] = { "Fill With Color", "color-fill-symbolic", "Fl",
+  [EASEL_TOOL_FILL] = { "Fill With Color", "easel-fill-symbolic", "Fl",
     "Fills an area with the foreground color (left button) or the background color (right button).", TRUE },
-  [EASEL_TOOL_PICK_COLOR] = { "Pick Color", "color-select-symbolic", "Pk",
+  [EASEL_TOOL_PICK_COLOR] = { "Pick Color", "easel-pick-color-symbolic", "Pk",
     "Picks up a color from the picture for drawing. Left button: foreground. Right button: background.", TRUE },
-  [EASEL_TOOL_MAGNIFIER] = { "Magnifier", "zoom-in-symbolic", "Mg",
+  [EASEL_TOOL_MAGNIFIER] = { "Magnifier", "easel-magnifier-symbolic", "Mg",
     "Changes the magnification.", TRUE },
-  [EASEL_TOOL_PENCIL] = { "Pencil", "document-edit-symbolic", "Pe",
+  [EASEL_TOOL_PENCIL] = { "Pencil", "easel-pencil-symbolic", "Pe",
     "Draws a free-form line. Left button: foreground color. Right button: background color.", TRUE },
-  [EASEL_TOOL_BRUSH] = { "Brush", "applications-graphics-symbolic", "Br",
+  [EASEL_TOOL_BRUSH] = { "Brush", "easel-brush-symbolic", "Br",
     "Draws using a brush with the selected shape and size.", TRUE },
-  [EASEL_TOOL_AIRBRUSH] = { "Airbrush", "weather-showers-symbolic", "Ai",
+  [EASEL_TOOL_AIRBRUSH] = { "Airbrush", "easel-airbrush-symbolic", "Ai",
     "Draws using an airbrush of the selected size.", TRUE },
-  [EASEL_TOOL_TEXT] = { "Text", "insert-text-symbolic", "Tx",
+  [EASEL_TOOL_TEXT] = { "Text", "easel-text-symbolic", "Tx",
     "Inserts text into the picture.", TRUE },
-  [EASEL_TOOL_LINE] = { "Line", "list-remove-symbolic", "Ln",
+  [EASEL_TOOL_LINE] = { "Line", "easel-line-symbolic", "Ln",
     "Draws a straight line with the selected line width.", TRUE },
-  [EASEL_TOOL_CURVE] = { "Curve", "media-playlist-shuffle-symbolic", "Cv",
+  [EASEL_TOOL_CURVE] = { "Curve", "easel-curve-symbolic", "Cv",
     "Draws a curved line with the selected line width.", TRUE },
-  [EASEL_TOOL_RECTANGLE] = { "Rectangle", "checkbox-symbolic", "Re",
+  [EASEL_TOOL_RECTANGLE] = { "Rectangle", "easel-rectangle-symbolic", "Re",
     "Draws a rectangle with the selected fill style.", TRUE },
-  [EASEL_TOOL_POLYGON] = { "Polygon", "emblem-shared-symbolic", "Po",
+  [EASEL_TOOL_POLYGON] = { "Polygon", "easel-polygon-symbolic", "Po",
     "Draws a polygon with the selected fill style.", TRUE },
-  [EASEL_TOOL_ELLIPSE] = { "Ellipse", "media-record-symbolic", "El",
+  [EASEL_TOOL_ELLIPSE] = { "Ellipse", "easel-ellipse-symbolic", "El",
     "Draws an ellipse with the selected fill style.", TRUE },
-  [EASEL_TOOL_ROUNDED_RECTANGLE] = { "Rounded Rectangle", "checkbox-symbolic", "RR",
+  [EASEL_TOOL_ROUNDED_RECTANGLE] = { "Rounded Rectangle", "easel-rounded-rectangle-symbolic", "RR",
     "Draws a rounded rectangle with the selected fill style.", TRUE },
 };
 
@@ -60,7 +64,8 @@ static const struct { EaselBrushShape shape; const char *name; } brush_shapes[] 
 };
 
 typedef enum { OPTION_PENCIL, OPTION_BRUSH, OPTION_ERASER, OPTION_LINE, OPTION_FILL,
-               OPTION_AIRBRUSH, OPTION_ZOOM, OPTION_OPAQUE, OPTION_TEXT_OPAQUE } OptionKind;
+               OPTION_AIRBRUSH, OPTION_ZOOM, OPTION_OPAQUE, OPTION_TEXT_OPAQUE,
+               OPTION_GRADIENT } OptionKind;
 
 static const int airbrush_sizes[] = { 9, 16, 24 };
 static const int zoom_levels[] = { 1, 2, 4, 6, 8 };
@@ -83,6 +88,7 @@ struct _EaselToolbox
   GtkWidget *brush_buttons[12];
   GtkWidget *fill_buttons[4][3]; /* per shape page; all pages share one fill style */
   GtkWidget *options_stack;
+  GtkWidget *options_rule;   /* line between the tools and their options */
   int        columns;           /* tool grid columns: 2, or 3 in short windows */
   gboolean   relayout_pending;
 
@@ -100,7 +106,8 @@ struct _EaselToolbox
   GtkWidget      *font_button;
   gboolean        opaque, text_opaque;
   GtkWidget      *style_buttons[4];
-  gboolean        syncing_style, text_smooth;       /* Draw Opaque for selections */
+  gboolean        syncing_style, text_smooth;
+  int             gradient_style; /* EaselGradientStyle */       /* Draw Opaque for selections */
 };
 
 G_DEFINE_FINAL_TYPE (EaselToolbox, easel_toolbox, GTK_TYPE_WIDGET)
@@ -122,6 +129,7 @@ options_page_for (EaselTool tool)
     case EASEL_TOOL_SELECT:
     case EASEL_TOOL_FREE_FORM_SELECT: return "select";
     case EASEL_TOOL_TEXT: return "text";
+    case EASEL_TOOL_GRADIENT: return "gradient";
     case EASEL_TOOL_MAGNIFIER: return "zoom";
     case EASEL_TOOL_RECTANGLE:         return "shape-rect";
     case EASEL_TOOL_ROUNDED_RECTANGLE: return "shape-rounded";
@@ -145,6 +153,7 @@ on_tool_toggled (GtkToggleButton *button, EaselToolbox *self)
     }
 
   gtk_stack_set_visible_child_name (GTK_STACK (self->options_stack), options_page_for (tool));
+  gtk_widget_set_visible (self->options_rule, !g_str_equal (options_page_for (tool), "none"));
   g_signal_emit (self, signals[SIGNAL_TOOL_CHANGED], 0);
 }
 
@@ -185,6 +194,9 @@ on_option_toggled (GtkToggleButton *button, EaselToolbox *self)
     case OPTION_TEXT_OPAQUE:
       self->text_opaque = size != 0;
       break;
+    case OPTION_GRADIENT:
+      self->gradient_style = size;
+      break;
     case OPTION_FILL:
       self->fill_style = (EaselFillStyle) size;
       /* Keep the other shape pages showing the same (shared) choice. */
@@ -211,6 +223,26 @@ static void
 draw_preview (GtkDrawingArea *area, cairo_t *cr, int width, int height, gpointer data)
 {
   const Preview *p = data;
+
+  if (p->kind == OPTION_GRADIENT)
+    {
+      GdkRGBA c;
+      gtk_widget_get_color (GTK_WIDGET (area), &c);
+      double x = (width - 20) / 2.0, y = (height - 14) / 2.0;
+      cairo_pattern_t *g;
+
+      if (p->size == EASEL_GRADIENT_RADIAL)
+        g = cairo_pattern_create_radial (x + 3, y + 7, 0, x + 3, y + 7, 17);
+      else
+        g = cairo_pattern_create_linear (x + (p->size == EASEL_GRADIENT_REFLECTED ? 10 : 0), y, x + 20, y);
+      cairo_pattern_add_color_stop_rgba (g, 0, c.red, c.green, c.blue, 1.0);
+      cairo_pattern_add_color_stop_rgba (g, 1, c.red, c.green, c.blue, 0.1);
+      cairo_set_source (cr, g);
+      cairo_rectangle (cr, x, y, 20, 14);
+      cairo_fill (cr);
+      cairo_pattern_destroy (g);
+      return;
+    }
 
   if (p->kind == OPTION_OPAQUE || p->kind == OPTION_TEXT_OPAQUE)
     {
@@ -350,7 +382,7 @@ make_option_button (EaselToolbox *self, OptionKind kind, EaselBrushShape shape, 
                     const char *shape_name, gboolean with_preview, int form)
 {
   GtkWidget *button = gtk_toggle_button_new ();
-  g_autofree char *tip = kind == OPTION_OPAQUE || kind == OPTION_TEXT_OPAQUE
+  g_autofree char *tip = kind == OPTION_OPAQUE || kind == OPTION_TEXT_OPAQUE || kind == OPTION_GRADIENT
                            ? g_strdup (shape_name)
                            : kind == OPTION_ZOOM
                            ? g_strdup_printf ("%d×", size)
@@ -602,6 +634,19 @@ build_airbrush_options (EaselToolbox *self)
 }
 
 static GtkWidget *
+build_gradient_options (EaselToolbox *self)
+{
+  GtkWidget *grid = make_options_grid (), *leader = NULL;
+  static const char *const names[] = { "Linear", "Radial", "Reflected" };
+
+  for (int i = 0; i < 3; i++)
+    add_option (grid, &leader,
+                make_option_button (self, OPTION_GRADIENT, EASEL_BRUSH_CIRCLE, i, names[i], TRUE, 0),
+                0, i, i == self->gradient_style);
+  return grid;
+}
+
+static GtkWidget *
 build_zoom_options (EaselToolbox *self)
 {
   GtkWidget *grid = make_options_grid (), *leader = NULL;
@@ -696,7 +741,7 @@ needed_height (EaselToolbox *self, int cols)
                       &option_h, NULL, NULL, NULL);
   int options_h = option_rows * option_h + (option_rows - 1) * GRID_SPACING;
 
-  return rows * button_h + (rows - 1) * GRID_SPACING + SECTION_SPACING + options_h + 2 * MARGIN;
+  return rows * button_h + (rows - 1) * GRID_SPACING + 2 * SECTION_SPACING + 1 + options_h + 2 * MARGIN;
 }
 
 static void
@@ -797,8 +842,10 @@ easel_toolbox_init (EaselToolbox *self)
 {
   GtkIconTheme *theme = gtk_icon_theme_get_for_display (gdk_display_get_default ());
 
+  gtk_icon_theme_add_resource_path (theme, "/io/github/jackal_kr/Easel/icons");
+
   /* Classic defaults. */
-  self->tool = self->previous_tool = EASEL_TOOL_PENCIL;
+  self->tool = self->previous_tool = EASEL_TOOL_PAN;
   self->pencil_size = 1;
   self->eraser_size = 8;
   self->brush_size = 4;
@@ -816,6 +863,8 @@ easel_toolbox_init (EaselToolbox *self)
   gtk_widget_add_css_class (GTK_WIDGET (self), "easel-toolbox");
 
   /* Options pages first: selecting the initial tool below switches page. */
+  self->options_rule = gtk_separator_new (GTK_ORIENTATION_HORIZONTAL);
+  gtk_widget_set_visible (self->options_rule, FALSE);
   self->options_stack = gtk_stack_new ();
   gtk_stack_set_hhomogeneous (GTK_STACK (self->options_stack), TRUE);
   gtk_stack_add_named (GTK_STACK (self->options_stack), gtk_box_new (GTK_ORIENTATION_VERTICAL, 0), "none");
@@ -825,6 +874,7 @@ easel_toolbox_init (EaselToolbox *self)
   gtk_stack_add_named (GTK_STACK (self->options_stack), build_line_options (self), "line");
   gtk_stack_add_named (GTK_STACK (self->options_stack), build_airbrush_options (self), "airbrush");
   gtk_stack_add_named (GTK_STACK (self->options_stack), build_zoom_options (self), "zoom");
+  gtk_stack_add_named (GTK_STACK (self->options_stack), build_gradient_options (self), "gradient");
   gtk_stack_add_named (GTK_STACK (self->options_stack), build_select_options (self), "select");
   gtk_stack_add_named (GTK_STACK (self->options_stack), build_text_options (self), "text");
   gtk_stack_add_named (GTK_STACK (self->options_stack), build_shape_options (self, 0), "shape-rect");
@@ -845,7 +895,7 @@ easel_toolbox_init (EaselToolbox *self)
       g_signal_connect (button, "toggled", G_CALLBACK (on_tool_toggled), self);
       gtk_grid_attach (GTK_GRID (grid), button, i % 2, i / 2, 1, 1);
     }
-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (self->tool_buttons[EASEL_TOOL_PENCIL]), TRUE);
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (self->tool_buttons[EASEL_TOOL_PAN]), TRUE);
 
   self->tool_grid = grid;
 
@@ -855,6 +905,7 @@ easel_toolbox_init (EaselToolbox *self)
   gtk_widget_set_margin_top (content, MARGIN);
   gtk_widget_set_margin_bottom (content, MARGIN);
   gtk_box_append (GTK_BOX (content), grid);
+  gtk_box_append (GTK_BOX (content), self->options_rule);
   gtk_box_append (GTK_BOX (content), self->options_stack);
 
   /* Never cut anything off: scroll vertically if even three columns do not fit. */
@@ -958,6 +1009,13 @@ easel_toolbox_get_font (EaselToolbox *self)
 {
   g_return_val_if_fail (EASEL_IS_TOOLBOX (self), "Sans 12");
   return self->font;
+}
+
+int
+easel_toolbox_get_gradient_style (EaselToolbox *self)
+{
+  g_return_val_if_fail (EASEL_IS_TOOLBOX (self), 0);
+  return self->gradient_style;
 }
 
 gboolean

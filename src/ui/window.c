@@ -25,6 +25,10 @@ struct _EaselWindow
   GtkLabel  *size_label;
   GtkLabel  *zoom_label;
 
+  GtkWidget *thumb_window;  /* View > Zoom > Show Thumbnail */
+  GtkWidget *thumb_area;
+  guint      thumb_timer;
+
   GFile    *file;     /* where the picture was last opened from / saved to */
   gboolean  modified;
   gboolean  closing;  /* close confirmed: let the window go */
@@ -66,6 +70,7 @@ sync_canvas_tool (EaselWindow *self)
   easel_canvas_set_font (self->canvas, easel_toolbox_get_font (self->toolbox));
   easel_canvas_set_text_opaque (self->canvas, easel_toolbox_get_text_opaque (self->toolbox));
   easel_canvas_set_text_smooth (self->canvas, easel_toolbox_get_text_smooth (self->toolbox));
+  easel_canvas_set_gradient_style (self->canvas, easel_toolbox_get_gradient_style (self->toolbox));
 }
 
 static void
@@ -81,7 +86,7 @@ on_options_changed (EaselToolbox *toolbox, EaselWindow *self)
   sync_canvas_tool (self);
   /* Choosing a magnification while the Magnifier is active applies it now. */
   if (easel_toolbox_get_tool (toolbox) == EASEL_TOOL_MAGNIFIER)
-    easel_canvas_set_zoom (self->canvas, easel_toolbox_get_zoom_level (toolbox), -1, -1);
+    easel_canvas_set_zoom (self->canvas, easel_toolbox_get_zoom_level (toolbox) * 100, -1, -1);
 }
 
 /* Pick Color sets the chosen colour and then hands control back to the tool
@@ -334,6 +339,7 @@ static void
 show_document (EaselWindow *self, EaselDocument *doc, GFile *file)
 {
   easel_canvas_set_document (self->canvas, doc);
+  easel_toolbox_select_tool (self->toolbox, EASEL_TOOL_PAN); /* a fresh picture starts in Pan */
   g_set_object (&self->file, file);
   update_size_label (self);
   set_modified (self, FALSE);
@@ -576,23 +582,27 @@ on_resize_preview (EaselCanvas *canvas, int w, int h, EaselWindow *self)
 
 /* ---- View > Zoom, Grid ---------------------------------------------- */
 
+static void set_action_enabled (EaselWindow *self, const char *name, gboolean enabled);
+
 static void
 on_zoom_changed (EaselCanvas *canvas, EaselWindow *self)
 {
-  g_autofree char *text = g_strdup_printf ("%d%%", easel_canvas_get_zoom (canvas) * 100);
+  g_autofree char *text = g_strdup_printf ("%d%%", easel_canvas_get_zoom (canvas));
   gtk_label_set_text (self->zoom_label, text);
+  /* As in XP, the pixel grid only exists from 4x up, so the item is off below that. */
+  set_action_enabled (self, "show-grid", easel_canvas_get_zoom (canvas) >= 400);
 }
 
 static void
 action_zoom_normal (GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
-  easel_canvas_set_zoom (((EaselWindow *) user_data)->canvas, 1, -1, -1);
+  easel_canvas_set_zoom (((EaselWindow *) user_data)->canvas, 100, -1, -1);
 }
 
 static void
 action_zoom_large (GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
-  easel_canvas_set_zoom (((EaselWindow *) user_data)->canvas, 4, -1, -1);
+  easel_canvas_set_zoom (((EaselWindow *) user_data)->canvas, 400, -1, -1);
 }
 
 static const int zoom_choices[] = { 1, 2, 4, 6, 8 };
@@ -606,7 +616,7 @@ on_zoom_custom_response (AdwAlertDialog *dialog, const char *response, EaselWind
   AdwComboRow *row = g_object_get_data (G_OBJECT (dialog), "zoom-row");
   guint i = adw_combo_row_get_selected (row);
   if (i < G_N_ELEMENTS (zoom_choices))
-    easel_canvas_set_zoom (self->canvas, zoom_choices[i], -1, -1);
+    easel_canvas_set_zoom (self->canvas, zoom_choices[i] * 100, -1, -1);
 }
 
 static void
@@ -620,7 +630,7 @@ action_zoom_custom (GSimpleAction *action, GVariant *parameter, gpointer user_da
   guint current = 0;
 
   for (guint i = 0; i < G_N_ELEMENTS (zoom_choices); i++)
-    if (zoom_choices[i] == easel_canvas_get_zoom (self->canvas))
+    if (zoom_choices[i] * 100 == easel_canvas_get_zoom (self->canvas))
       current = i;
   adw_preferences_row_set_title (ADW_PREFERENCES_ROW (row), "Zoom to");
   adw_combo_row_set_model (row, G_LIST_MODEL (gtk_string_list_new (labels)));
@@ -960,6 +970,91 @@ action_stretch_skew (GSimpleAction *action, GVariant *parameter, gpointer user_d
   adw_dialog_present (dialog, GTK_WIDGET (self));
 }
 
+
+/* ---- View: thumbnail -------------------------------------------------- */
+
+#define THUMB_MAX 240
+
+static void
+draw_thumbnail (GtkDrawingArea *area, cairo_t *cr, int width, int height, gpointer data)
+{
+  EaselWindow *self = data;
+  EaselDocument *doc = easel_canvas_get_document (self->canvas);
+  double scale = MIN ((double) width / doc->width, (double) height / doc->height);
+  double w = doc->width * scale, h = doc->height * scale;
+  double x = (width - w) / 2, y = (height - h) / 2;
+
+  /* The surface wraps the picture's own pixels: no copy. */
+  cairo_surface_t *surface = cairo_image_surface_create_for_data ((unsigned char *) doc->pixels, CAIRO_FORMAT_ARGB32,
+                                                                  doc->width, doc->height, doc->width * 4);
+  cairo_set_source_rgb (cr, 1, 1, 1);
+  cairo_rectangle (cr, x, y, w, h);
+  cairo_fill (cr);
+  cairo_translate (cr, x, y);
+  cairo_scale (cr, scale, scale);
+  cairo_set_source_surface (cr, surface, 0, 0);
+  cairo_pattern_set_filter (cairo_get_source (cr), scale < 1 ? CAIRO_FILTER_GOOD : CAIRO_FILTER_NEAREST);
+  cairo_paint (cr);
+  cairo_surface_destroy (surface);
+}
+
+/* Follows the picture while the window is open (it may be edited or replaced). */
+static gboolean
+thumb_tick (gpointer data)
+{
+  EaselWindow *self = data;
+  EaselDocument *doc = easel_canvas_get_document (self->canvas);
+  double scale = MIN ((double) THUMB_MAX / doc->width, (double) THUMB_MAX / doc->height);
+  int w = MAX (1, (int) (doc->width * MIN (scale, 1.0))), h = MAX (1, (int) (doc->height * MIN (scale, 1.0)));
+
+  gtk_drawing_area_set_content_width (GTK_DRAWING_AREA (self->thumb_area), w);
+  gtk_drawing_area_set_content_height (GTK_DRAWING_AREA (self->thumb_area), h);
+  gtk_widget_queue_draw (self->thumb_area);
+  return G_SOURCE_CONTINUE;
+}
+
+static gboolean
+on_thumb_close (GtkWindow *window, EaselWindow *self)
+{
+  GAction *action = g_action_map_lookup_action (G_ACTION_MAP (self), "show-thumbnail");
+
+  g_clear_handle_id (&self->thumb_timer, g_source_remove);
+  gtk_widget_set_visible (GTK_WIDGET (window), FALSE);
+  g_simple_action_set_state (G_SIMPLE_ACTION (action), g_variant_new_boolean (FALSE));
+  return TRUE;
+}
+
+static void
+on_thumbnail_change_state (GSimpleAction *action, GVariant *value, gpointer user_data)
+{
+  EaselWindow *self = user_data;
+
+  if (g_variant_get_boolean (value))
+    {
+      if (self->thumb_window == NULL)
+        {
+          self->thumb_area = gtk_drawing_area_new ();
+          gtk_drawing_area_set_draw_func (GTK_DRAWING_AREA (self->thumb_area), draw_thumbnail, self, NULL);
+          self->thumb_window = gtk_window_new ();
+          gtk_window_set_title (GTK_WINDOW (self->thumb_window), "Thumbnail");
+          gtk_window_set_transient_for (GTK_WINDOW (self->thumb_window), GTK_WINDOW (self));
+          gtk_window_set_resizable (GTK_WINDOW (self->thumb_window), FALSE);
+          gtk_window_set_child (GTK_WINDOW (self->thumb_window), self->thumb_area);
+          g_signal_connect (self->thumb_window, "close-request", G_CALLBACK (on_thumb_close), self);
+        }
+      thumb_tick (self);
+      if (self->thumb_timer == 0)
+        self->thumb_timer = g_timeout_add (250, thumb_tick, self);
+      gtk_window_present (GTK_WINDOW (self->thumb_window));
+    }
+  else if (self->thumb_window != NULL)
+    {
+      g_clear_handle_id (&self->thumb_timer, g_source_remove);
+      gtk_widget_set_visible (self->thumb_window, FALSE);
+    }
+  g_simple_action_set_state (action, value);
+}
+
 static const GActionEntry window_actions[] = {
   { "swap-colors", action_swap_colors },
   { "clear-image", action_clear_image },
@@ -1055,6 +1150,10 @@ static void
 easel_window_dispose (GObject *object)
 {
   EaselWindow *self = EASEL_WINDOW (object);
+  g_clear_handle_id (&self->thumb_timer, g_source_remove);
+  if (self->thumb_window != NULL)
+    gtk_window_destroy (GTK_WINDOW (self->thumb_window));
+  self->thumb_window = NULL;
   g_clear_object (&self->file);
   G_OBJECT_CLASS (easel_window_parent_class)->dispose (object);
 }
@@ -1148,6 +1247,10 @@ easel_window_init (EaselWindow *self)
   add_visibility_action (self, "show-statusbar", self->status_bar);
 
   g_signal_connect (self, "close-request", G_CALLBACK (on_close_request), NULL);
+  GSimpleAction *thumb = g_simple_action_new_stateful ("show-thumbnail", NULL, g_variant_new_boolean (FALSE));
+  g_signal_connect (thumb, "change-state", G_CALLBACK (on_thumbnail_change_state), self);
+  g_action_map_add_action (G_ACTION_MAP (self), G_ACTION (thumb));
+  g_object_unref (thumb);
   GSimpleAction *grid = g_simple_action_new_stateful ("show-grid", NULL, g_variant_new_boolean (FALSE));
   g_signal_connect (grid, "change-state", G_CALLBACK (on_grid_change_state), self);
   g_action_map_add_action (G_ACTION_MAP (self), G_ACTION (grid));
@@ -1157,6 +1260,7 @@ easel_window_init (EaselWindow *self)
   g_signal_connect (self->toolbox, "text-style-toggled", G_CALLBACK (on_text_style_toggled), self);
   on_selection_changed (self->canvas, self);
   g_signal_connect (self->canvas, "zoom-changed", G_CALLBACK (on_zoom_changed), self);
+  on_zoom_changed (self->canvas, self);
   g_signal_connect (self->canvas, "resize-preview", G_CALLBACK (on_resize_preview), self);
   g_signal_connect (self->canvas, "history-changed", G_CALLBACK (on_history_changed), self);
   on_history_changed (self->canvas, self);

@@ -3,5 +3,24 @@
   <gresource prefix="/io/github/jackal_kr/Easel">
     <file>menus.ui</file>
     <file>style.css</file>
+  
+    <file>icons/scalable/actions/easel-pan-symbolic.svg</file>
+    <file>icons/scalable/actions/easel-magnifier-symbolic.svg</file>
+    <file>icons/scalable/actions/easel-select-symbolic.svg</file>
+    <file>icons/scalable/actions/easel-free-form-select-symbolic.svg</file>
+    <file>icons/scalable/actions/easel-eraser-symbolic.svg</file>
+    <file>icons/scalable/actions/easel-pick-color-symbolic.svg</file>
+    <file>icons/scalable/actions/easel-fill-symbolic.svg</file>
+    <file>icons/scalable/actions/easel-gradient-symbolic.svg</file>
+    <file>icons/scalable/actions/easel-pencil-symbolic.svg</file>
+    <file>icons/scalable/actions/easel-brush-symbolic.svg</file>
+    <file>icons/scalable/actions/easel-airbrush-symbolic.svg</file>
+    <file>icons/scalable/actions/easel-text-symbolic.svg</file>
+    <file>icons/scalable/actions/easel-line-symbolic.svg</file>
+    <file>icons/scalable/actions/easel-curve-symbolic.svg</file>
+    <file>icons/scalable/actions/easel-rectangle-symbolic.svg</file>
+    <file>icons/scalable/actions/easel-rounded-rectangle-symbolic.svg</file>
+    <file>icons/scalable/actions/easel-ellipse-symbolic.svg</file>
+    <file>icons/scalable/actions/easel-polygon-symbolic.svg</file>
   </gresource>
 </gresources>
