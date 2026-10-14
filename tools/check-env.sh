@@ -68,6 +68,10 @@ need optional desktop-file-validate desktop-file-utils "validates easel.desktop"
 need optional appstreamcli appstream "validates the metainfo"
 need optional lintian lintian "checks the .deb (optional)"
 
+echo "Packaging: AppImage"
+need optional curl curl "downloads linuxdeploy on first use"
+need optional file file "used by linuxdeploy"
+
 echo "Packaging: Flatpak"
 need optional flatpak flatpak "runs Flatpaks"
 need optional flatpak-builder flatpak-builder "builds the Flatpak"

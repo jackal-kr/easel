@@ -7,7 +7,7 @@
 /* Largest picture side, in pixels (the engine also caps the pixel count). */
 #define EASEL_MAX_DIMENSION 16384
 
-#define EASEL_DEFAULT_FONT "Arial 11"
+#define EASEL_DEFAULT_FONT "Arial 12"
 
 /* Pixels kept for undo before the oldest steps are dropped. */
 #define EASEL_UNDO_LIMIT_MB 512 /* default; Preferences can change it */

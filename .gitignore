@@ -1,6 +1,7 @@
 /build/
 /build-flatpak/
 /build-deb/
+/build-appimage/
 /dist/
 /.cache/
 .scratch/

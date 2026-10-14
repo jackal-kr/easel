@@ -114,10 +114,20 @@
       }
     },
     {
-      "label": "Package: build .deb and Flatpak",
+      "label": "Package: build AppImage",
+      "type": "shell",
+      "command": "tools/build-appimage.sh",
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Package: build .deb, Flatpak and AppImage",
       "dependsOn": [
         "Package: build .deb",
-        "Package: build Flatpak"
+        "Package: build Flatpak",
+        "Package: build AppImage"
       ],
       "dependsOrder": "sequence",
       "problemMatcher": []

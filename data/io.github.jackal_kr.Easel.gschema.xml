@@ -53,7 +53,7 @@
 
     <!-- Drawing defaults (used when the app starts) -->
     <key name="default-font" type="s">
-      <default>"Arial 11"</default>
+      <default>"Arial 12"</default>
       <summary>Text tool font, as a Pango description</summary>
     </key>
     <key name="text-opaque" type="b">

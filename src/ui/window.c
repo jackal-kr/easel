@@ -967,6 +967,15 @@ on_thumb_close (GtkWindow *window, EaselWindow *self)
   return TRUE;
 }
 
+static gboolean
+on_thumb_key (GtkEventControllerKey *ctrl, guint keyval, guint keycode, GdkModifierType state, gpointer data)
+{
+  if (keyval != GDK_KEY_Escape)
+    return GDK_EVENT_PROPAGATE;
+  gtk_window_close (GTK_WINDOW (data));
+  return GDK_EVENT_STOP;
+}
+
 static void
 on_thumbnail_change_state (GSimpleAction *action, GVariant *value, gpointer user_data)
 {
@@ -984,6 +993,9 @@ on_thumbnail_change_state (GSimpleAction *action, GVariant *value, gpointer user
           gtk_window_set_resizable (GTK_WINDOW (self->thumb_window), FALSE);
           gtk_window_set_child (GTK_WINDOW (self->thumb_window), self->thumb_area);
           g_signal_connect (self->thumb_window, "close-request", G_CALLBACK (on_thumb_close), self);
+          GtkEventController *keys = gtk_event_controller_key_new ();
+          g_signal_connect (keys, "key-pressed", G_CALLBACK (on_thumb_key), self->thumb_window);
+          gtk_widget_add_controller (self->thumb_window, keys);
         }
       self->thumb_w = 0; /* force the first redraw */
       thumb_tick (self);

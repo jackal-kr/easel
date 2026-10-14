@@ -13,7 +13,7 @@ prompts, undo across everything, paste of oversize images, selections on the far
 hunted down and fixed. Use it for real: quick sketches, screenshot markup, pixel art, resizing and cropping, or
 just drawing a sun in the corner of everything. ☀️
 
-Available in English, Czech, German, Italian, Spanish, Portuguese, Polish, Russian and Ukrainian, with screen-reader labels. Packages: `.deb` and Flatpak
+Available in English, Czech, German, Italian, Spanish, Portuguese, Polish, Russian and Ukrainian, with screen-reader labels. Packages: `.deb`, Flatpak and AppImage
 (see the [releases](https://github.com/jackal-kr/easel/releases)).
 
 <details><summary>Dark mode too 🌙</summary>
@@ -41,11 +41,12 @@ Meson, Ninja. Developed on Ubuntu 26.04.
     ./build/src/easel
 
 ## Install
-Grab the `.deb` or the Flatpak from the [latest release](https://github.com/jackal-kr/easel/releases/latest), or build them yourself into `dist/`:
+Grab the `.deb`, the Flatpak or the AppImage from the [latest release](https://github.com/jackal-kr/easel/releases/latest), or build them yourself into `dist/`:
 
     tools/check-env.sh              # is everything needed installed?
     tools/build-deb.sh              # dist/easel_<version>_amd64.deb   -> sudo apt install ./dist/easel_*.deb
     tools/build-flatpak.sh          # dist/io.github.jackal_kr.Easel.flatpak -> flatpak --user install dist/*.flatpak
+    tools/build-appimage.sh         # dist/Easel-<version>-x86_64.AppImage  -> chmod +x and run it
 
 In VS Code these are tasks: **Terminal → Run Task…** (check environment, build, test, debug, push, packages).
 

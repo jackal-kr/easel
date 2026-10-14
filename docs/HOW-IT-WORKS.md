@@ -18,7 +18,7 @@ Read the parts in order, with the matching source file open beside the doc. Neve
 | 6. Code tour: core/ | Six small files, pure C | 35 |
 | 7. Code tour: canvas | The big widget, split in five files | 40 |
 | 8. Code tour: rest of ui/ | Window, toolbox, colour box, dialogs, files | 25 |
-| 9. Build and packaging | Meson, resources, i18n, tests, Flatpak, deb | 15 |
+| 9. Build and packaging | Meson, resources, i18n, tests, Flatpak, deb, AppImage | 15 |
 | 10-11. Tips and glossary | Habits, traps, vocabulary | 15 |
 
 That is about 230 minutes. If you only have two hours, read parts 1 to 4 and the first half of part 7, then use parts 5, 6 and 8 as a reference when you open a file.
@@ -380,7 +380,8 @@ The root `meson.build` states the dependencies (GTK 4.14, libadwaita 1.8, gdk-pi
 
 - **Debian package**: `tools/build-deb.sh` runs `dpkg-buildpackage`; the recipe is in `debian/` (`control`, `rules`, `changelog`). The package version comes from `debian/changelog`.
 - **Flatpak**: `tools/build-flatpak.sh [--install]` builds against the GNOME runtime. The manifest for Flathub (the public store) is `build-aux/flathub/io.github.jackal_kr.Easel.yml`; it points at a git tag. A Flatpak app is sandboxed, so file access goes through *portals*; that is why a missing documents portal once made the Flatpak crash at launch even though the app was fine.
-- **A release** is: bump `version` in `meson.build`, add an entry to `debian/changelog` and `<release>` in the metainfo, commit, tag `vX.Y.Z`, push, then build the deb and Flatpak and attach them to a GitHub release.
+- **AppImage**: `tools/build-appimage.sh` installs into a staging folder, lets *linuxdeploy* (with its GTK plugin) copy the libraries the app needs next to it, and packs everything into one file that runs on most distributions without installing. A small hook script points the app at its own translations, help and settings schema inside the image.
+- **A release** is: bump `version` in `meson.build`, add an entry to `debian/changelog` and `<release>` in the metainfo, commit, tag `vX.Y.Z`, push, then build the deb, Flatpak and AppImage and attach them to a GitHub release.
 
 ### Translations
 

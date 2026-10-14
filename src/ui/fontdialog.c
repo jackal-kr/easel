@@ -137,6 +137,18 @@ on_selected_changed (GObject *selection, GParamSpec *pspec, PickerState *st)
   update_preview (st);
 }
 
+/* The search box swallows Esc to clear itself, so catch it first and close. */
+static gboolean
+on_dialog_key (GtkEventControllerKey *ctrl, guint keyval, guint keycode, GdkModifierType state, gpointer data)
+{
+  PickerState *st = data;
+
+  if (keyval != GDK_KEY_Escape)
+    return GDK_EVENT_PROPAGATE;
+  adw_dialog_close (st->dialog);
+  return GDK_EVENT_STOP;
+}
+
 static void
 on_search_changed (GtkSearchEntry *entry, PickerState *st)
 {
@@ -344,6 +356,10 @@ easel_font_dialog_present (GtkWidget *parent, const char *font, guint flags, uin
   adw_toolbar_view_set_content (ADW_TOOLBAR_VIEW (toolbar), box);
   adw_dialog_set_child (st->dialog, toolbar);
   adw_dialog_set_default_widget (st->dialog, select);
+  GtkEventController *keys = gtk_event_controller_key_new ();
+  gtk_event_controller_set_propagation_phase (keys, GTK_PHASE_CAPTURE);
+  g_signal_connect (keys, "key-pressed", G_CALLBACK (on_dialog_key), st);
+  gtk_widget_add_controller (GTK_WIDGET (st->dialog), keys);
   adw_dialog_set_focus (st->dialog, search);
   g_signal_connect_swapped (st->dialog, "closed", G_CALLBACK (g_free), st);
 

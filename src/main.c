@@ -91,7 +91,9 @@ action_help (GSimpleAction *action, GVariant *parameter, gpointer user_data)
   g_autofree char *exe = g_file_read_link ("/proc/self/exe", NULL);
   g_autofree char *exe_dir = exe != NULL ? g_path_get_dirname (exe) : NULL;
   g_autofree char *dev = exe_dir != NULL ? g_build_filename (exe_dir, "..", "..", "docs", "help.html", NULL) : NULL;
-  g_autofree char *installed = g_build_filename (EASEL_DOCDIR, "help.html", NULL);
+  /* EASEL_DOCDIR lets a relocated install (the AppImage) point at its own copy. */
+  const char *docdir = g_getenv ("EASEL_DOCDIR");
+  g_autofree char *installed = g_build_filename (docdir != NULL ? docdir : EASEL_DOCDIR, "help.html", NULL);
   const char *path = dev != NULL && g_file_test (dev, G_FILE_TEST_EXISTS) ? dev : installed;
   GtkWindow *parent = gtk_application_get_active_window (app);
 

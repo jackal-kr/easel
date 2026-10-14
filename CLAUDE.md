@@ -11,7 +11,7 @@ incremental steps, no token waste).
     meson test -C build --print-errorlogs  # core tests always; canvas tests need a display (skip, exit 77, otherwise)
     ./build/src/easel                      # run (GSettings schema is found in build/data)
 Check the machine: `tools/check-env.sh`. Packages (outputs in `dist/`): `tools/build-deb.sh`,
-`tools/build-flatpak.sh [--install]`. All of these are also VS Code tasks (Terminal > Run Task).
+`tools/build-flatpak.sh [--install]`, `tools/build-appimage.sh`. All of these are also VS Code tasks (Terminal > Run Task).
 Canvas tests headless-safe: `GSK_RENDERER=cairo meson test -C build`.
 Env: Ubuntu 26.04, GTK 4.22, libadwaita 1.9 (AdwShortcutsDialog needs >= 1.8), GCC 15, Meson 1.10.
 
