@@ -1,3 +1,9 @@
+easel (1.1.4) unstable; urgency=medium
+
+  * The Font dialog now shows its font list and highlights the current font.
+
+ -- JOD (Oleksiy Degtyar) <oleksiy.degtyar@gmail.com>  Wed, 14 Oct 2026 21:20:00 +0200
+
 easel (1.1.3) unstable; urgency=medium
 
   * Gradients fade to transparent, so a second gradient lays over the first.
