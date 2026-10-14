@@ -1,10 +1,26 @@
-# Easel
+# 🎨 Easel
 
-A native GNOME paint program with the functionality and workflow of classic Windows Paint, built from GNOME
+**Remember the old, beautiful Paint of Windows XP? It's back — and it finally feels at home on GNOME.**
+
+Easel is a native paint program with the functionality and workflow of classic Windows Paint, built from GNOME
 components only: **GTK 4 + libadwaita**, written in C, built with Meson. It follows the GNOME look (header bar,
-dark mode, dialogs) rather than imitating the Windows 95/XP appearance.
+dark mode, dialogs) instead of imitating the Windows 95/XP appearance — same tools you know, in a modern window.
 
-Status: usable, pre-release (0.1). Debian package and Flatpak can be built locally — see the [roadmap](docs/roadmap.md).
+![Easel drawing a house](docs/screenshots/main.png)
+
+**Version 1.0 — a full release, not a preview.** Every tool works, the edge cases (huge pictures, unsaved-changes
+prompts, undo across everything, paste of oversize images, selections on the far side of a panned canvas…) have been
+hunted down and fixed. Use it for real: quick sketches, screenshot markup, pixel art, resizing and cropping, or
+just drawing a sun in the corner of everything. ☀️
+
+Available in English, Polish and Ukrainian, with screen-reader labels. Packages: `.deb` and Flatpak
+(see the [releases](https://github.com/jackal-kr/easel/releases)).
+
+<details><summary>Dark mode too 🌙</summary>
+
+![Easel in the dark style](docs/screenshots/dark.png)
+
+</details>
 
 ## Features
 - All the classic tools: Pencil, Brush (12 shapes), Airbrush, Eraser (opaque or transparent, color eraser), Fill,
@@ -25,7 +41,7 @@ Meson, Ninja. Developed on Ubuntu 26.04.
     ./build/src/easel
 
 ## Install
-Packages are built into `dist/`:
+Grab the `.deb` or the Flatpak from the [latest release](https://github.com/jackal-kr/easel/releases/latest), or build them yourself into `dist/`:
 
     tools/check-env.sh              # is everything needed installed?
     tools/build-deb.sh              # dist/easel_<version>_amd64.deb   -> sudo apt install ./dist/easel_*.deb
@@ -50,6 +66,14 @@ Core tests run anywhere. The canvas tests need a display and are skipped without
     data/       menus, GSettings schema, icons, styles
     tests/      core and canvas tests
     tools/      icon generator
+
+## Fun things to try
+- Pick the **Airbrush** and spray a cloud — the classic way to make one.
+- Choose the **Brush** with the diagonal shape and sign your name like it's 2001.
+- Draw something, **Image → Flip/Rotate**, and admire your work upside down.
+- Right-click with the **Eraser** to swap one color for another without touching the rest.
+- Zoom to 800 % and turn on the pixel grid: instant pixel-art studio.
+- Press **F1** for the manual, **Ctrl+Shift+X** to swap colors, **Ctrl+Z** as often as your courage requires.
 
 ## Credits and license
 Easel is inspired by the old, beautiful Microsoft Paint of Windows XP. Behavior of the classic tools was also studied from [jspaint](https://github.com/1j01/jspaint) (MIT); Easel contains
