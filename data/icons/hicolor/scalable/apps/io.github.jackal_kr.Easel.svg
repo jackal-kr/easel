@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="wood" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#b5835a"/><stop offset="1" stop-color="#8f5d37"/>
+    </linearGradient>
+    <linearGradient id="board" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e9ecef"/>
+    </linearGradient>
+  </defs>
+  <!-- legs -->
+  <path d="M30 100 L52 70 L58 74 L38 108 Z" fill="url(#wood)"/>
+  <path d="M98 100 L76 70 L70 74 L90 108 Z" fill="url(#wood)"/>
+  <path d="M61 70 L67 70 L67 112 L61 112 Z" fill="url(#wood)"/>
+  <!-- ledge -->
+  <rect x="26" y="88" width="76" height="7" rx="3" fill="#8f5d37"/>
+  <!-- canvas board -->
+  <rect x="22" y="14" width="84" height="72" rx="6" fill="#00000026" transform="translate(0 3)"/>
+  <rect x="22" y="14" width="84" height="72" rx="6" fill="url(#board)" stroke="#c0c5cb" stroke-width="2"/>
+  <!-- the picture: a few pixel-hard strokes -->
+  <rect x="34" y="62" width="60" height="6" fill="#26a269"/>
+  <circle cx="48" cy="40" r="11" fill="#e01b24"/>
+  <rect x="64" y="28" width="22" height="22" fill="#3584e4"/>
+  <path d="M32 78 L58 56 L66 62 L96 36" fill="none" stroke="#f5c211" stroke-width="5" stroke-linecap="square"/>
+</svg>

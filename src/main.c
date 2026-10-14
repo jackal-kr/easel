@@ -176,6 +176,16 @@ on_startup (GApplication *app)
                                               GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
   g_object_unref (css);
 
+  /* Application icon: installed in the icon theme, or from the source tree
+   * when running out of the build directory. */
+  g_autofree char *exe = g_file_read_link ("/proc/self/exe", NULL);
+  g_autofree char *exe_dir = exe != NULL ? g_path_get_dirname (exe) : NULL;
+  g_autofree char *dev_icons = exe_dir != NULL ? g_build_filename (exe_dir, "..", "..", "data", "icons", NULL) : NULL;
+
+  if (dev_icons != NULL && g_file_test (dev_icons, G_FILE_TEST_IS_DIR))
+    gtk_icon_theme_add_search_path (gtk_icon_theme_get_for_display (gdk_display_get_default ()), dev_icons);
+  gtk_window_set_default_icon_name (EASEL_APP_ID);
+
   easel_settings_apply_appearance ();
 }
 

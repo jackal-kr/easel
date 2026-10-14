@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.jackal_kr.Easel</id>
+  <name>Easel</name>
+  <summary>A simple paint program in the spirit of classic Paint</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <developer id="io.github.jackal_kr">
+    <name>JOD (Oleksiy Degtyar)</name>
+  </developer>
+  <description>
+    <p>
+      Easel is a native GNOME paint program with the functionality and workflow of the old Microsoft Paint
+      of Windows XP, built with GTK 4 and libadwaita.
+    </p>
+    <ul>
+      <li>All the classic tools: pencil, brush, airbrush, eraser, fill, text, line, curve, shapes and selections</li>
+      <li>Unlimited-step undo and redo, zoom, pixel grid and thumbnail</li>
+      <li>Open and save PNG, JPEG, BMP, TIFF and WebP</li>
+      <li>Light and dark style, keyboard shortcuts, Preferences</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">io.github.jackal_kr.Easel.desktop</launchable>
+  <url type="homepage">https://github.com/jackal-kr/easel</url>
+  <url type="bugtracker">https://github.com/jackal-kr/easel/issues</url>
+  <categories>
+    <category>Graphics</category>
+  </categories>
+  <provides>
+    <binary>easel</binary>
+  </provides>
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </supports>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.1.0" date="2026-10-14">
+      <description>
+        <p>First public version.</p>
+      </description>
+    </release>
+  </releases>
+</component>

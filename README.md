@@ -4,7 +4,7 @@ A native GNOME paint program with the functionality and workflow of classic Wind
 components only: **GTK 4 + libadwaita**, written in C, built with Meson. It follows the GNOME look (header bar,
 dark mode, dialogs) rather than imitating the Windows 95/XP appearance.
 
-Status: usable, pre-release (0.1). Not packaged yet — see the [roadmap](docs/roadmap.md).
+Status: usable, pre-release (0.1). Debian package and Flatpak can be built locally — see the [roadmap](docs/roadmap.md).
 
 ## Features
 - All the classic tools: Pencil, Brush (12 shapes), Airbrush, Eraser (opaque or transparent, color eraser), Fill,
@@ -17,12 +17,21 @@ Status: usable, pre-release (0.1). Not packaged yet — see the [roadmap](docs/r
 - Hard-edged drawing like the original: pixel-exact results.
 
 ## Build and run
-Requirements: GTK ≥ 4.14, libadwaita ≥ 1.5 (the shortcuts window needs ≥ 1.8), gdk-pixbuf 2, GCC or Clang,
+Requirements: GTK ≥ 4.14, libadwaita ≥ 1.8, gdk-pixbuf 2, GCC or Clang,
 Meson, Ninja. Developed on Ubuntu 26.04.
 
     meson setup build
     ninja -C build
     ./build/src/easel
+
+## Install
+Packages are built into `dist/`:
+
+    tools/check-env.sh              # is everything needed installed?
+    tools/build-deb.sh              # dist/easel_<version>_amd64.deb   -> sudo apt install ./dist/easel_*.deb
+    tools/build-flatpak.sh          # dist/io.github.jackal_kr.Easel.flatpak -> flatpak --user install dist/*.flatpak
+
+In VS Code these are tasks: **Terminal → Run Task…** (check environment, build, test, debug, push, packages).
 
 ## Test
     meson test -C build --print-errorlogs

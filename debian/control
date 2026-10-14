@@ -1,0 +1,28 @@
+Source: easel
+Section: graphics
+Priority: optional
+Maintainer: JOD (Oleksiy Degtyar) <oleksiy.degtyar@gmail.com>
+Build-Depends: debhelper-compat (= 13),
+               meson (>= 1.3),
+               pkgconf,
+               libglib2.0-dev-bin,
+               libglib2.0-dev,
+               libgtk-4-dev (>= 4.14),
+               libadwaita-1-dev (>= 1.8),
+               libgdk-pixbuf-2.0-dev,
+               desktop-file-utils,
+               appstream
+Standards-Version: 4.7.0
+Homepage: https://github.com/jackal-kr/easel
+Rules-Requires-Root: no
+
+Package: easel
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Recommends: webp-pixbuf-loader
+Description: simple paint program for GNOME in the spirit of classic Paint
+ Easel has the tools and workflow of the old Microsoft Paint of Windows XP,
+ built with GTK 4 and libadwaita: pencil, brush, airbrush, eraser, fill, text,
+ lines, curves, shapes and selections, with unlimited undo and redo.
+ .
+ It opens and saves PNG, JPEG, BMP, TIFF and WebP pictures.

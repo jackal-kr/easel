@@ -13,5 +13,9 @@
   "search.exclude": { "build": true, ".scratch": true },
   "files.insertFinalNewline": true,
   "editor.formatOnSave": false,
-  "editor.rulers": [110]
+  "editor.rulers": [
+    110
+  ],
+  "C_Cpp.default.compileCommands": "/home/jackal-kr/Documents/Dev/linux/gnome/easel/build/compile_commands.json",
+  "C_Cpp.default.configurationProvider": "mesonbuild.mesonbuild"
 }

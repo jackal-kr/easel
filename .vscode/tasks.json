@@ -1,21 +1,58 @@
 {
   "version": "2.0.0",
+  "inputs": [
+    {
+      "id": "confirmPush",
+      "type": "pickString",
+      "description": "Push the current branch to GitHub?",
+      "options": [
+        "yes",
+        "no"
+      ],
+      "default": "no"
+    }
+  ],
   "tasks": [
+    {
+      "label": "Dev: check environment",
+      "type": "shell",
+      "command": "tools/check-env.sh",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Build: configure",
+      "type": "shell",
+      "command": "meson setup build --reconfigure || meson setup build",
+      "problemMatcher": []
+    },
     {
       "label": "build",
       "type": "shell",
       "command": "ninja -C build",
-      "group": { "kind": "build", "isDefault": true },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
       "problemMatcher": {
         "base": "$gcc",
-        "fileLocation": ["relative", "${workspaceFolder}/build"]
+        "fileLocation": [
+          "relative",
+          "${workspaceFolder}/build"
+        ]
       }
     },
     {
       "label": "test",
       "type": "shell",
       "command": "GSK_RENDERER=cairo meson test -C build --print-errorlogs",
-      "group": { "kind": "test", "isDefault": true },
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
       "dependsOn": "build",
       "problemMatcher": []
     },
@@ -24,6 +61,65 @@
       "type": "shell",
       "command": "./build/src/easel",
       "dependsOn": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Debug: Easel in gdb (terminal)",
+      "type": "shell",
+      "command": "gdb -q -ex run ./build/src/easel",
+      "dependsOn": "build",
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "dedicated",
+        "focus": true
+      }
+    },
+    {
+      "label": "Git: push to GitHub",
+      "type": "shell",
+      "command": "[ \"${input:confirmPush}\" = yes ] && tools/git-push.sh || echo 'Push cancelled.'",
+      "problemMatcher": []
+    },
+    {
+      "label": "Package: validate metadata",
+      "type": "shell",
+      "command": "desktop-file-validate data/io.github.jackal_kr.Easel.desktop && appstreamcli validate --no-net data/io.github.jackal_kr.Easel.metainfo.xml",
+      "problemMatcher": []
+    },
+    {
+      "label": "Package: build .deb",
+      "type": "shell",
+      "command": "tools/build-deb.sh",
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Package: build Flatpak",
+      "type": "shell",
+      "command": "tools/build-flatpak.sh",
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Package: build Flatpak and install",
+      "type": "shell",
+      "command": "tools/build-flatpak.sh --install",
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Package: build .deb and Flatpak",
+      "dependsOn": [
+        "Package: build .deb",
+        "Package: build Flatpak"
+      ],
+      "dependsOrder": "sequence",
       "problemMatcher": []
     },
     {

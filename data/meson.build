@@ -17,3 +17,29 @@ custom_target('gschemas',
 install_data('../docs/help.md', install_dir: get_option('datadir') / 'doc' / 'easel')
 install_data('io.github.jackal_kr.Easel.gschema.xml',
   install_dir: get_option('datadir') / 'glib-2.0' / 'schemas')
+
+# Desktop integration: icons, launcher and AppStream metadata.
+install_data('icons/hicolor/scalable/apps/@0@.svg'.format(app_id),
+  install_dir: get_option('datadir') / 'icons' / 'hicolor' / 'scalable' / 'apps')
+install_data('icons/hicolor/symbolic/apps/@0@-symbolic.svg'.format(app_id),
+  install_dir: get_option('datadir') / 'icons' / 'hicolor' / 'symbolic' / 'apps')
+desktop_file = files('@0@.desktop'.format(app_id))
+install_data(desktop_file, install_dir: get_option('datadir') / 'applications')
+metainfo_file = files('@0@.metainfo.xml'.format(app_id))
+install_data(metainfo_file, install_dir: get_option('datadir') / 'metainfo')
+
+desktop_validate = find_program('desktop-file-validate', required: false)
+if desktop_validate.found()
+  test('validate-desktop', desktop_validate, args: [desktop_file])
+endif
+appstreamcli = find_program('appstreamcli', required: false)
+if appstreamcli.found()
+  test('validate-metainfo', appstreamcli, args: ['validate', '--no-net', metainfo_file])
+endif
+
+# Refresh the system caches after `meson install` (skipped for staged installs).
+gnome.post_install(
+  glib_compile_schemas: true,
+  gtk_update_icon_cache: true,
+  update_desktop_database: true,
+)

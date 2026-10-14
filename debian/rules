@@ -1,0 +1,11 @@
+#!/usr/bin/make -f
+%:
+	dh $@ --buildsystem=meson
+
+# The canvas tests need a display; without one they report "skipped".
+override_dh_auto_test:
+	GSK_RENDERER=cairo dh_auto_test
+
+# Easel's Help command opens help.md directly, so keep it uncompressed.
+override_dh_compress:
+	dh_compress -Xhelp.md
