@@ -42,6 +42,16 @@ gboolean easel_canvas_has_selection (EaselCanvas *self);
 void     easel_canvas_flush (EaselCanvas *self); /* put a floating selection down */
 void     easel_canvas_select_all (EaselCanvas *self);
 EaselClip *easel_canvas_get_selection (EaselCanvas *self); /* a copy; caller frees */
+void     easel_canvas_set_font (EaselCanvas *self, const char *description);
+void     easel_canvas_set_text_opaque (EaselCanvas *self, gboolean opaque);
+void     easel_canvas_set_text_smooth (EaselCanvas *self, gboolean smooth);
+void     easel_canvas_text_apply_style (EaselCanvas *self, guint flag, gboolean on);
+gboolean easel_canvas_text_active (EaselCanvas *self);
+void     easel_canvas_text_select_all (EaselCanvas *self);
+void     easel_canvas_text_copy (EaselCanvas *self);
+void     easel_canvas_text_cut (EaselCanvas *self);
+void     easel_canvas_text_delete (EaselCanvas *self);
+void     easel_canvas_text_paste (EaselCanvas *self);
 void     easel_canvas_copy (EaselCanvas *self);
 void     easel_canvas_cut (EaselCanvas *self);
 void     easel_canvas_clear_selection (EaselCanvas *self);

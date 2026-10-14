@@ -21,3 +21,6 @@ typedef enum
   EASEL_TOOL_ROUNDED_RECTANGLE,
   EASEL_N_TOOLS
 } EaselTool;
+
+/* Character styles in the Text tool. */
+enum { EASEL_TEXT_BOLD = 1, EASEL_TEXT_ITALIC = 2, EASEL_TEXT_UNDERLINE = 4, EASEL_TEXT_STRIKE = 8 };

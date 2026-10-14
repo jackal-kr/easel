@@ -63,6 +63,9 @@ sync_canvas_tool (EaselWindow *self)
   easel_canvas_set_fill_style (self->canvas, easel_toolbox_get_fill_style (self->toolbox));
   easel_canvas_set_zoom_level (self->canvas, easel_toolbox_get_zoom_level (self->toolbox));
   easel_canvas_set_opaque (self->canvas, easel_toolbox_get_opaque (self->toolbox));
+  easel_canvas_set_font (self->canvas, easel_toolbox_get_font (self->toolbox));
+  easel_canvas_set_text_opaque (self->canvas, easel_toolbox_get_text_opaque (self->toolbox));
+  easel_canvas_set_text_smooth (self->canvas, easel_toolbox_get_text_smooth (self->toolbox));
 }
 
 static void
@@ -752,20 +755,47 @@ action_paste_from (GSimpleAction *action, GVariant *parameter, gpointer user_dat
 }
 
 static void
+on_text_style_toggled (EaselToolbox *toolbox, guint flag, gboolean on, EaselWindow *self)
+{
+  easel_canvas_text_apply_style (self->canvas, flag, on);
+}
+
+static void
+on_text_state (EaselCanvas *canvas, guint flags, EaselWindow *self)
+{
+  easel_toolbox_set_text_style (self->toolbox, flags);
+}
+
+static void
 action_cut (GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
+  if (easel_canvas_text_active (((EaselWindow *) user_data)->canvas))
+    {
+      easel_canvas_text_cut (((EaselWindow *) user_data)->canvas);
+      return;
+    }
   easel_canvas_cut (((EaselWindow *) user_data)->canvas);
 }
 
 static void
 action_copy (GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
+  if (easel_canvas_text_active (((EaselWindow *) user_data)->canvas))
+    {
+      easel_canvas_text_copy (((EaselWindow *) user_data)->canvas);
+      return;
+    }
   easel_canvas_copy (((EaselWindow *) user_data)->canvas);
 }
 
 static void
 action_clear_selection (GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
+  if (easel_canvas_text_active (((EaselWindow *) user_data)->canvas))
+    {
+      easel_canvas_text_delete (((EaselWindow *) user_data)->canvas);
+      return;
+    }
   easel_canvas_clear_selection (((EaselWindow *) user_data)->canvas);
 }
 
@@ -774,6 +804,11 @@ action_paste (GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
   EaselWindow *self = user_data;
 
+  if (easel_canvas_text_active (self->canvas))
+    {
+      easel_canvas_text_paste (self->canvas);
+      return;
+    }
   easel_toolbox_select_tool (self->toolbox, EASEL_TOOL_SELECT);
   easel_canvas_paste (self->canvas);
 }
@@ -783,6 +818,11 @@ action_select_all (GSimpleAction *action, GVariant *parameter, gpointer user_dat
 {
   EaselWindow *self = user_data;
 
+  if (easel_canvas_text_active (self->canvas))
+    {
+      easel_canvas_text_select_all (self->canvas);
+      return;
+    }
   easel_toolbox_select_tool (self->toolbox, EASEL_TOOL_SELECT);
   easel_canvas_select_all (self->canvas);
 }
@@ -891,7 +931,21 @@ easel_window_class_init (EaselWindowClass *klass)
 static void
 easel_window_init (EaselWindow *self)
 {
-  gtk_window_set_default_size (GTK_WINDOW (self), 960, 680);
+  /* Big enough to show the whole default picture with its handles, toolbox,
+   * colour box and status bar; shrunk only if the screen cannot hold that. */
+  int want_w = DEFAULT_IMAGE_WIDTH + 220, want_h = DEFAULT_IMAGE_HEIGHT + 240;
+  GListModel *monitors = gdk_display_get_monitors (gdk_display_get_default ());
+  GdkMonitor *monitor = monitors != NULL ? g_list_model_get_item (monitors, 0) : NULL;
+
+  if (monitor != NULL)
+    {
+      GdkRectangle geo;
+      gdk_monitor_get_geometry (monitor, &geo);
+      want_w = MIN (want_w, geo.width * 9 / 10);
+      want_h = MIN (want_h, geo.height * 85 / 100);
+      g_object_unref (monitor);
+    }
+  gtk_window_set_default_size (GTK_WINDOW (self), want_w, want_h);
   gtk_window_set_title (GTK_WINDOW (self), "Untitled - Easel");
 
   EaselDocument *doc = easel_document_new (DEFAULT_IMAGE_WIDTH, DEFAULT_IMAGE_HEIGHT,
@@ -962,6 +1016,8 @@ easel_window_init (EaselWindow *self)
   g_action_map_add_action (G_ACTION_MAP (self), G_ACTION (grid));
   g_object_unref (grid);
   g_signal_connect (self->canvas, "selection-changed", G_CALLBACK (on_selection_changed), self);
+  g_signal_connect (self->canvas, "text-state", G_CALLBACK (on_text_state), self);
+  g_signal_connect (self->toolbox, "text-style-toggled", G_CALLBACK (on_text_style_toggled), self);
   on_selection_changed (self->canvas, self);
   g_signal_connect (self->canvas, "zoom-changed", G_CALLBACK (on_zoom_changed), self);
   g_signal_connect (self->canvas, "resize-preview", G_CALLBACK (on_resize_preview), self);
