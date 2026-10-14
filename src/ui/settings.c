@@ -80,6 +80,27 @@ easel_parse_hex_color (const char *text, uint32_t *argb)
   return TRUE;
 }
 
+int
+easel_default_width (void)
+{
+  return easel_pref_int ("default-width", 800);
+}
+
+int
+easel_default_height (void)
+{
+  return easel_pref_int ("default-height", 600);
+}
+
+uint32_t
+easel_default_background (void)
+{
+  g_autofree char *hex = easel_pref_string ("default-background", "#ffffff");
+  uint32_t argb;
+
+  return easel_parse_hex_color (hex, &argb) ? argb : 0xFFFFFFFFu;
+}
+
 static GtkCssProvider *workspace_css;
 
 static void

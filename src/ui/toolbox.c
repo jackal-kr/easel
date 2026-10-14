@@ -1,5 +1,6 @@
 #include "ui/toolbox.h"
 
+#include "ui/config.h"
 #include "ui/settings.h"
 
 typedef struct
@@ -70,7 +71,7 @@ typedef enum { OPTION_PENCIL, OPTION_BRUSH, OPTION_ERASER, OPTION_LINE, OPTION_F
                OPTION_GRADIENT } OptionKind;
 
 static const int airbrush_sizes[] = { 9, 16, 24 };
-static const int zoom_levels[] = { 1, 2, 4, 6, 8 };
+static const int zoom_levels[] = EASEL_MAGNIFIER_LEVELS;
 
 static const int line_widths[] = { 1, 2, 3, 4, 5 };
 static const struct { EaselFillStyle style; const char *name; } fill_styles[] = {
@@ -858,11 +859,11 @@ easel_toolbox_init (EaselToolbox *self)
   self->zoom_level = 2;
   self->opaque = TRUE;
   self->text_opaque = FALSE; /* text is see-through unless asked otherwise */
-  self->font = g_strdup ("Arial 11");
+  self->font = g_strdup (EASEL_DEFAULT_FONT);
 
   /* Preferences > Drawing. */
   g_free (self->font);
-  self->font = easel_pref_string ("default-font", "Arial 11");
+  self->font = easel_pref_string ("default-font", EASEL_DEFAULT_FONT);
   self->text_opaque = easel_pref_bool ("text-opaque", FALSE);
   self->text_smooth = easel_pref_bool ("text-smooth", FALSE);
   self->line_width = easel_pref_int ("line-width", 1);

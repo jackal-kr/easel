@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "core/document.h"
+#include "ui/config.h"
 #include "ui/settings.h"
 
 #define PALETTE_COLUMNS 14
@@ -57,20 +58,6 @@ set_source_argb (cairo_t *cr, uint32_t c)
   cairo_set_source_rgb (cr, ((c >> 16) & 0xFF) / 255.0, ((c >> 8) & 0xFF) / 255.0, (c & 0xFF) / 255.0);
 }
 
-static uint32_t
-argb_from_rgba (const GdkRGBA *rgba)
-{
-  return EASEL_RGB ((int) (rgba->red * 255.0 + 0.5),
-                    (int) (rgba->green * 255.0 + 0.5),
-                    (int) (rgba->blue * 255.0 + 0.5));
-}
-
-static GdkRGBA
-rgba_from_argb (uint32_t c)
-{
-  return (GdkRGBA) { ((c >> 16) & 0xFF) / 255.0f, ((c >> 8) & 0xFF) / 255.0f,
-                     (c & 0xFF) / 255.0f, 1.0f };
-}
 
 /* The edited palette lives in settings as 28 "#rrggbb" strings; empty means
  * the classic one. */
@@ -101,7 +88,7 @@ save_palette (EaselColorBox *self)
   GStrvBuilder *builder = g_strv_builder_new ();
   for (int i = 0; i < PALETTE_COLUMNS * PALETTE_ROWS; i++)
     {
-      g_autofree char *hex = g_strdup_printf ("#%06x", self->colors[i] & 0xFFFFFF);
+      g_autofree char *hex = easel_argb_to_hex (self->colors[i]);
       g_strv_builder_add (builder, hex);
     }
   g_auto (GStrv) strv = g_strv_builder_end (builder);
@@ -191,14 +178,14 @@ on_color_chosen (GObject *source, GAsyncResult *result, gpointer user_data)
       if (data->cell >= 0)
         {
           /* Edit Colors: the cell takes the new colour, and so does the pen. */
-          data->box->colors[data->cell] = argb_from_rgba (rgba);
+          data->box->colors[data->cell] = easel_rgba_to_argb (rgba);
           save_palette (data->box);
           gtk_widget_queue_draw (data->box->palette_area);
         }
       if (data->foreground)
-        easel_color_box_set_foreground (data->box, argb_from_rgba (rgba));
+        easel_color_box_set_foreground (data->box, easel_rgba_to_argb (rgba));
       else
-        easel_color_box_set_background (data->box, argb_from_rgba (rgba));
+        easel_color_box_set_background (data->box, easel_rgba_to_argb (rgba));
       gdk_rgba_free (rgba);
     }
 
@@ -210,7 +197,7 @@ static void
 choose_color (EaselColorBox *self, gboolean foreground, int cell)
 {
   GtkRoot *root = gtk_widget_get_root (GTK_WIDGET (self));
-  GdkRGBA initial = rgba_from_argb (cell >= 0 ? self->colors[cell] : foreground ? self->foreground : self->background);
+  GdkRGBA initial = easel_argb_to_rgba (cell >= 0 ? self->colors[cell] : foreground ? self->foreground : self->background, 1);
   g_autoptr (GtkColorDialog) dialog = gtk_color_dialog_new ();
   ChooseData *data = g_new0 (ChooseData, 1);
 

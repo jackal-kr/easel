@@ -5,22 +5,13 @@
 #include "core/document.h"
 #include "ui/canvas.h"
 #include "ui/colorbox.h"
+#include "ui/config.h"
+#include "ui/dialogs.h"
+#include "ui/print.h"
 #include "ui/fileio.h"
 #include "ui/settings.h"
 #include "ui/toolbox.h"
 
-/* Size and background of a new picture come from Preferences. */
-#define DEFAULT_IMAGE_WIDTH  easel_pref_int ("default-width", 800)
-#define DEFAULT_IMAGE_HEIGHT easel_pref_int ("default-height", 600)
-
-static uint32_t
-default_background (void)
-{
-  g_autofree char *hex = easel_pref_string ("default-background", "#ffffff");
-  uint32_t argb;
-
-  return easel_parse_hex_color (hex, &argb) ? argb : EASEL_RGB (255, 255, 255);
-}
 
 struct _EaselWindow
 {
@@ -42,6 +33,8 @@ struct _EaselWindow
   GtkWidget *thumb_window;  /* View > Zoom > Show Thumbnail */
   GtkWidget *thumb_area;
   guint      thumb_timer;
+  guint64    thumb_changes;  /* canvas change count at the last thumbnail redraw */
+  int        thumb_w, thumb_h;
 
   GFile    *file;     /* where the picture was last opened from / saved to */
   gboolean  modified;
@@ -363,7 +356,7 @@ show_document (EaselWindow *self, EaselDocument *doc, GFile *file)
 static void
 do_new (EaselWindow *self)
 {
-  EaselDocument *doc = easel_document_new (DEFAULT_IMAGE_WIDTH, DEFAULT_IMAGE_HEIGHT, default_background ());
+  EaselDocument *doc = easel_document_new (easel_default_width (), easel_default_height (), easel_default_background ());
   if (doc != NULL)
     show_document (self, doc, NULL);
 }
@@ -464,130 +457,6 @@ on_close_request (GtkWindow *window, gpointer user_data)
 }
 
 
-/* ---- Image > Attributes --------------------------------------------- */
-
-#define SCREEN_DPI 96.0
-
-typedef struct
-{
-  EaselWindow *self;
-  AdwSpinRow  *width_row, *height_row;
-  AdwComboRow *units_row, *colors_row;
-  int          unit;        /* 0 pixels, 1 inches, 2 centimetres */
-  double       px_w, px_h;  /* the size in pixels, whatever the unit shows */
-} AttrState;
-
-static double
-px_per_unit (int unit)
-{
-  return unit == 1 ? SCREEN_DPI : (unit == 2 ? SCREEN_DPI / 2.54 : 1.0);
-}
-
-static void
-attr_show_size (AttrState *st)
-{
-  double k = px_per_unit (st->unit);
-  GtkAdjustment *aw = adw_spin_row_get_adjustment (st->width_row);
-  GtkAdjustment *ah = adw_spin_row_get_adjustment (st->height_row);
-  int digits = st->unit == 0 ? 0 : 2;
-
-  adw_spin_row_set_digits (st->width_row, digits);
-  adw_spin_row_set_digits (st->height_row, digits);
-  gtk_adjustment_configure (aw, st->px_w / k, 1 / k, 16384 / k, st->unit == 0 ? 1 : 0.1, 10, 0);
-  gtk_adjustment_configure (ah, st->px_h / k, 1 / k, 16384 / k, st->unit == 0 ? 1 : 0.1, 10, 0);
-}
-
-static void
-attr_read_size (AttrState *st)
-{
-  double k = px_per_unit (st->unit);
-
-  st->px_w = CLAMP (gtk_adjustment_get_value (adw_spin_row_get_adjustment (st->width_row)) * k, 1, 16384);
-  st->px_h = CLAMP (gtk_adjustment_get_value (adw_spin_row_get_adjustment (st->height_row)) * k, 1, 16384);
-}
-
-static void
-on_attr_units_changed (AdwComboRow *row, GParamSpec *pspec, AttrState *st)
-{
-  attr_read_size (st); /* in the old unit */
-  st->unit = (int) adw_combo_row_get_selected (row);
-  attr_show_size (st);
-}
-
-static void
-on_attr_response (AdwAlertDialog *dialog, const char *response, AttrState *st)
-{
-  if (g_str_equal (response, "ok"))
-    {
-      attr_read_size (st);
-      easel_canvas_resize (st->self->canvas, (int) lround (st->px_w), (int) lround (st->px_h));
-      if (adw_combo_row_get_selected (st->colors_row) == 1)
-        easel_canvas_black_and_white (st->self->canvas);
-    }
-}
-
-static void
-on_attr_default (GtkButton *button, AttrState *st)
-{
-  st->px_w = DEFAULT_IMAGE_WIDTH;
-  st->px_h = DEFAULT_IMAGE_HEIGHT;
-  attr_show_size (st);
-}
-
-static void
-action_attributes (GSimpleAction *action, GVariant *parameter, gpointer user_data)
-{
-  EaselWindow *self = user_data;
-  EaselDocument *doc = easel_canvas_get_document (self->canvas);
-  AttrState *st = g_new0 (AttrState, 1);
-  AdwDialog *dialog = adw_alert_dialog_new ("Attributes", NULL);
-
-  st->self = self;
-  st->px_w = doc->width;
-  st->px_h = doc->height;
-
-  GtkWidget *group = adw_preferences_group_new ();
-  st->width_row = ADW_SPIN_ROW (adw_spin_row_new_with_range (1, 16384, 1));
-  st->height_row = ADW_SPIN_ROW (adw_spin_row_new_with_range (1, 16384, 1));
-  adw_preferences_row_set_title (ADW_PREFERENCES_ROW (st->width_row), "Width");
-  adw_preferences_row_set_title (ADW_PREFERENCES_ROW (st->height_row), "Height");
-
-  st->units_row = ADW_COMBO_ROW (adw_combo_row_new ());
-  const char *const units[] = { "Pixels", "Inches", "Centimeters", NULL };
-  adw_preferences_row_set_title (ADW_PREFERENCES_ROW (st->units_row), "Units");
-  adw_combo_row_set_model (st->units_row, G_LIST_MODEL (gtk_string_list_new (units)));
-
-  adw_preferences_group_add (ADW_PREFERENCES_GROUP (group), GTK_WIDGET (st->width_row));
-  adw_preferences_group_add (ADW_PREFERENCES_GROUP (group), GTK_WIDGET (st->height_row));
-  adw_preferences_group_add (ADW_PREFERENCES_GROUP (group), GTK_WIDGET (st->units_row));
-
-  st->colors_row = ADW_COMBO_ROW (adw_combo_row_new ());
-  const char *const colors[] = { "Colors", "Black and white", NULL };
-  adw_preferences_row_set_title (ADW_PREFERENCES_ROW (st->colors_row), "Color mode");
-  adw_combo_row_set_model (st->colors_row, G_LIST_MODEL (gtk_string_list_new (colors)));
-  adw_preferences_group_add (ADW_PREFERENCES_GROUP (group), GTK_WIDGET (st->colors_row));
-  attr_show_size (st);
-  g_signal_connect (st->units_row, "notify::selected", G_CALLBACK (on_attr_units_changed), st);
-
-  GtkWidget *box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 12);
-  GtkWidget *reset = gtk_button_new_with_mnemonic ("_Default Size");
-  gtk_widget_set_halign (reset, GTK_ALIGN_END);
-  g_signal_connect (reset, "clicked", G_CALLBACK (on_attr_default), st);
-  gtk_box_append (GTK_BOX (box), group);
-  gtk_box_append (GTK_BOX (box), reset);
-  adw_alert_dialog_set_extra_child (ADW_ALERT_DIALOG (dialog), box);
-  adw_alert_dialog_set_body (ADW_ALERT_DIALOG (dialog),
-                             "New area is filled with the background color; a smaller size crops the picture. Black and white converts the picture and cannot be reverted except with Undo.");
-  adw_alert_dialog_add_responses (ADW_ALERT_DIALOG (dialog),
-                                  "cancel", "_Cancel", "ok", "_OK", NULL);
-  adw_alert_dialog_set_response_appearance (ADW_ALERT_DIALOG (dialog), "ok", ADW_RESPONSE_SUGGESTED);
-  adw_alert_dialog_set_default_response (ADW_ALERT_DIALOG (dialog), "ok");
-  adw_alert_dialog_set_close_response (ADW_ALERT_DIALOG (dialog), "cancel");
-  g_signal_connect (dialog, "response", G_CALLBACK (on_attr_response), st);
-  g_object_set_data_full (G_OBJECT (dialog), "attr-state", st, g_free);
-  adw_dialog_present (dialog, GTK_WIDGET (self));
-}
-
 static void
 on_resize_preview (EaselCanvas *canvas, int w, int h, EaselWindow *self)
 {
@@ -638,49 +507,6 @@ static void
 action_zoom_large (GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
   easel_canvas_set_zoom (((EaselWindow *) user_data)->canvas, 400, -1, -1);
-}
-
-static const int zoom_choices[] = { 1, 2, 4, 6, 8 };
-
-static void
-on_zoom_custom_response (AdwAlertDialog *dialog, const char *response, EaselWindow *self)
-{
-  if (!g_str_equal (response, "ok"))
-    return;
-
-  AdwComboRow *row = g_object_get_data (G_OBJECT (dialog), "zoom-row");
-  guint i = adw_combo_row_get_selected (row);
-  if (i < G_N_ELEMENTS (zoom_choices))
-    easel_canvas_set_zoom (self->canvas, zoom_choices[i] * 100, -1, -1);
-}
-
-static void
-action_zoom_custom (GSimpleAction *action, GVariant *parameter, gpointer user_data)
-{
-  EaselWindow *self = user_data;
-  AdwDialog *dialog = adw_alert_dialog_new ("Custom Zoom", NULL);
-  AdwComboRow *row = ADW_COMBO_ROW (adw_combo_row_new ());
-  const char *const labels[] = { "100%", "200%", "400%", "600%", "800%", NULL };
-  GtkWidget *group = adw_preferences_group_new ();
-  guint current = 0;
-
-  for (guint i = 0; i < G_N_ELEMENTS (zoom_choices); i++)
-    if (zoom_choices[i] * 100 == easel_canvas_get_zoom (self->canvas))
-      current = i;
-  adw_preferences_row_set_title (ADW_PREFERENCES_ROW (row), "Zoom to");
-  adw_combo_row_set_model (row, G_LIST_MODEL (gtk_string_list_new (labels)));
-  adw_combo_row_set_selected (row, current);
-  adw_preferences_group_add (ADW_PREFERENCES_GROUP (group), GTK_WIDGET (row));
-
-  adw_dialog_set_content_width (dialog, 440);
-  adw_alert_dialog_set_extra_child (ADW_ALERT_DIALOG (dialog), group);
-  adw_alert_dialog_add_responses (ADW_ALERT_DIALOG (dialog), "cancel", "_Cancel", "ok", "_OK", NULL);
-  adw_alert_dialog_set_response_appearance (ADW_ALERT_DIALOG (dialog), "ok", ADW_RESPONSE_SUGGESTED);
-  adw_alert_dialog_set_default_response (ADW_ALERT_DIALOG (dialog), "ok");
-  adw_alert_dialog_set_close_response (ADW_ALERT_DIALOG (dialog), "cancel");
-  g_object_set_data (G_OBJECT (dialog), "zoom-row", row);
-  g_signal_connect (dialog, "response", G_CALLBACK (on_zoom_custom_response), self);
-  adw_dialog_present (dialog, GTK_WIDGET (self));
 }
 
 static void
@@ -888,188 +714,44 @@ action_invert_colors (GSimpleAction *action, GVariant *parameter, gpointer user_
   easel_canvas_invert (((EaselWindow *) user_data)->canvas);
 }
 
-typedef struct
-{
-  EaselWindow *window;
-  GtkWidget   *choices[5];
-} FlipDialog;
+/* ---- Image and file actions that open a dialog ------------------------ */
 
 static void
-on_flip_response (AdwAlertDialog *dialog, const char *response, FlipDialog *fd)
+action_attributes (GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
-  if (g_str_equal (response, "ok"))
-    for (int i = 0; i < 5; i++)
-      if (gtk_check_button_get_active (GTK_CHECK_BUTTON (fd->choices[i])))
-        easel_canvas_turn (fd->window->canvas, (EaselTurn) i);
-  g_free (fd);
-}
-
-/* ---- File > Print ---------------------------------------------------- */
-
-static GtkPrintSettings *print_settings;
-static GtkPageSetup *page_setup;
-
-static void
-on_draw_page (GtkPrintOperation *op, GtkPrintContext *context, int page_nr, EaselWindow *self)
-{
-  EaselDocument *doc = easel_canvas_get_document (self->canvas);
-  cairo_t *cr = gtk_print_context_get_cairo_context (context);
-  double pw = gtk_print_context_get_width (context), ph = gtk_print_context_get_height (context);
-  double dpi = gtk_print_context_get_dpi_x (context);
-  /* Actual size (96 pixels to the inch), shrunk to fit the page. */
-  double scale = dpi / SCREEN_DPI;
-
-  scale = MIN (scale, MIN (pw / doc->width, ph / doc->height));
-
-  cairo_surface_t *surface = cairo_image_surface_create_for_data ((unsigned char *) doc->pixels,
-                                                                  CAIRO_FORMAT_ARGB32, doc->width,
-                                                                  doc->height, doc->width * 4);
-  cairo_scale (cr, scale, scale);
-  cairo_set_source_surface (cr, surface, 0, 0);
-  cairo_pattern_set_filter (cairo_get_source (cr), scale >= 1 ? CAIRO_FILTER_NEAREST : CAIRO_FILTER_BEST);
-  cairo_paint (cr);
-  cairo_surface_destroy (surface);
+  easel_dialog_attributes (GTK_WIDGET (user_data), ((EaselWindow *) user_data)->canvas);
 }
 
 static void
-on_print_done (GtkPrintOperation *op, GtkPrintOperationResult result, EaselWindow *self)
+action_zoom_custom (GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
-  if (result == GTK_PRINT_OPERATION_RESULT_APPLY)
-    {
-      g_clear_object (&print_settings);
-      print_settings = g_object_ref (gtk_print_operation_get_print_settings (op));
-    }
-  g_object_unref (op);
+  easel_dialog_custom_zoom (GTK_WIDGET (user_data), ((EaselWindow *) user_data)->canvas);
+}
+
+static void
+action_flip_rotate (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+  easel_dialog_flip_rotate (GTK_WIDGET (user_data), ((EaselWindow *) user_data)->canvas);
+}
+
+static void
+action_stretch_skew (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+  easel_dialog_stretch_skew (GTK_WIDGET (user_data), ((EaselWindow *) user_data)->canvas);
 }
 
 static void
 action_print (GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
   EaselWindow *self = user_data;
-  GtkPrintOperation *op = gtk_print_operation_new ();
-  g_autoptr (GError) error = NULL;
 
   easel_canvas_flush (self->canvas);
-  gtk_print_operation_set_n_pages (op, 1);
-  gtk_print_operation_set_unit (op, GTK_UNIT_POINTS);
-  if (print_settings != NULL)
-    gtk_print_operation_set_print_settings (op, print_settings);
-  if (page_setup != NULL)
-    gtk_print_operation_set_default_page_setup (op, page_setup);
-  g_signal_connect (op, "draw-page", G_CALLBACK (on_draw_page), self);
-  g_signal_connect (op, "done", G_CALLBACK (on_print_done), self);
-  gtk_print_operation_run (op, GTK_PRINT_OPERATION_ACTION_PRINT_DIALOG, GTK_WINDOW (self), &error);
-  if (error != NULL)
-    {
-      show_error (self, "Could not print the picture", error); /* "done" releases op */
-    }
+  easel_print_picture (GTK_WINDOW (self), self->canvas);
 }
-
-static void
-action_flip_rotate (GSimpleAction *action, GVariant *parameter, gpointer user_data)
-{
-  EaselWindow *self = user_data;
-  static const char *const labels[5] = {
-    "Flip horizontal", "Flip vertical", "Rotate 90° clockwise", "Rotate 180°", "Rotate 270° clockwise",
-  };
-  FlipDialog *fd = g_new0 (FlipDialog, 1);
-  GtkWidget *box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 6);
-  AdwDialog *dialog = adw_alert_dialog_new ("Flip and Rotate", NULL);
-
-  fd->window = self;
-  for (int i = 0; i < 5; i++)
-    {
-      fd->choices[i] = gtk_check_button_new_with_label (labels[i]);
-      if (i > 0)
-        gtk_check_button_set_group (GTK_CHECK_BUTTON (fd->choices[i]), GTK_CHECK_BUTTON (fd->choices[0]));
-      gtk_box_append (GTK_BOX (box), fd->choices[i]);
-    }
-  gtk_check_button_set_active (GTK_CHECK_BUTTON (fd->choices[0]), TRUE);
-
-  adw_alert_dialog_set_extra_child (ADW_ALERT_DIALOG (dialog), box);
-  adw_alert_dialog_add_responses (ADW_ALERT_DIALOG (dialog), "cancel", "_Cancel", "ok", "_OK", NULL);
-  adw_alert_dialog_set_default_response (ADW_ALERT_DIALOG (dialog), "ok");
-  adw_alert_dialog_set_close_response (ADW_ALERT_DIALOG (dialog), "cancel");
-  g_signal_connect (dialog, "response", G_CALLBACK (on_flip_response), fd);
-  adw_dialog_present (dialog, GTK_WIDGET (self));
-}
-
-typedef struct
-{
-  EaselWindow *window;
-  GtkWidget   *rows[4];
-  GtkWidget   *lock;
-} StretchDialog;
-
-/* With the lock on, the two stretch fields move together. */
-static void
-on_stretch_value_changed (AdwSpinRow *row, GParamSpec *pspec, StretchDialog *sd)
-{
-  if (!adw_switch_row_get_active (ADW_SWITCH_ROW (sd->lock)))
-    return;
-  AdwSpinRow *other = ADW_SPIN_ROW (GTK_WIDGET (row) == sd->rows[0] ? sd->rows[1] : sd->rows[0]);
-  adw_spin_row_set_value (other, adw_spin_row_get_value (row));
-}
-
-static void
-on_stretch_response (AdwAlertDialog *dialog, const char *response, StretchDialog *sd)
-{
-  if (g_str_equal (response, "ok"))
-    easel_canvas_stretch_skew (sd->window->canvas,
-                               (int) adw_spin_row_get_value (ADW_SPIN_ROW (sd->rows[0])),
-                               (int) adw_spin_row_get_value (ADW_SPIN_ROW (sd->rows[1])),
-                               adw_spin_row_get_value (ADW_SPIN_ROW (sd->rows[2])),
-                               adw_spin_row_get_value (ADW_SPIN_ROW (sd->rows[3])));
-  g_free (sd);
-}
-
-static void
-action_stretch_skew (GSimpleAction *action, GVariant *parameter, gpointer user_data)
-{
-  EaselWindow *self = user_data;
-  static const struct { const char *title; double min, max, value; } rows[4] = {
-    { "Stretch horizontally (%)", 1, 500, 100 }, { "Stretch vertically (%)", 1, 500, 100 },
-    { "Skew horizontally (°)", -89, 89, 0 }, { "Skew vertically (°)", -89, 89, 0 },
-  };
-  StretchDialog *sd = g_new0 (StretchDialog, 1);
-  GtkWidget *stretch_group = adw_preferences_group_new ();
-  GtkWidget *skew_group = adw_preferences_group_new ();
-  GtkWidget *content = gtk_box_new (GTK_ORIENTATION_VERTICAL, 18);
-  AdwDialog *dialog = adw_alert_dialog_new ("Stretch and Skew", NULL);
-
-  adw_preferences_group_set_title (ADW_PREFERENCES_GROUP (stretch_group), "Stretch");
-  adw_preferences_group_set_title (ADW_PREFERENCES_GROUP (skew_group), "Skew");
-  gtk_box_append (GTK_BOX (content), stretch_group);
-  gtk_box_append (GTK_BOX (content), skew_group);
-
-  sd->window = self;
-  sd->lock = adw_switch_row_new ();
-  adw_preferences_row_set_title (ADW_PREFERENCES_ROW (sd->lock), "Keep aspect ratio");
-  adw_switch_row_set_active (ADW_SWITCH_ROW (sd->lock), TRUE);
-  for (int i = 0; i < 4; i++)
-    {
-      sd->rows[i] = adw_spin_row_new_with_range (rows[i].min, rows[i].max, 1);
-      adw_preferences_row_set_title (ADW_PREFERENCES_ROW (sd->rows[i]), rows[i].title);
-      adw_spin_row_set_value (ADW_SPIN_ROW (sd->rows[i]), rows[i].value);
-      adw_preferences_group_add (ADW_PREFERENCES_GROUP (i < 2 ? stretch_group : skew_group), sd->rows[i]);
-      if (i == 1) /* the lock belongs with the stretch rows */
-        adw_preferences_group_add (ADW_PREFERENCES_GROUP (stretch_group), sd->lock);
-    }
-  g_signal_connect (sd->rows[0], "notify::value", G_CALLBACK (on_stretch_value_changed), sd);
-  g_signal_connect (sd->rows[1], "notify::value", G_CALLBACK (on_stretch_value_changed), sd);
-
-  adw_alert_dialog_set_extra_child (ADW_ALERT_DIALOG (dialog), content);
-  adw_alert_dialog_add_responses (ADW_ALERT_DIALOG (dialog), "cancel", "_Cancel", "ok", "_OK", NULL);
-  adw_alert_dialog_set_default_response (ADW_ALERT_DIALOG (dialog), "ok");
-  adw_alert_dialog_set_close_response (ADW_ALERT_DIALOG (dialog), "cancel");
-  g_signal_connect (dialog, "response", G_CALLBACK (on_stretch_response), sd);
-  adw_dialog_present (dialog, GTK_WIDGET (self));
-}
-
 
 /* ---- View: thumbnail -------------------------------------------------- */
 
-#define THUMB_MAX 240
+#define THUMB_MAX EASEL_THUMB_MAX
 
 static void
 draw_thumbnail (GtkDrawingArea *area, cairo_t *cr, int width, int height, gpointer data)
@@ -1102,7 +784,14 @@ thumb_tick (gpointer data)
   EaselDocument *doc = easel_canvas_get_document (self->canvas);
   double scale = MIN ((double) THUMB_MAX / doc->width, (double) THUMB_MAX / doc->height);
   int w = MAX (1, (int) (doc->width * MIN (scale, 1.0))), h = MAX (1, (int) (doc->height * MIN (scale, 1.0)));
+  guint64 changes = easel_canvas_get_change_count (self->canvas);
 
+  /* Nothing to do while the picture is untouched. */
+  if (changes == self->thumb_changes && w == self->thumb_w && h == self->thumb_h)
+    return G_SOURCE_CONTINUE;
+  self->thumb_changes = changes;
+  self->thumb_w = w;
+  self->thumb_h = h;
   gtk_drawing_area_set_content_width (GTK_DRAWING_AREA (self->thumb_area), w);
   gtk_drawing_area_set_content_height (GTK_DRAWING_AREA (self->thumb_area), h);
   gtk_widget_queue_draw (self->thumb_area);
@@ -1138,9 +827,10 @@ on_thumbnail_change_state (GSimpleAction *action, GVariant *value, gpointer user
           gtk_window_set_child (GTK_WINDOW (self->thumb_window), self->thumb_area);
           g_signal_connect (self->thumb_window, "close-request", G_CALLBACK (on_thumb_close), self);
         }
+      self->thumb_w = 0; /* force the first redraw */
       thumb_tick (self);
       if (self->thumb_timer == 0)
-        self->thumb_timer = g_timeout_add (250, thumb_tick, self);
+        self->thumb_timer = g_timeout_add (EASEL_THUMB_REFRESH_MS, thumb_tick, self);
       gtk_window_present (GTK_WINDOW (self->thumb_window));
     }
   else if (self->thumb_window != NULL)
@@ -1212,7 +902,7 @@ on_frame_visible (GtkWidget *label, GParamSpec *pspec, EaselWindow *self)
   if (gtk_widget_get_visible (label))
     {
       frame_tick (self);
-      self->frame_timer = g_timeout_add (500, frame_tick, self);
+      self->frame_timer = g_timeout_add (EASEL_FRAME_REFRESH_MS, frame_tick, self);
     }
 }
 
@@ -1362,7 +1052,7 @@ easel_window_init (EaselWindow *self)
 {
   /* Big enough to show the whole default picture with its handles, toolbox,
    * colour box and status bar; shrunk only if the screen cannot hold that. */
-  int want_w = DEFAULT_IMAGE_WIDTH + 220, want_h = DEFAULT_IMAGE_HEIGHT + 240;
+  int want_w = easel_default_width () + 220, want_h = easel_default_height () + 240;
   GListModel *monitors = gdk_display_get_monitors (gdk_display_get_default ());
   GdkMonitor *monitor = monitors != NULL ? g_list_model_get_item (monitors, 0) : NULL;
 
@@ -1377,7 +1067,7 @@ easel_window_init (EaselWindow *self)
   gtk_window_set_default_size (GTK_WINDOW (self), want_w, want_h);
   gtk_window_set_title (GTK_WINDOW (self), "Untitled - Easel");
 
-  EaselDocument *doc = easel_document_new (DEFAULT_IMAGE_WIDTH, DEFAULT_IMAGE_HEIGHT, default_background ());
+  EaselDocument *doc = easel_document_new (easel_default_width (), easel_default_height (), easel_default_background ());
   if (doc == NULL)
     g_error ("out of memory creating the initial image");
 

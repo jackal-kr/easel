@@ -29,6 +29,7 @@ void easel_canvas_set_fill_style (EaselCanvas *self, EaselFillStyle style);
 void easel_canvas_set_zoom (EaselCanvas *self, int zoom, int ix, int iy);
 int  easel_canvas_get_zoom (EaselCanvas *self);
 void easel_canvas_zoom_step (EaselCanvas *self, int direction, int ix, int iy);
+guint64 easel_canvas_get_change_count (EaselCanvas *self); /* see window thumbnail */
 gint64 easel_canvas_get_paint_time (EaselCanvas *self); /* microseconds */
 void easel_canvas_set_show_grid (EaselCanvas *self, gboolean show); /* drawn at 4x and above */
 void easel_canvas_set_zoom_level (EaselCanvas *self, int level); /* what a Magnifier click applies */

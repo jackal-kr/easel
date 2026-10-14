@@ -2,6 +2,7 @@
 
 #include <adwaita.h>
 
+#include "ui/config.h"
 #include "ui/settings.h"
 
 /* ---- Row helpers ------------------------------------------------------ */
@@ -74,7 +75,7 @@ add_choice (AdwPreferencesGroup *group, GSettings *s, const char *key, const cha
 static void
 on_int_choice_selected (AdwComboRow *row, GParamSpec *pspec, GSettings *s)
 {
-  static const int values[] = { 1, 2, 4, 6, 8 };
+  static const int values[] = EASEL_MAGNIFIER_LEVELS;
   g_settings_set_int (s, "magnifier-zoom", values[adw_combo_row_get_selected (row)]);
 }
 
@@ -88,18 +89,11 @@ typedef struct
   uint32_t   fallback;
 } ColorData;
 
-static GdkRGBA
-rgba_from_argb (uint32_t c)
-{
-  return (GdkRGBA) { ((c >> 16) & 0xFF) / 255.0f, ((c >> 8) & 0xFF) / 255.0f, (c & 0xFF) / 255.0f, 1 };
-}
-
 static void
 on_color_set (GObject *button, GParamSpec *pspec, ColorData *data)
 {
   const GdkRGBA *c = gtk_color_dialog_button_get_rgba (GTK_COLOR_DIALOG_BUTTON (button));
-  g_autofree char *hex = g_strdup_printf ("#%02x%02x%02x", (int) (c->red * 255 + 0.5),
-                                          (int) (c->green * 255 + 0.5), (int) (c->blue * 255 + 0.5));
+  g_autofree char *hex = easel_argb_to_hex (easel_rgba_to_argb (c));
   g_settings_set_string (data->settings, data->key, hex);
 }
 
@@ -115,7 +109,7 @@ make_color_button (GSettings *s, const char *key, uint32_t fallback, ColorData *
 
   if (!easel_parse_hex_color (hex, &argb))
     argb = fallback;
-  rgba = rgba_from_argb (argb);
+  rgba = easel_argb_to_rgba (argb, 1);
   gtk_color_dialog_set_with_alpha (dialog, FALSE);
   gtk_color_dialog_button_set_rgba (GTK_COLOR_DIALOG_BUTTON (button), &rgba);
   gtk_widget_set_valign (button, GTK_ALIGN_CENTER);
@@ -199,8 +193,8 @@ build_new_picture (AdwPreferencesDialog *dialog, GSettings *s)
   AdwPreferencesGroup *group = add_group (page, "Default picture", "Used when Easel starts and for File → New.");
   ColorData *cd;
 
-  add_spin (group, s, "default-width", "Width", "pixels", 1, 16384);
-  add_spin (group, s, "default-height", "Height", "pixels", 1, 16384);
+  add_spin (group, s, "default-width", "Width", "pixels", 1, EASEL_MAX_DIMENSION);
+  add_spin (group, s, "default-height", "Height", "pixels", 1, EASEL_MAX_DIMENSION);
 
   GtkWidget *row = adw_action_row_new ();
   adw_preferences_row_set_title (ADW_PREFERENCES_ROW (row), "Background color");
@@ -229,7 +223,7 @@ build_drawing (AdwPreferencesDialog *dialog, GSettings *s)
 
   GtkWidget *zoom = adw_combo_row_new ();
   static const char *const zoom_labels[] = { "1×", "2×", "4×", "6×", "8×", NULL };
-  static const int zoom_values[] = { 1, 2, 4, 6, 8 };
+  static const int zoom_values[] = EASEL_MAGNIFIER_LEVELS;
   int current = g_settings_get_int (s, "magnifier-zoom");
   guint selected = 0;
 

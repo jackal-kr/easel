@@ -4,6 +4,7 @@
 #include "core/history.h"
 #include "core/clip.h"
 #include "core/transform.h"
+#include "core/syncbuf.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -697,6 +698,44 @@ test_gradient (void)
   easel_document_free (d);
 }
 
+static void
+test_syncbuf (void)
+{
+  EaselDocument *d = easel_document_new (10, 8, WHITE);
+  EaselSyncBuf *b = easel_syncbuf_new ();
+
+  CHECK (easel_syncbuf_update (b, d));
+  CHECK (memcmp (b->data, d->pixels, 10 * 8 * 4) == 0);
+
+  /* Only the rectangle marked stale is copied. */
+  easel_document_set_pixel (d, 2, 3, RED);
+  easel_document_set_pixel (d, 9, 7, BLUE); /* not marked */
+  easel_syncbuf_mark_stale (b, (EaselRect) { 1, 2, 3, 3 });
+  CHECK (easel_syncbuf_update (b, d));
+  CHECK (b->data[3 * 10 + 2] == RED);
+  CHECK (b->data[7 * 10 + 9] == WHITE);
+
+  /* Marking the rest brings it fully up to date; out-of-range rects are clipped. */
+  easel_syncbuf_mark_stale (b, (EaselRect) { 5, 5, 100, 100 });
+  CHECK (easel_syncbuf_update (b, d));
+  CHECK (memcmp (b->data, d->pixels, 10 * 8 * 4) == 0);
+
+  /* A change of picture size copies everything again. */
+  CHECK (easel_document_resize (d, 12, 6, BLACK));
+  CHECK (easel_syncbuf_update (b, d));
+  CHECK (b->width == 12 && b->height == 6 && memcmp (b->data, d->pixels, 12 * 6 * 4) == 0);
+
+  /* Someone else holding a reference makes it busy. */
+  CHECK (!easel_syncbuf_busy (b));
+  easel_syncbuf_ref (b);
+  CHECK (easel_syncbuf_busy (b));
+  easel_syncbuf_unref (b);
+  CHECK (!easel_syncbuf_busy (b));
+
+  easel_syncbuf_unref (b);
+  easel_document_free (d);
+}
+
 int
 main (void)
 {
@@ -715,6 +754,7 @@ main (void)
   test_clip_scaled ();
   test_transform ();
   test_gradient ();
+  test_syncbuf ();
 
   if (failures != 0)
     {

@@ -1,10 +1,12 @@
 #include "ui/canvas.h"
+#include "ui/config.h"
 
 #include <math.h>
 #include <string.h>
 #include <pango/pangocairo.h>
 
 #include "core/clip.h"
+#include "core/syncbuf.h"
 #include "core/history.h"
 #include "core/transform.h"
 #include "ui/cursors.h"
@@ -14,6 +16,16 @@
 
 #define MAX_SEQ 512 /* vertices of a polygon in progress */
 
+#define TEXTURE_BUFFERS 3
+
+/* Where a pointer is relative to the text box. Values 1..8 are the resize
+ * handles (same numbering as the selection handles). */
+enum { TEXT_HIT_NONE = 0, TEXT_HIT_BORDER = 9, TEXT_HIT_INSIDE = 10 };
+
+/* What a drag on the text box is doing. */
+enum { TEXT_DRAG_NONE = 0, TEXT_DRAG_MOVE, TEXT_DRAG_RESIZE, TEXT_DRAG_SELECT };
+
+
 struct _EaselCanvas
 {
   GtkWidget parent_instance;
@@ -22,6 +34,10 @@ struct _EaselCanvas
   GdkTexture     *texture; /* last uploaded snapshot of doc */
   cairo_region_t *dirty;   /* image pixels changed since `texture` was built */
 
+  EaselSyncBuf *shadow;       /* the picture as of the last committed edit: the undo base */
+  gboolean shadow_taken;
+  EaselSyncBuf *tex_bufs[TEXTURE_BUFFERS]; /* pixel copies handed to textures */
+  guint64  change_count; /* grows with every pixel change; lets others skip redraws */
   gint64   paint_us; /* time the last snapshot took (CPU side) */
   int      zoom; /* magnification in percent, 100 = actual size */
   uint32_t foreground;
@@ -100,7 +116,7 @@ struct _EaselCanvas
   guint       text_typing;   /* style flags for newly typed text */
   guint       text_blink_id;
   gboolean    text_caret_on;
-  int         text_drag;      /* 0 none, 1 moving the box, 2 resizing it */
+  int         text_drag;      /* TEXT_DRAG_* */
   int         text_handle;    /* handle (1..8) while resizing */
   int         text_grab_x, text_grab_y;
   EaselRect   text_orig;
@@ -146,6 +162,35 @@ to_image (EaselCanvas *self, double wx, double wy, int *ix, int *iy)
   *iy = (int) floor (wy / s);
 }
 
+/* The picture as it is right now, as a read-only "before" image for undo and
+ * live shape previews. It costs no copy of the whole picture after the first
+ * time, only of the rectangles drawn since. If a previous holder still has it,
+ * a private full copy is made instead. Give it back with snapshot_drop. */
+static uint32_t *
+snapshot_take (EaselCanvas *self)
+{
+  if (self->shadow_taken)
+    return g_memdup2 (self->doc->pixels, (gsize) self->doc->width * self->doc->height * 4);
+  if (self->shadow == NULL)
+    self->shadow = easel_syncbuf_new ();
+  easel_syncbuf_update (self->shadow, self->doc);
+  self->shadow_taken = TRUE;
+  return self->shadow->data;
+}
+
+static void
+snapshot_drop (EaselCanvas *self, uint32_t **snapshot)
+{
+  if (*snapshot != NULL)
+    {
+      if (self->shadow != NULL && *snapshot == self->shadow->data)
+        self->shadow_taken = FALSE;
+      else
+        g_free (*snapshot);
+    }
+  *snapshot = NULL;
+}
+
 /* Records which image pixels changed so that only that region is re-uploaded
  * to the GPU (see build_texture). */
 static void
@@ -153,8 +198,12 @@ mark_dirty (EaselCanvas *self, EaselRect r)
 {
   if (r.width > 0 && r.height > 0)
     {
+      self->change_count++;
       self->edit_rect = easel_rect_union (self->edit_rect, r);
       cairo_rectangle_int_t cr = { r.x, r.y, r.width, r.height };
+      easel_syncbuf_mark_stale (self->shadow, r);
+      for (int i = 0; i < TEXTURE_BUFFERS; i++)
+        easel_syncbuf_mark_stale (self->tex_bufs[i], r);
       if (self->dirty == NULL)
         self->dirty = cairo_region_create_rectangle (&cr);
       else
@@ -173,12 +222,43 @@ mark_all_dirty (EaselCanvas *self)
  * while GTK may still be rendering an older frame). Passing the previous
  * texture and the changed region lets GSK upload just that region to the GPU
  * instead of the whole image. */
+static void
+release_texture_buffer (gpointer data)
+{
+  easel_syncbuf_unref (data);
+}
+
+/* Hands the texture its own copy of the pixels (the picture keeps changing
+ * while GTK may still be drawing an older frame). Copies are recycled and
+ * brought up to date by copying only the rectangles that changed. */
+static GBytes *
+texture_bytes (EaselCanvas *self)
+{
+  const EaselDocument *d = self->doc;
+  gsize size = (gsize) d->width * d->height * 4;
+
+  for (int i = 0; i < TEXTURE_BUFFERS; i++)
+    {
+      if (self->tex_bufs[i] == NULL)
+        self->tex_bufs[i] = easel_syncbuf_new ();
+      if (easel_syncbuf_busy (self->tex_bufs[i]))
+        continue;
+
+      EaselSyncBuf *b = self->tex_bufs[i];
+      if (!easel_syncbuf_update (b, d))
+        break;
+      easel_syncbuf_ref (b);
+      return g_bytes_new_with_free_func (b->data, size, release_texture_buffer, b);
+    }
+  return g_bytes_new (d->pixels, size); /* every buffer is still in use: plain copy */
+}
+
 static GdkTexture *
 build_texture (EaselCanvas *self)
 {
   const EaselDocument *d = self->doc;
   gsize stride = (gsize) d->width * 4;
-  g_autoptr (GBytes) bytes = g_bytes_new (d->pixels, stride * (gsize) d->height);
+  g_autoptr (GBytes) bytes = texture_bytes (self);
   g_autoptr (GdkMemoryTextureBuilder) builder = gdk_memory_texture_builder_new ();
 
 #if G_BYTE_ORDER == G_LITTLE_ENDIAN
@@ -283,8 +363,7 @@ draw_brush_preview (EaselCanvas *self, GtkSnapshot *snapshot, double s)
   int left = self->hover_x - size / 2;
   int top = self->hover_y - size / 2;
   uint32_t c = self->foreground;
-  GdkRGBA color = { ((c >> 16) & 0xFF) / 255.0f, ((c >> 8) & 0xFF) / 255.0f,
-                    (c & 0xFF) / 255.0f, 0.65f };
+  GdkRGBA color = easel_argb_to_rgba (c, 0.65f);
 
   /* One rectangle per horizontal run keeps the node count small. */
   for (int j = 0; j < size; j++)
@@ -577,8 +656,8 @@ push_undo (EaselCanvas *self, const uint32_t *base)
 static void
 begin_edit (EaselCanvas *self)
 {
-  g_free (self->edit_base);
-  self->edit_base = g_memdup2 (self->doc->pixels, (gsize) self->doc->width * self->doc->height * 4);
+  snapshot_drop (self, &self->edit_base);
+  self->edit_base = snapshot_take (self);
   self->edit_rect = (EaselRect) { 0, 0, 0, 0 };
 }
 
@@ -588,7 +667,7 @@ finish_edit (EaselCanvas *self)
   if (self->edit_base == NULL)
     return;
   push_undo (self, self->edit_base);
-  g_clear_pointer (&self->edit_base, g_free);
+  snapshot_drop (self, &self->edit_base);
 }
 
 static void
@@ -598,7 +677,7 @@ end_seq (EaselCanvas *self)
   self->seq_stage = 0;
   self->seq_n = 0;
   self->shape_prev = (EaselRect) { 0, 0, 0, 0 };
-  g_clear_pointer (&self->backup, g_free);
+  snapshot_drop (self, &self->backup);
 }
 
 /* Redraws the polygon or curve in progress from the saved pixels. */
@@ -736,8 +815,8 @@ sel_lift (EaselCanvas *self, gboolean copy)
   self->sel_clip = easel_clip_copy_from (self->doc, self->sel_rect, self->sel_mask);
   if (self->sel_clip == NULL)
     return;
-  g_free (self->sel_base);
-  self->sel_base = g_memdup2 (self->doc->pixels, (gsize) self->doc->width * self->doc->height * 4);
+  snapshot_drop (self, &self->sel_base);
+  self->sel_base = snapshot_take (self);
   self->sel_edit = (EaselRect) { 0, 0, 0, 0 };
   if (!copy)
     {
@@ -751,7 +830,7 @@ static void
 sel_discard (EaselCanvas *self)
 {
   g_clear_pointer (&self->sel_clip, easel_clip_free);
-  g_clear_pointer (&self->sel_base, g_free);
+  snapshot_drop (self, &self->sel_base);
   g_clear_object (&self->sel_texture);
   g_clear_pointer (&self->sel_mask, g_free);
   g_clear_pointer (&self->sel_src, easel_clip_free);
@@ -966,14 +1045,14 @@ text_caret_restart (EaselCanvas *self)
   self->text_caret_on = TRUE;
   g_clear_handle_id (&self->text_blink_id, g_source_remove);
   if (self->text_active)
-    self->text_blink_id = g_timeout_add (530, text_blink_tick, self);
+    self->text_blink_id = g_timeout_add (EASEL_CARET_BLINK_MS, text_blink_tick, self);
 }
 
 static void
 text_cancel (EaselCanvas *self)
 {
   g_clear_handle_id (&self->text_blink_id, g_source_remove);
-  self->text_drag = 0;
+  self->text_drag = TEXT_DRAG_NONE;
   g_clear_handle_id (&self->text_blink_id, g_source_remove);
   text_free_render (self);
   if (self->text_buf != NULL)
@@ -1290,13 +1369,12 @@ draw_text (EaselCanvas *self, GtkSnapshot *snapshot, double s)
     }
 }
 
-/* Where a pointer at widget (wx, wy) is relative to the text box:
- * 0 outside, 1..8 a resize handle, 9 the border (move), 10 inside (caret). */
+/* Where a pointer at widget (wx, wy) is relative to the text box. */
 static int
 text_hit (EaselCanvas *self, double wx, double wy)
 {
   if (!self->text_active)
-    return 0;
+    return TEXT_HIT_NONE;
   double s = logical_per_pixel (self);
 
   for (int h = 1; h <= 8; h++)
@@ -1310,10 +1388,10 @@ text_hit (EaselCanvas *self, double wx, double wy)
   double x1 = x0 + self->text_rect.width * s, y1 = y0 + self->text_rect.height * s;
 
   if (wx < x0 - 4 || wx > x1 + 4 || wy < y0 - 4 || wy > y1 + 4)
-    return 0;
+    return TEXT_HIT_NONE;
   if (wx < x0 + 3 || wx > x1 - 3 || wy < y0 + 3 || wy > y1 - 3)
-    return 9;
-  return 10;
+    return TEXT_HIT_BORDER;
+  return TEXT_HIT_INSIDE;
 }
 
 static void
@@ -1360,7 +1438,7 @@ text_end_drag (EaselCanvas *self)
   if (self->text_rect.width < 8 || self->text_rect.height < 8)
     {
       /* A click, not a drag: open a box of a comfortable default size. */
-      self->text_rect.width = MIN (240, self->doc->width - self->text_rect.x);
+      self->text_rect.width = MIN (EASEL_DEFAULT_TEXT_WIDTH, self->doc->width - self->text_rect.x);
       self->text_rect.height = MIN (48, self->doc->height - self->text_rect.y);
       if (self->text_rect.width < 3 || self->text_rect.height < 3)
         {
@@ -1583,7 +1661,7 @@ end_shape_drag (EaselCanvas *self, gboolean keep)
   else
     push_undo (self, self->backup);
   self->shape_prev = (EaselRect) { 0, 0, 0, 0 };
-  g_clear_pointer (&self->backup, g_free);
+  snapshot_drop (self, &self->backup);
 }
 
 static void
@@ -1705,28 +1783,28 @@ on_drag_begin (GtkGestureDrag *gesture, double x, double y, EaselCanvas *self)
     case EASEL_TOOL_TEXT:
       gtk_widget_grab_focus (GTK_WIDGET (self));
       self->drawing = TRUE;
-      if (text_hit (self, x, y) >= 1 && text_hit (self, x, y) <= 9)
+      if (text_hit (self, x, y) >= 1 && text_hit (self, x, y) <= TEXT_HIT_BORDER)
         {
           int hit = text_hit (self, x, y);
 
           self->text_orig = self->text_rect;
-          if (hit == 9)
+          if (hit == TEXT_HIT_BORDER)
             {
-              self->text_drag = 1;
+              self->text_drag = TEXT_DRAG_MOVE;
               self->text_grab_x = self->last_x - self->text_rect.x;
               self->text_grab_y = self->last_y - self->text_rect.y;
             }
           else
             {
-              self->text_drag = 2;
+              self->text_drag = TEXT_DRAG_RESIZE;
               self->text_handle = hit;
             }
         }
-      else if (text_hit (self, x, y) == 10)
+      else if (text_hit (self, x, y) == TEXT_HIT_INSIDE)
         {
           /* Click inside the box places the caret; dragging selects. */
           text_move_cursor (self, text_index_at (self, self->last_x, self->last_y), FALSE);
-          self->text_drag = 3;
+          self->text_drag = TEXT_DRAG_SELECT;
         }
       else
         text_begin_drag (self, self->last_x, self->last_y);
@@ -1782,7 +1860,7 @@ on_drag_begin (GtkGestureDrag *gesture, double x, double y, EaselCanvas *self)
       begin_edit (self);
       spray_tick (self);
       g_clear_handle_id (&self->spray_source, g_source_remove);
-      self->spray_source = g_timeout_add (30, spray_tick, self);
+      self->spray_source = g_timeout_add (EASEL_SPRAY_INTERVAL_MS, spray_tick, self);
       break;
 
     case EASEL_TOOL_POLYGON:
@@ -1792,9 +1870,8 @@ on_drag_begin (GtkGestureDrag *gesture, double x, double y, EaselCanvas *self)
         gtk_widget_grab_focus (GTK_WIDGET (self));
         if (!self->seq_active)
           {
-            g_free (self->backup);
-            self->backup = g_memdup2 (self->doc->pixels,
-                                      (gsize) self->doc->width * self->doc->height * 4);
+            snapshot_drop (self, &self->backup);
+            self->backup = snapshot_take (self);
             self->shape_prev = (EaselRect) { 0, 0, 0, 0 };
             self->seq_active = TRUE;
             self->edit_rect = (EaselRect) { 0, 0, 0, 0 };
@@ -1830,9 +1907,8 @@ on_drag_begin (GtkGestureDrag *gesture, double x, double y, EaselCanvas *self)
         gtk_widget_grab_focus (GTK_WIDGET (self));
         if (!self->seq_active)
           {
-            g_free (self->backup);
-            self->backup = g_memdup2 (self->doc->pixels,
-                                      (gsize) self->doc->width * self->doc->height * 4);
+            snapshot_drop (self, &self->backup);
+            self->backup = snapshot_take (self);
             self->shape_prev = (EaselRect) { 0, 0, 0, 0 };
             self->seq_active = TRUE;
             self->edit_rect = (EaselRect) { 0, 0, 0, 0 };
@@ -1893,9 +1969,8 @@ on_drag_begin (GtkGestureDrag *gesture, double x, double y, EaselCanvas *self)
     case EASEL_TOOL_ROUNDED_RECTANGLE:
       self->drawing = TRUE;
       self->edit_rect = (EaselRect) { 0, 0, 0, 0 };
-      g_free (self->backup);
-      self->backup = g_memdup2 (self->doc->pixels,
-                                (gsize) self->doc->width * self->doc->height * 4);
+      snapshot_drop (self, &self->backup);
+      self->backup = snapshot_take (self);
       self->shape_prev = (EaselRect) { 0, 0, 0, 0 };
       break;
 
@@ -1928,9 +2003,9 @@ on_drag_update (GtkGestureDrag *gesture, double offset_x, double offset_y, Easel
       nx = self->doc->width + (nx - (int) lround (self->start_x / s));
       ny = self->doc->height + (ny - (int) lround (self->start_y / s));
       if (self->resize_handle != 2)
-        self->resize_w = CLAMP (nx, 1, 16384);
+        self->resize_w = CLAMP (nx, 1, EASEL_MAX_DIMENSION);
       if (self->resize_handle != 1)
-        self->resize_h = CLAMP (ny, 1, 16384);
+        self->resize_h = CLAMP (ny, 1, EASEL_MAX_DIMENSION);
       g_signal_emit (self, signals[SIGNAL_RESIZE_PREVIEW], 0, self->resize_w, self->resize_h);
       gtk_widget_queue_draw (GTK_WIDGET (self));
       return;
@@ -1998,15 +2073,15 @@ on_drag_update (GtkGestureDrag *gesture, double offset_x, double offset_y, Easel
     }
   else if (self->tool == EASEL_TOOL_TEXT)
     {
-      if (self->text_drag == 1)
+      if (self->text_drag == TEXT_DRAG_MOVE)
         {
           self->text_rect.x = x - self->text_grab_x;
           self->text_rect.y = y - self->text_grab_y;
           gtk_widget_queue_draw (GTK_WIDGET (self));
         }
-      else if (self->text_drag == 2)
+      else if (self->text_drag == TEXT_DRAG_RESIZE)
         text_resize_to (self, x, y);
-      else if (self->text_drag == 3)
+      else if (self->text_drag == TEXT_DRAG_SELECT)
         text_move_cursor (self, text_index_at (self, x, y), TRUE);
       else if (self->text_creating)
         text_drag_to (self, self->start_ix, self->start_iy, x, y);
@@ -2080,7 +2155,7 @@ on_drag_end (GtkGestureDrag *gesture, double offset_x, double offset_y, EaselCan
     {
       if (self->text_creating)
         text_end_drag (self);
-      self->text_drag = 0;
+      self->text_drag = TEXT_DRAG_NONE;
       return;
     }
 
@@ -2275,14 +2350,15 @@ on_motion (GtkEventControllerMotion *controller, double x, double y, EaselCanvas
     {
       static const char *const grips[] = { NULL, "nwse-resize", "ns-resize", "nesw-resize", "ew-resize",
                                            "ew-resize", "nesw-resize", "ns-resize", "nwse-resize" };
-      int hit = self->text_drag == 1 ? 9 : self->text_drag == 2 ? self->text_handle
-                : self->text_drag == 3 ? 10 : text_hit (self, x, y);
+      int hit = self->text_drag == TEXT_DRAG_MOVE ? TEXT_HIT_BORDER
+                : self->text_drag == TEXT_DRAG_RESIZE ? self->text_handle
+                : self->text_drag == TEXT_DRAG_SELECT ? TEXT_HIT_INSIDE : text_hit (self, x, y);
 
       if (hit >= 1 && hit <= 8)
         gtk_widget_set_cursor_from_name (GTK_WIDGET (self), grips[hit]);
-      else if (hit == 9)
+      else if (hit == TEXT_HIT_BORDER)
         gtk_widget_set_cursor_from_name (GTK_WIDGET (self), "move");
-      else if (hit == 10)
+      else if (hit == TEXT_HIT_INSIDE)
         gtk_widget_set_cursor_from_name (GTK_WIDGET (self), "text");
       else
         gtk_widget_set_cursor (GTK_WIDGET (self), easel_cursor_for_tool (self->tool));
@@ -2329,12 +2405,15 @@ easel_canvas_dispose (GObject *object)
   EaselCanvas *self = EASEL_CANVAS (object);
   g_clear_object (&self->texture);
   g_clear_pointer (&self->dirty, cairo_region_destroy);
-  g_clear_pointer (&self->backup, g_free);
+  snapshot_drop (self, &self->backup);
   g_clear_handle_id (&self->spray_source, g_source_remove);
-  g_clear_pointer (&self->edit_base, g_free);
+  snapshot_drop (self, &self->edit_base);
   g_clear_pointer (&self->history, easel_history_free);
+  g_clear_pointer (&self->shadow, easel_syncbuf_unref);
+  for (int i = 0; i < TEXTURE_BUFFERS; i++)
+    g_clear_pointer (&self->tex_bufs[i], easel_syncbuf_unref);
   g_clear_pointer (&self->sel_clip, easel_clip_free);
-  g_clear_pointer (&self->sel_base, g_free);
+  snapshot_drop (self, &self->sel_base);
   g_clear_object (&self->sel_texture);
   text_free_render (self);
   if (self->text_buf != NULL)
@@ -2395,7 +2474,7 @@ easel_canvas_class_init (EaselCanvasClass *klass)
 void
 easel_canvas_zoom_step (EaselCanvas *self, int direction, int ix, int iy)
 {
-  static const int steps[] = { 10, 15, 20, 25, 33, 50, 67, 100, 200, 300, 400, 600, 800 };
+  static const int steps[] = EASEL_ZOOM_STEPS;
   int n = G_N_ELEMENTS (steps), i = 0;
 
   while (i < n - 1 && steps[i] < self->zoom)
@@ -2418,7 +2497,7 @@ on_scroll (GtkEventControllerScroll *controller, double dx, double dy, EaselCanv
 static void
 easel_canvas_init (EaselCanvas *self)
 {
-  self->font = g_strdup ("Arial 11");
+  self->font = g_strdup (EASEL_DEFAULT_FONT);
   self->text_anchor = -1;
   self->zoom = 100;
   self->foreground = EASEL_RGB (0, 0, 0);
@@ -2429,7 +2508,7 @@ easel_canvas_init (EaselCanvas *self)
   self->line_width = 1;
   self->zoom_level = 2;
   self->sel_opaque = TRUE;
-  self->history = easel_history_new ((size_t) 512 << 20);
+  self->history = easel_history_new (EASEL_UNDO_LIMIT_BYTES);
   self->spray_rng = 2463534242u;
   self->fill_style = EASEL_FILL_OUTLINE;
   self->hover_x = self->hover_y = -1;
@@ -2579,7 +2658,7 @@ void
 easel_canvas_set_zoom (EaselCanvas *self, int zoom, int ix, int iy)
 {
   g_return_if_fail (EASEL_IS_CANVAS (self));
-  zoom = CLAMP (zoom, 10, 800);
+  zoom = CLAMP (zoom, EASEL_MIN_ZOOM, EASEL_MAX_ZOOM);
   if (zoom == self->zoom)
     return;
 
@@ -2609,6 +2688,12 @@ easel_canvas_set_zoom (EaselCanvas *self, int zoom, int ix, int iy)
       self->center_pending = TRUE;
       g_idle_add_once (apply_center, g_object_ref (self));
     }
+}
+
+guint64
+easel_canvas_get_change_count (EaselCanvas *self)
+{
+  return self->change_count;
 }
 
 gint64
@@ -2718,8 +2803,8 @@ easel_canvas_set_document (EaselCanvas *self, EaselDocument *doc)
   g_clear_handle_id (&self->spray_source, g_source_remove);
   sel_discard (self);
   sel_notify (self);
-  g_clear_pointer (&self->backup, g_free);
-  g_clear_pointer (&self->edit_base, g_free);
+  snapshot_drop (self, &self->backup);
+  snapshot_drop (self, &self->edit_base);
   self->grad_pending = FALSE;
   self->grad_drag = 0;
   self->seq_active = FALSE;
@@ -2801,7 +2886,7 @@ run_transform (const Transform *t, Buf *pix, Buf *mask, uint32_t pix_fill)
     {
       nw = MAX (1, (int) ((gint64) pix->w * t->stretch_h / 100));
       nh = MAX (1, (int) ((gint64) pix->h * t->stretch_v / 100));
-      if (nw > 16384 || nh > 16384)
+      if (nw > EASEL_MAX_DIMENSION || nh > EASEL_MAX_DIMENSION)
         return FALSE;
       out = easel_scale (pix->data, pix->w, pix->h, 4, nw, nh);
       if (out == NULL)
@@ -2825,7 +2910,7 @@ run_transform (const Transform *t, Buf *pix, Buf *mask, uint32_t pix_fill)
       if (deg == 0)
         continue;
       out = easel_skew (pix->data, pix->w, pix->h, 4, deg, axis == 0, &pix_fill, &nw, &nh);
-      if (out == NULL || nw > 16384 || nh > 16384)
+      if (out == NULL || nw > EASEL_MAX_DIMENSION || nh > EASEL_MAX_DIMENSION)
         {
           free (out);
           return FALSE;
@@ -3293,8 +3378,8 @@ easel_canvas_paste_clip (EaselCanvas *self, EaselClip *clip)
       y = (int) (gtk_adjustment_get_value (gtk_scrolled_window_get_vadjustment (GTK_SCROLLED_WINDOW (sw))) / s);
     }
 
-  g_free (self->sel_base);
-  self->sel_base = g_memdup2 (self->doc->pixels, (gsize) self->doc->width * self->doc->height * 4);
+  snapshot_drop (self, &self->sel_base);
+  self->sel_base = snapshot_take (self);
   self->sel_edit = (EaselRect) { 0, 0, 0, 0 };
   self->sel_clip = clip;
   self->sel_rect = (EaselRect) { x, y, clip->width, clip->height };
