@@ -9,4 +9,7 @@ G_DECLARE_FINAL_TYPE (EaselWindow, easel_window, EASEL, WINDOW, AdwApplicationWi
 
 EaselWindow *easel_window_new (GtkApplication *app);
 
+/* Opens a picture, asking about unsaved work first. */
+void easel_window_open_file (EaselWindow *self, GFile *file);
+
 G_END_DECLS

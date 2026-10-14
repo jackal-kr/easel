@@ -12,6 +12,7 @@ app_id = 'io.github.jackal_kr.Easel'
 
 gtk_dep = dependency('gtk4', version: '>= 4.14')
 adw_dep = dependency('libadwaita-1', version: '>= 1.5')
+pixbuf_dep = dependency('gdk-pixbuf-2.0')
 m_dep = cc.find_library('m', required: false)
 
 add_project_arguments(

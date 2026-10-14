@@ -44,6 +44,14 @@ on_startup (GApplication *app)
   gtk_application_set_accels_for_action (GTK_APPLICATION (app), "app.quit", quit_accels);
   gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.swap-colors", swap_accels);
   gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.clear-image", clear_accels);
+  const char *new_accels[] = { "<Primary>n", NULL };
+  const char *open_accels[] = { "<Primary>o", NULL };
+  const char *save_accels[] = { "<Primary>s", NULL };
+  const char *save_as_accels[] = { "<Primary><Shift>s", NULL };
+  gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.new", new_accels);
+  gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.open", open_accels);
+  gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.save", save_accels);
+  gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.save-as", save_as_accels);
   const char *undo_accels[] = { "<Primary>z", NULL };
   const char *redo_accels[] = { "<Primary>y", "<Primary><Shift>z", NULL };
   gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.undo", undo_accels);
@@ -67,12 +75,23 @@ on_activate (GApplication *app)
   gtk_window_present (window);
 }
 
+static void
+on_open (GApplication *app, GFile **files, int n_files, const char *hint)
+{
+  EaselWindow *window = EASEL_WINDOW (easel_window_new (GTK_APPLICATION (app)));
+
+  gtk_window_present (GTK_WINDOW (window));
+  if (n_files > 0)
+    easel_window_open_file (window, files[0]);
+}
+
 int
 main (int argc, char *argv[])
 {
-  g_autoptr (AdwApplication) app = adw_application_new (EASEL_APP_ID, G_APPLICATION_DEFAULT_FLAGS);
+  g_autoptr (AdwApplication) app = adw_application_new (EASEL_APP_ID, G_APPLICATION_HANDLES_OPEN);
 
   g_signal_connect (app, "startup", G_CALLBACK (on_startup), NULL);
   g_signal_connect (app, "activate", G_CALLBACK (on_activate), NULL);
+  g_signal_connect (app, "open", G_CALLBACK (on_open), NULL);
   return g_application_run (G_APPLICATION (app), argc, argv);
 }

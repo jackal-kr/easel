@@ -1114,3 +1114,31 @@ easel_canvas_clear (EaselCanvas *self, uint32_t argb)
   mark_all_dirty (self);
   finish_edit (self);
 }
+
+/* Replaces the picture (File > Open, New). Takes ownership of `doc`; undo
+ * history and any tool in progress are discarded. */
+void
+easel_canvas_set_document (EaselCanvas *self, EaselDocument *doc)
+{
+  g_return_if_fail (EASEL_IS_CANVAS (self));
+  g_return_if_fail (doc != NULL);
+
+  g_clear_handle_id (&self->spray_source, g_source_remove);
+  g_clear_pointer (&self->backup, g_free);
+  g_clear_pointer (&self->edit_base, g_free);
+  self->seq_active = FALSE;
+  self->seq_stage = 0;
+  self->seq_n = 0;
+  self->drawing = FALSE;
+  self->shape_prev = self->edit_rect = (EaselRect) { 0, 0, 0, 0 };
+  easel_history_clear (self->history);
+
+  easel_document_free (self->doc);
+  self->doc = doc;
+  g_clear_object (&self->texture);
+  g_clear_pointer (&self->dirty, cairo_region_destroy);
+  self->zoom = 1;
+  gtk_widget_queue_resize (GTK_WIDGET (self));
+  mark_all_dirty (self);
+  g_signal_emit (self, signals[SIGNAL_HISTORY_CHANGED], 0);
+}

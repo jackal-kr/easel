@@ -3,6 +3,7 @@
 #include "core/document.h"
 #include "ui/canvas.h"
 #include "ui/colorbox.h"
+#include "ui/fileio.h"
 #include "ui/toolbox.h"
 
 #define DEFAULT_IMAGE_WIDTH  800
@@ -19,6 +20,11 @@ struct _EaselWindow
   GtkWidget *status_bar;
   GtkLabel  *hint_label;
   GtkLabel  *position_label;
+  GtkLabel  *size_label;
+
+  GFile    *file;     /* where the picture was last opened from / saved to */
+  gboolean  modified;
+  gboolean  closing;  /* close confirmed: let the window go */
 };
 
 G_DEFINE_FINAL_TYPE (EaselWindow, easel_window, ADW_TYPE_APPLICATION_WINDOW)
@@ -111,17 +117,331 @@ action_redo (GSimpleAction *action, GVariant *parameter, gpointer user_data)
 }
 
 static void
+update_title (EaselWindow *self)
+{
+  g_autofree char *name = self->file != NULL ? g_file_get_basename (self->file) : g_strdup ("Untitled");
+  g_autofree char *title = g_strdup_printf ("%s%s - Easel", self->modified ? "*" : "", name);
+
+  gtk_window_set_title (GTK_WINDOW (self), title);
+}
+
+static void
+set_modified (EaselWindow *self, gboolean modified)
+{
+  self->modified = modified;
+  update_title (self);
+}
+
+static void
+update_size_label (EaselWindow *self)
+{
+  EaselDocument *doc = easel_canvas_get_document (self->canvas);
+  g_autofree char *text = g_strdup_printf ("%d × %d px", doc->width, doc->height);
+
+  gtk_label_set_text (self->size_label, text);
+}
+
+static void
 on_history_changed (EaselCanvas *canvas, EaselWindow *self)
 {
+  set_modified (self, TRUE);
   g_simple_action_set_enabled (G_SIMPLE_ACTION (g_action_map_lookup_action (G_ACTION_MAP (self), "undo")),
                                easel_canvas_can_undo (canvas));
   g_simple_action_set_enabled (G_SIMPLE_ACTION (g_action_map_lookup_action (G_ACTION_MAP (self), "redo")),
                                easel_canvas_can_redo (canvas));
 }
 
+
+/* ---- Files ---------------------------------------------------------- */
+
+typedef void (*ContinueFunc) (EaselWindow *self);
+
+typedef struct
+{
+  EaselWindow *self;
+  ContinueFunc next;
+} Pending;
+
+static Pending *
+pending_new (EaselWindow *self, ContinueFunc next)
+{
+  Pending *p = g_new0 (Pending, 1);
+  p->self = g_object_ref (self);
+  p->next = next;
+  return p;
+}
+
+static void
+pending_free (Pending *p)
+{
+  g_object_unref (p->self);
+  g_free (p);
+}
+
+static void
+show_error (EaselWindow *self, const char *heading, const GError *error)
+{
+  AdwDialog *dialog = adw_alert_dialog_new (heading, error != NULL ? error->message : NULL);
+
+  adw_alert_dialog_add_response (ADW_ALERT_DIALOG (dialog), "ok", "_OK");
+  adw_dialog_present (dialog, GTK_WIDGET (self));
+}
+
+static GtkFileDialog *
+make_file_dialog (void)
+{
+  GtkFileDialog *dialog = gtk_file_dialog_new ();
+  GListStore *filters = g_list_store_new (GTK_TYPE_FILE_FILTER);
+  GtkFileFilter *pictures = gtk_file_filter_new ();
+
+  gtk_file_filter_set_name (pictures, "Pictures");
+  gtk_file_filter_add_mime_type (pictures, "image/png");
+  gtk_file_filter_add_mime_type (pictures, "image/jpeg");
+  gtk_file_filter_add_mime_type (pictures, "image/bmp");
+  gtk_file_filter_add_mime_type (pictures, "image/tiff");
+  g_list_store_append (filters, pictures);
+  g_object_unref (pictures);
+
+  static const struct { const char *name, *mime; } each[] = {
+    { "PNG", "image/png" }, { "JPEG", "image/jpeg" }, { "BMP", "image/bmp" }, { "TIFF", "image/tiff" },
+  };
+  for (guint i = 0; i < G_N_ELEMENTS (each); i++)
+    {
+      GtkFileFilter *f = gtk_file_filter_new ();
+      gtk_file_filter_set_name (f, each[i].name);
+      gtk_file_filter_add_mime_type (f, each[i].mime);
+      g_list_store_append (filters, f);
+      g_object_unref (f);
+    }
+  gtk_file_dialog_set_filters (dialog, G_LIST_MODEL (filters));
+  g_object_unref (filters);
+  return dialog;
+}
+
+/* Writes the picture and, on success, adopts `file` as its home. */
+static gboolean
+save_to (EaselWindow *self, GFile *file)
+{
+  g_autoptr (GError) error = NULL;
+
+  if (!easel_file_save (easel_canvas_get_document (self->canvas), file, &error))
+    {
+      show_error (self, "Could not save the picture", error);
+      return FALSE;
+    }
+  g_set_object (&self->file, file);
+  set_modified (self, FALSE);
+  return TRUE;
+}
+
+static void
+on_save_as_done (GObject *source, GAsyncResult *result, gpointer data)
+{
+  Pending *p = data;
+  g_autoptr (GError) error = NULL;
+  g_autoptr (GFile) file = gtk_file_dialog_save_finish (GTK_FILE_DIALOG (source), result, &error);
+
+  if (file != NULL)
+    {
+      g_autofree char *name = g_file_get_basename (file);
+      g_autoptr (GFile) target = g_object_ref (file);
+
+      if (!easel_file_has_known_extension (name))
+        {
+          g_autofree char *with_ext = g_strconcat (name, ".png", NULL);
+          g_autoptr (GFile) parent = g_file_get_parent (file);
+          g_clear_object (&target);
+          target = g_file_get_child (parent, with_ext);
+        }
+      if (save_to (p->self, target) && p->next != NULL)
+        p->next (p->self);
+    }
+  pending_free (p);
+}
+
+static void
+save_as (EaselWindow *self, ContinueFunc next)
+{
+  GtkFileDialog *dialog = make_file_dialog ();
+
+  gtk_file_dialog_set_title (dialog, "Save As");
+  if (self->file != NULL)
+    gtk_file_dialog_set_initial_file (dialog, self->file);
+  else
+    gtk_file_dialog_set_initial_name (dialog, "Untitled.png");
+  gtk_file_dialog_save (dialog, GTK_WINDOW (self), NULL, on_save_as_done, pending_new (self, next));
+  g_object_unref (dialog);
+}
+
+static void
+save (EaselWindow *self, ContinueFunc next)
+{
+  if (self->file == NULL)
+    save_as (self, next);
+  else if (save_to (self, self->file) && next != NULL)
+    next (self);
+}
+
+static void
+on_unsaved_answer (GObject *source, GAsyncResult *result, gpointer data)
+{
+  Pending *p = data;
+  const char *answer = adw_alert_dialog_choose_finish (ADW_ALERT_DIALOG (source), result);
+
+  if (g_str_equal (answer, "save"))
+    save (p->self, p->next);
+  else if (g_str_equal (answer, "discard"))
+    p->next (p->self);
+  pending_free (p);
+}
+
+/* Runs `next` once it is safe to throw the current picture away. */
+static void
+confirm_discard (EaselWindow *self, ContinueFunc next)
+{
+  if (!self->modified)
+    {
+      next (self);
+      return;
+    }
+
+  g_autofree char *name = self->file != NULL ? g_file_get_basename (self->file) : g_strdup ("Untitled");
+  g_autofree char *body = g_strdup_printf ("Save changes to “%s” before closing?", name);
+  AdwDialog *dialog = adw_alert_dialog_new ("Save Changes?", body);
+
+  adw_alert_dialog_add_responses (ADW_ALERT_DIALOG (dialog),
+                                  "cancel", "_Cancel", "discard", "_Discard", "save", "_Save", NULL);
+  adw_alert_dialog_set_response_appearance (ADW_ALERT_DIALOG (dialog), "discard",
+                                            ADW_RESPONSE_DESTRUCTIVE);
+  adw_alert_dialog_set_response_appearance (ADW_ALERT_DIALOG (dialog), "save",
+                                            ADW_RESPONSE_SUGGESTED);
+  adw_alert_dialog_set_default_response (ADW_ALERT_DIALOG (dialog), "save");
+  adw_alert_dialog_set_close_response (ADW_ALERT_DIALOG (dialog), "cancel");
+  adw_alert_dialog_choose (ADW_ALERT_DIALOG (dialog), GTK_WIDGET (self), NULL,
+                           on_unsaved_answer, pending_new (self, next));
+}
+
+static void
+show_document (EaselWindow *self, EaselDocument *doc, GFile *file)
+{
+  easel_canvas_set_document (self->canvas, doc);
+  g_set_object (&self->file, file);
+  update_size_label (self);
+  set_modified (self, FALSE);
+}
+
+static void
+do_new (EaselWindow *self)
+{
+  EaselDocument *old = easel_canvas_get_document (self->canvas);
+  EaselDocument *doc = easel_document_new (old->width, old->height,
+                                           easel_color_box_get_background (self->colorbox));
+  if (doc != NULL)
+    show_document (self, doc, NULL);
+}
+
+static void
+on_open_done (GObject *source, GAsyncResult *result, gpointer data)
+{
+  EaselWindow *self = data;
+  g_autoptr (GError) error = NULL;
+  g_autoptr (GFile) file = gtk_file_dialog_open_finish (GTK_FILE_DIALOG (source), result, &error);
+
+  if (file != NULL)
+    easel_window_open_file (self, file);
+  g_object_unref (self);
+}
+
+static void
+do_open (EaselWindow *self)
+{
+  GtkFileDialog *dialog = make_file_dialog ();
+
+  gtk_file_dialog_set_title (dialog, "Open");
+  gtk_file_dialog_open (dialog, GTK_WINDOW (self), NULL, on_open_done, g_object_ref (self));
+  g_object_unref (dialog);
+}
+
+/* Opens `file` without asking about unsaved work (callers have already asked). */
+static void
+load_file (EaselWindow *self, GFile *file)
+{
+  g_autoptr (GError) error = NULL;
+  EaselDocument *doc = easel_file_load (file, &error);
+
+  if (doc == NULL)
+    show_error (self, "Could not open the picture", error);
+  else
+    show_document (self, doc, file);
+}
+
+static GFile *pending_open_file; /* handed from easel_window_open_file to its continuation */
+
+static void
+open_pending (EaselWindow *self)
+{
+  g_autoptr (GFile) file = g_steal_pointer (&pending_open_file);
+  if (file != NULL)
+    load_file (self, file);
+}
+
+void
+easel_window_open_file (EaselWindow *self, GFile *file)
+{
+  g_return_if_fail (EASEL_IS_WINDOW (self));
+  g_set_object (&pending_open_file, file);
+  confirm_discard (self, open_pending);
+}
+
+static void
+action_new (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+  confirm_discard (user_data, do_new);
+}
+
+static void
+action_open (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+  do_open (user_data); /* unsaved work is asked about once a file is picked */
+}
+
+static void
+action_save (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+  save (user_data, NULL);
+}
+
+static void
+action_save_as (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+  save_as (user_data, NULL);
+}
+
+static void
+close_confirmed (EaselWindow *self)
+{
+  self->closing = TRUE;
+  gtk_window_close (GTK_WINDOW (self));
+}
+
+static gboolean
+on_close_request (GtkWindow *window, gpointer user_data)
+{
+  EaselWindow *self = EASEL_WINDOW (window);
+
+  if (self->closing || !self->modified)
+    return FALSE;
+  confirm_discard (self, close_confirmed);
+  return TRUE; /* hold the window until the user has answered */
+}
+
 static const GActionEntry window_actions[] = {
   { "swap-colors", action_swap_colors },
   { "clear-image", action_clear_image },
+  { "new", action_new },
+  { "open", action_open },
+  { "save", action_save },
+  { "save-as", action_save_as },
   { "undo", action_undo },
   { "redo", action_redo },
 };
@@ -175,18 +495,27 @@ build_status_bar (EaselWindow *self, const EaselDocument *doc)
   gtk_box_append (GTK_BOX (bar), GTK_WIDGET (self->position_label));
 
   g_autofree char *size_text = g_strdup_printf ("%d × %d px", doc->width, doc->height);
-  GtkWidget *size_label = gtk_label_new (size_text);
-  gtk_widget_add_css_class (size_label, "caption");
-  gtk_widget_add_css_class (size_label, "numeric");
-  gtk_widget_set_tooltip_text (size_label, "Image size");
-  gtk_box_append (GTK_BOX (bar), size_label);
+  self->size_label = GTK_LABEL (gtk_label_new (size_text));
+  gtk_widget_add_css_class (GTK_WIDGET (self->size_label), "caption");
+  gtk_widget_add_css_class (GTK_WIDGET (self->size_label), "numeric");
+  gtk_widget_set_tooltip_text (GTK_WIDGET (self->size_label), "Image size");
+  gtk_box_append (GTK_BOX (bar), GTK_WIDGET (self->size_label));
 
   return bar;
 }
 
 static void
+easel_window_dispose (GObject *object)
+{
+  EaselWindow *self = EASEL_WINDOW (object);
+  g_clear_object (&self->file);
+  G_OBJECT_CLASS (easel_window_parent_class)->dispose (object);
+}
+
+static void
 easel_window_class_init (EaselWindowClass *klass)
 {
+  G_OBJECT_CLASS (klass)->dispose = easel_window_dispose;
 }
 
 static void
@@ -257,8 +586,10 @@ easel_window_init (EaselWindow *self)
   add_visibility_action (self, "show-colorbox", GTK_WIDGET (self->colorbox));
   add_visibility_action (self, "show-statusbar", self->status_bar);
 
+  g_signal_connect (self, "close-request", G_CALLBACK (on_close_request), NULL);
   g_signal_connect (self->canvas, "history-changed", G_CALLBACK (on_history_changed), self);
   on_history_changed (self->canvas, self);
+  set_modified (self, FALSE);
 
   on_colors_changed (self->colorbox, self);
   sync_canvas_tool (self);

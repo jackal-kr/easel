@@ -35,6 +35,9 @@ gboolean easel_canvas_undo (EaselCanvas *self);
 gboolean easel_canvas_redo (EaselCanvas *self);
 void     easel_canvas_clear (EaselCanvas *self, uint32_t argb); /* undoable */
 
+/* Replaces the picture; takes ownership, clears undo history. */
+void easel_canvas_set_document (EaselCanvas *self, EaselDocument *doc);
+
 /* Call after changing the document from outside the canvas. */
 void easel_canvas_invalidate (EaselCanvas *self);
 
