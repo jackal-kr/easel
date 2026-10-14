@@ -832,6 +832,12 @@ action_select_all (GSimpleAction *action, GVariant *parameter, gpointer user_dat
 /* ---- Image: flip/rotate, stretch/skew, invert ------------------------- */
 
 static void
+action_edit_colors (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+  easel_color_box_edit_colors (((EaselWindow *) user_data)->colorbox);
+}
+
+static void
 action_invert_colors (GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
   easel_canvas_invert (((EaselWindow *) user_data)->canvas);
@@ -965,6 +971,7 @@ static const GActionEntry window_actions[] = {
   { "flip-rotate", action_flip_rotate },
   { "stretch-skew", action_stretch_skew },
   { "invert-colors", action_invert_colors },
+  { "edit-colors", action_edit_colors },
   { "zoom-normal", action_zoom_normal },
   { "zoom-large", action_zoom_large },
   { "zoom-custom", action_zoom_custom },

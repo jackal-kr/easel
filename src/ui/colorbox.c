@@ -1,5 +1,7 @@
 #include "ui/colorbox.h"
 
+#include <string.h>
+
 #include "core/document.h"
 
 #define PALETTE_COLUMNS 14
@@ -36,6 +38,8 @@ struct _EaselColorBox
 
   uint32_t foreground;
   uint32_t background;
+  uint32_t colors[PALETTE_COLUMNS * PALETTE_ROWS]; /* the palette, editable */
+  int      selected;                               /* last palette cell clicked, -1 none */
 
   GtkWidget *swatch_area;
   GtkWidget *palette_area;
@@ -105,7 +109,7 @@ draw_palette (GtkDrawingArea *area, cairo_t *cr, int width, int height, gpointer
   for (int i = 0; i < PALETTE_COLUMNS * PALETTE_ROWS; i++)
     {
       GdkRectangle r = { (i % PALETTE_COLUMNS) * STEP, (i / PALETTE_COLUMNS) * STEP, CELL, CELL };
-      draw_framed_square (cr, GTK_WIDGET (area), &r, palette[i]);
+      draw_framed_square (cr, GTK_WIDGET (area), &r, ((EaselColorBox *) data)->colors[i]);
     }
 }
 
@@ -113,6 +117,7 @@ typedef struct
 {
   EaselColorBox *box; /* strong reference */
   gboolean       foreground;
+  int            cell;       /* palette cell being edited, or -1 */
 } ChooseData;
 
 static void
@@ -125,6 +130,12 @@ on_color_chosen (GObject *source, GAsyncResult *result, gpointer user_data)
   /* A dismissed dialog is not an error worth reporting. */
   if (rgba != NULL)
     {
+      if (data->cell >= 0)
+        {
+          /* Edit Colors: the cell takes the new colour, and so does the pen. */
+          data->box->colors[data->cell] = argb_from_rgba (rgba);
+          gtk_widget_queue_draw (data->box->palette_area);
+        }
       if (data->foreground)
         easel_color_box_set_foreground (data->box, argb_from_rgba (rgba));
       else
@@ -137,17 +148,18 @@ on_color_chosen (GObject *source, GAsyncResult *result, gpointer user_data)
 }
 
 static void
-choose_color (EaselColorBox *self, gboolean foreground)
+choose_color (EaselColorBox *self, gboolean foreground, int cell)
 {
   GtkRoot *root = gtk_widget_get_root (GTK_WIDGET (self));
-  GdkRGBA initial = rgba_from_argb (foreground ? self->foreground : self->background);
+  GdkRGBA initial = rgba_from_argb (cell >= 0 ? self->colors[cell] : foreground ? self->foreground : self->background);
   g_autoptr (GtkColorDialog) dialog = gtk_color_dialog_new ();
   ChooseData *data = g_new0 (ChooseData, 1);
 
   data->box = g_object_ref (self);
   data->foreground = foreground;
+  data->cell = cell;
 
-  gtk_color_dialog_set_title (dialog, foreground ? "Foreground Color" : "Background Color");
+  gtk_color_dialog_set_title (dialog, cell >= 0 ? "Edit Color" : foreground ? "Foreground Color" : "Background Color");
   gtk_color_dialog_set_with_alpha (dialog, FALSE);
   gtk_color_dialog_choose_rgba (dialog, GTK_WINDOW (root), &initial, NULL, on_color_chosen, data);
 }
@@ -162,9 +174,9 @@ static void
 on_swatch_pressed (GtkGestureClick *gesture, int n_press, double x, double y, EaselColorBox *self)
 {
   if (rect_contains (&fg_rect, x, y))
-    choose_color (self, TRUE);
+    choose_color (self, TRUE, -1);
   else if (rect_contains (&bg_rect, x, y))
-    choose_color (self, FALSE);
+    choose_color (self, FALSE, -1);
 }
 
 static void
@@ -179,7 +191,15 @@ on_palette_pressed (GtkGestureClick *gesture, int n_press, double x, double y, E
       || col >= PALETTE_COLUMNS || row >= PALETTE_ROWS)
     return;
 
-  uint32_t color = palette[row * PALETTE_COLUMNS + col];
+  int cell = row * PALETTE_COLUMNS + col;
+  uint32_t color = self->colors[cell];
+
+  self->selected = cell;
+  if (n_press == 2 && button == GDK_BUTTON_PRIMARY)
+    {
+      choose_color (self, TRUE, cell); /* double-click edits the colour */
+      return;
+    }
   if (button == GDK_BUTTON_PRIMARY)
     easel_color_box_set_foreground (self, color);
   else if (button == GDK_BUTTON_SECONDARY)
@@ -216,6 +236,8 @@ easel_color_box_init (EaselColorBox *self)
 {
   self->foreground = EASEL_RGB (0, 0, 0);
   self->background = EASEL_RGB (255, 255, 255);
+  memcpy (self->colors, palette, sizeof palette);
+  self->selected = -1;
 
   gtk_orientable_set_orientation (GTK_ORIENTABLE (self), GTK_ORIENTATION_HORIZONTAL);
   gtk_box_set_spacing (GTK_BOX (self), 8);
@@ -240,7 +262,7 @@ easel_color_box_init (EaselColorBox *self)
 
   self->palette_area = make_drawing_area (PALETTE_COLUMNS * STEP - GAP, PALETTE_ROWS * STEP - GAP,
                                           draw_palette, self);
-  gtk_widget_set_tooltip_text (self->palette_area, "Left-click: foreground. Right-click: background.");
+  gtk_widget_set_tooltip_text (self->palette_area, "Left-click: foreground. Right-click: background. Double-click: edit this color.");
   GtkGesture *palette_click = gtk_gesture_click_new ();
   gtk_gesture_single_set_button (GTK_GESTURE_SINGLE (palette_click), 0);
   g_signal_connect (palette_click, "pressed", G_CALLBACK (on_palette_pressed), self);
@@ -296,4 +318,13 @@ easel_color_box_swap (EaselColorBox *self)
   self->foreground = self->background;
   self->background = tmp;
   colors_changed (self);
+}
+
+/* Colors > Edit Colors…: edits the palette cell last clicked; with none,
+ * the foreground colour itself. */
+void
+easel_color_box_edit_colors (EaselColorBox *self)
+{
+  g_return_if_fail (EASEL_IS_COLOR_BOX (self));
+  choose_color (self, TRUE, self->selected);
 }

@@ -17,6 +17,7 @@ uint32_t easel_color_box_get_background (EaselColorBox *self);
 void     easel_color_box_set_foreground (EaselColorBox *self, uint32_t argb);
 void     easel_color_box_set_background (EaselColorBox *self, uint32_t argb);
 void     easel_color_box_swap (EaselColorBox *self);
+void     easel_color_box_edit_colors (EaselColorBox *self);
 
 /* Signal "colors-changed" (no arguments). */
 
