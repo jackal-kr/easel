@@ -74,6 +74,7 @@ sync_canvas_tool (EaselWindow *self)
   easel_canvas_set_fill_style (self->canvas, easel_toolbox_get_fill_style (self->toolbox));
   easel_canvas_set_zoom_level (self->canvas, easel_toolbox_get_zoom_level (self->toolbox));
   easel_canvas_set_opaque (self->canvas, easel_toolbox_get_opaque (self->toolbox));
+  easel_canvas_set_eraser_opaque (self->canvas, easel_toolbox_get_eraser_opaque (self->toolbox));
   easel_canvas_set_font (self->canvas, easel_toolbox_get_font (self->toolbox));
   easel_canvas_set_text_opaque (self->canvas, easel_toolbox_get_text_opaque (self->toolbox));
   easel_canvas_set_text_smooth (self->canvas, easel_toolbox_get_text_smooth (self->toolbox));
@@ -321,6 +322,10 @@ on_unsaved_answer (GObject *source, GAsyncResult *result, gpointer data)
 static void
 confirm_discard (EaselWindow *self, ContinueFunc next)
 {
+  /* Text being typed, a floating selection or an unfinished curve only reach
+   * the history once put down; until then the picture looks unmodified. */
+  easel_canvas_flush (self->canvas);
+
   if (!self->modified)
     {
       next (self);
@@ -714,6 +719,39 @@ action_invert_colors (GSimpleAction *action, GVariant *parameter, gpointer user_
   easel_canvas_invert (((EaselWindow *) user_data)->canvas);
 }
 
+static void
+action_turn (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+  static const struct { const char *name; EaselTurn turn; } turns[] = {
+    { "flip-horizontal", EASEL_FLIP_H }, { "flip-vertical", EASEL_FLIP_V }, { "rotate-90", EASEL_ROTATE_90 },
+    { "rotate-180", EASEL_ROTATE_180 }, { "rotate-270", EASEL_ROTATE_270 },
+  };
+  const char *name = g_action_get_name (G_ACTION (action));
+
+  for (guint i = 0; i < G_N_ELEMENTS (turns); i++)
+    if (g_str_equal (name, turns[i].name))
+      easel_canvas_turn (((EaselWindow *) user_data)->canvas, turns[i].turn);
+}
+
+/* Text box context menu: the same editing as the keyboard, on the text. */
+static void
+action_text_edit (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+  EaselCanvas *canvas = ((EaselWindow *) user_data)->canvas;
+  const char *name = g_action_get_name (G_ACTION (action));
+
+  if (g_str_equal (name, "text-cut"))
+    easel_canvas_text_cut (canvas);
+  else if (g_str_equal (name, "text-copy"))
+    easel_canvas_text_copy (canvas);
+  else if (g_str_equal (name, "text-paste"))
+    easel_canvas_text_paste (canvas);
+  else if (g_str_equal (name, "text-delete"))
+    easel_canvas_text_delete (canvas);
+  else
+    easel_canvas_text_select_all (canvas);
+}
+
 /* ---- Image and file actions that open a dialog ------------------------ */
 
 static void
@@ -853,6 +891,16 @@ static const GActionEntry window_actions[] = {
   { "print", action_print },
   { "stretch-skew", action_stretch_skew },
   { "invert-colors", action_invert_colors },
+  { "flip-horizontal", action_turn },
+  { "flip-vertical", action_turn },
+  { "rotate-90", action_turn },
+  { "rotate-180", action_turn },
+  { "rotate-270", action_turn },
+  { "text-cut", action_text_edit },
+  { "text-copy", action_text_edit },
+  { "text-paste", action_text_edit },
+  { "text-delete", action_text_edit },
+  { "text-select-all", action_text_edit },
   { "edit-colors", action_edit_colors },
   { "zoom-normal", action_zoom_normal },
   { "zoom-large", action_zoom_large },
@@ -1160,6 +1208,11 @@ easel_window_init (EaselWindow *self)
   g_signal_connect (self->canvas, "text-state", G_CALLBACK (on_text_state), self);
   g_signal_connect (self->toolbox, "text-style-toggled", G_CALLBACK (on_text_style_toggled), self);
   on_selection_changed (self->canvas, self);
+  {
+    g_autoptr (GtkBuilder) menus = gtk_builder_new_from_resource ("/io/github/jackal_kr/Easel/menus.ui");
+    easel_canvas_set_context_menus (self->canvas, G_MENU_MODEL (gtk_builder_get_object (menus, "selection_menu")),
+                                    G_MENU_MODEL (gtk_builder_get_object (menus, "text_menu")));
+  }
   g_signal_connect (self->canvas, "zoom-changed", G_CALLBACK (on_zoom_changed), self);
   on_zoom_changed (self->canvas, self);
   g_signal_connect (self->canvas, "resize-preview", G_CALLBACK (on_resize_preview), self);

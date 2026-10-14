@@ -25,5 +25,24 @@ typedef enum
   EASEL_N_TOOLS
 } EaselTool;
 
+/* What kind of tool it is, for code that treats groups of tools alike. */
+enum
+{
+  EASEL_TOOL_SELECTION     = 1 << 0, /* Select, Free-Form Select */
+  EASEL_TOOL_SHAPE         = 1 << 1, /* dragged out with a live preview: Line, boxes, Gradient */
+  EASEL_TOOL_HOVER_PREVIEW = 1 << 2, /* shows its footprint under the pointer */
+};
+
+typedef struct
+{
+  const char *name;
+  const char *icon;  /* symbolic icon name; the toolbox falls back to `abbr` if the theme lacks it */
+  const char *abbr;
+  const char *hint;  /* status bar text */
+  unsigned    flags; /* EASEL_TOOL_SELECTION, ... */
+} EaselToolInfo;
+
+const EaselToolInfo *easel_tool_info (EaselTool tool);
+
 /* Character styles in the Text tool. */
 enum { EASEL_TEXT_BOLD = 1, EASEL_TEXT_ITALIC = 2, EASEL_TEXT_UNDERLINE = 4, EASEL_TEXT_STRIKE = 8 };

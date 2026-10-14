@@ -64,6 +64,8 @@ void     easel_canvas_clear_selection (EaselCanvas *self);
 void     easel_canvas_paste (EaselCanvas *self);
 void     easel_canvas_paste_clip (EaselCanvas *self, EaselClip *clip); /* takes ownership */
 void     easel_canvas_set_opaque (EaselCanvas *self, gboolean opaque); /* Draw Opaque */
+void     easel_canvas_set_context_menus (EaselCanvas *self, GMenuModel *selection, GMenuModel *text);
+void     easel_canvas_set_eraser_opaque (EaselCanvas *self, gboolean opaque); /* eraser paints the background, else transparency */
 
 /* Crops or extends the picture (new area in the background colour); undoable. */
 gboolean easel_canvas_resize (EaselCanvas *self, int width, int height);

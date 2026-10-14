@@ -22,7 +22,8 @@ typedef struct
   uint32_t        color;
 } EaselBrush;
 
-/* Eraser: a size x size square. Normally it paints `background`; with
+/* Eraser: a size x size square. Normally it paints `background` (0 = fully
+ * transparent for the see-through mode); with
  * color_only it only replaces pixels equal to `from_color` (the classic
  * right-button "color eraser"). */
 typedef struct

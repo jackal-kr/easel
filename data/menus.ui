@@ -15,6 +15,43 @@
     </section>
   </menu>
 
+  <!-- Right-click menus on the canvas. -->
+  <menu id="selection_menu">
+    <section>
+      <item><attribute name="label">Cut</attribute><attribute name="action">win.cut</attribute></item>
+      <item><attribute name="label">Copy</attribute><attribute name="action">win.copy</attribute></item>
+      <item><attribute name="label">Paste</attribute><attribute name="action">win.paste</attribute></item>
+    </section>
+    <section>
+      <item><attribute name="label">Clear Selection</attribute><attribute name="action">win.clear-selection</attribute></item>
+      <item><attribute name="label">Select All</attribute><attribute name="action">win.select-all</attribute></item>
+      <item><attribute name="label">Copy To…</attribute><attribute name="action">win.copy-to</attribute></item>
+    </section>
+    <section>
+      <item><attribute name="label">Flip Horizontal</attribute><attribute name="action">win.flip-horizontal</attribute></item>
+      <item><attribute name="label">Flip Vertical</attribute><attribute name="action">win.flip-vertical</attribute></item>
+      <submenu>
+        <attribute name="label">Rotate</attribute>
+        <item><attribute name="label">90° Right</attribute><attribute name="action">win.rotate-90</attribute></item>
+        <item><attribute name="label">180°</attribute><attribute name="action">win.rotate-180</attribute></item>
+        <item><attribute name="label">90° Left</attribute><attribute name="action">win.rotate-270</attribute></item>
+      </submenu>
+      <item><attribute name="label">Invert Colors</attribute><attribute name="action">win.invert-colors</attribute></item>
+    </section>
+  </menu>
+
+  <menu id="text_menu">
+    <section>
+      <item><attribute name="label">Cut</attribute><attribute name="action">win.text-cut</attribute></item>
+      <item><attribute name="label">Copy</attribute><attribute name="action">win.text-copy</attribute></item>
+      <item><attribute name="label">Paste</attribute><attribute name="action">win.text-paste</attribute></item>
+      <item><attribute name="label">Delete</attribute><attribute name="action">win.text-delete</attribute></item>
+    </section>
+    <section>
+      <item><attribute name="label">Select All</attribute><attribute name="action">win.text-select-all</attribute></item>
+    </section>
+  </menu>
+
   <menu id="view_menu">
     <section>
       <item><attribute name="custom">zoom</attribute></item>

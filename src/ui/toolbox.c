@@ -3,54 +3,6 @@
 #include "ui/config.h"
 #include "ui/settings.h"
 
-typedef struct
-{
-  const char *name;
-  const char *icon;  /* stock symbolic icon; falls back to `abbr` if the theme lacks it */
-  const char *abbr;
-  const char *hint;
-  gboolean    implemented;
-} ToolDef;
-
-/* Order matches the classic two-column layout, row by row. */
-static const ToolDef tools[EASEL_N_TOOLS] = {
-  [EASEL_TOOL_GRADIENT] = { "Gradient", "easel-gradient-symbolic", "Gr",
-    "Fills with a blend from the foreground to the background color. Drag to set direction and length.", TRUE },
-  [EASEL_TOOL_PAN] = { "Pan", "easel-pan-symbolic", "Pa",
-    "Click and drag to navigate the image.", TRUE },
-  [EASEL_TOOL_FREE_FORM_SELECT] = { "Free-Form Select", "easel-free-form-select-symbolic", "FS",
-    "Selects a free-form part of the picture to move, copy, or edit.", TRUE },
-  [EASEL_TOOL_SELECT] = { "Select", "easel-select-symbolic", "Se",
-    "Selects a rectangular part of the picture to move, copy, or edit.", TRUE },
-  [EASEL_TOOL_ERASER] = { "Eraser", "easel-eraser-symbolic", "Er",
-    "Erases a portion of the picture. Right button: replaces the foreground color with the background color.", TRUE },
-  [EASEL_TOOL_FILL] = { "Fill With Color", "easel-fill-symbolic", "Fl",
-    "Fills an area with the foreground color (left button) or the background color (right button).", TRUE },
-  [EASEL_TOOL_PICK_COLOR] = { "Pick Color", "easel-pick-color-symbolic", "Pk",
-    "Picks up a color from the picture for drawing. Left button: foreground. Right button: background.", TRUE },
-  [EASEL_TOOL_MAGNIFIER] = { "Magnifier", "easel-magnifier-symbolic", "Mg",
-    "Changes the magnification.", TRUE },
-  [EASEL_TOOL_PENCIL] = { "Pencil", "easel-pencil-symbolic", "Pe",
-    "Draws a free-form line. Left button: foreground color. Right button: background color.", TRUE },
-  [EASEL_TOOL_BRUSH] = { "Brush", "easel-brush-symbolic", "Br",
-    "Draws using a brush with the selected shape and size.", TRUE },
-  [EASEL_TOOL_AIRBRUSH] = { "Airbrush", "easel-airbrush-symbolic", "Ai",
-    "Draws using an airbrush of the selected size.", TRUE },
-  [EASEL_TOOL_TEXT] = { "Text", "easel-text-symbolic", "Tx",
-    "Inserts text into the picture.", TRUE },
-  [EASEL_TOOL_LINE] = { "Line", "easel-line-symbolic", "Ln",
-    "Draws a straight line with the selected line width.", TRUE },
-  [EASEL_TOOL_CURVE] = { "Curve", "easel-curve-symbolic", "Cv",
-    "Draws a curved line with the selected line width.", TRUE },
-  [EASEL_TOOL_RECTANGLE] = { "Rectangle", "easel-rectangle-symbolic", "Re",
-    "Draws a rectangle with the selected fill style.", TRUE },
-  [EASEL_TOOL_POLYGON] = { "Polygon", "easel-polygon-symbolic", "Po",
-    "Draws a polygon with the selected fill style.", TRUE },
-  [EASEL_TOOL_ELLIPSE] = { "Ellipse", "easel-ellipse-symbolic", "El",
-    "Draws an ellipse with the selected fill style.", TRUE },
-  [EASEL_TOOL_ROUNDED_RECTANGLE] = { "Rounded Rectangle", "easel-rounded-rectangle-symbolic", "RR",
-    "Draws a rounded rectangle with the selected fill style.", TRUE },
-};
 
 /* Size choices. Brush and eraser sizes are the classic ones; pencil sizes
  * are an Easel extension (classic Paint's pencil is always 1 px). */
@@ -67,7 +19,7 @@ static const struct { EaselBrushShape shape; const char *name; } brush_shapes[] 
 };
 
 typedef enum { OPTION_PENCIL, OPTION_BRUSH, OPTION_ERASER, OPTION_LINE, OPTION_FILL,
-               OPTION_AIRBRUSH, OPTION_ZOOM, OPTION_OPAQUE, OPTION_TEXT_OPAQUE,
+               OPTION_AIRBRUSH, OPTION_ZOOM, OPTION_OPAQUE, OPTION_TEXT_OPAQUE, OPTION_ERASER_OPAQUE,
                OPTION_GRADIENT } OptionKind;
 
 static const int airbrush_sizes[] = { 9, 16, 24 };
@@ -107,7 +59,7 @@ struct _EaselToolbox
   int             zoom_level;
   char           *font;         /* Pango description for the Text tool */
   GtkWidget      *font_button;
-  gboolean        opaque, text_opaque;
+  gboolean        opaque, text_opaque, eraser_opaque;
   GtkWidget      *style_buttons[4];
   gboolean        syncing_style, text_smooth;
   int             gradient_style; /* EaselGradientStyle */       /* Draw Opaque for selections */
@@ -197,6 +149,9 @@ on_option_toggled (GtkToggleButton *button, EaselToolbox *self)
     case OPTION_TEXT_OPAQUE:
       self->text_opaque = size != 0;
       break;
+    case OPTION_ERASER_OPAQUE:
+      self->eraser_opaque = size != 0;
+      break;
     case OPTION_GRADIENT:
       self->gradient_style = size;
       break;
@@ -247,7 +202,7 @@ draw_preview (GtkDrawingArea *area, cairo_t *cr, int width, int height, gpointer
       return;
     }
 
-  if (p->kind == OPTION_OPAQUE || p->kind == OPTION_TEXT_OPAQUE)
+  if (p->kind == OPTION_OPAQUE || p->kind == OPTION_TEXT_OPAQUE || p->kind == OPTION_ERASER_OPAQUE)
     {
       GdkRGBA c;
       gtk_widget_get_color (GTK_WIDGET (area), &c);
@@ -385,7 +340,7 @@ make_option_button (EaselToolbox *self, OptionKind kind, EaselBrushShape shape, 
                     const char *shape_name, gboolean with_preview, int form)
 {
   GtkWidget *button = gtk_toggle_button_new ();
-  g_autofree char *tip = kind == OPTION_OPAQUE || kind == OPTION_TEXT_OPAQUE || kind == OPTION_GRADIENT
+  g_autofree char *tip = kind == OPTION_OPAQUE || kind == OPTION_TEXT_OPAQUE || kind == OPTION_ERASER_OPAQUE || kind == OPTION_GRADIENT
                            ? g_strdup (shape_name)
                            : kind == OPTION_ZOOM
                            ? g_strdup_printf ("%d×", size)
@@ -460,6 +415,8 @@ build_pencil_options (EaselToolbox *self)
   return grid;
 }
 
+static GtkWidget *build_opaque_options (EaselToolbox *self, OptionKind kind, GtkWidget *grid, int first_row);
+
 static GtkWidget *
 build_eraser_options (EaselToolbox *self)
 {
@@ -469,7 +426,13 @@ build_eraser_options (EaselToolbox *self)
     add_option (grid, &leader,
                 make_option_button (self, OPTION_ERASER, EASEL_BRUSH_SQUARE, eraser_sizes[i], NULL, TRUE, 0),
                 (int) (i % 2), (int) (i / 2), eraser_sizes[i] == self->eraser_size);
-  return grid;
+  int rows = (int) G_N_ELEMENTS (eraser_sizes) / 2;
+  GtkWidget *rule = gtk_separator_new (GTK_ORIENTATION_HORIZONTAL);
+
+  gtk_widget_set_margin_top (rule, 4);
+  gtk_widget_set_margin_bottom (rule, 4);
+  gtk_grid_attach (GTK_GRID (grid), rule, 0, rows, 2, 1);
+  return build_opaque_options (self, OPTION_ERASER_OPAQUE, grid, rows + 1);
 }
 
 static GtkWidget *
@@ -484,24 +447,30 @@ build_line_options (EaselToolbox *self)
   return grid;
 }
 
+/* The Opaque / Transparent pair, shared by Select, Text and Eraser. Added to
+ * `grid` from `first_row` on (a new grid when NULL). */
 static GtkWidget *
-build_opaque_options (EaselToolbox *self, OptionKind kind)
+build_opaque_options (EaselToolbox *self, OptionKind kind, GtkWidget *grid, int first_row)
 {
-  GtkWidget *grid = make_options_grid (), *leader = NULL;
-  static const struct { int opaque; const char *name; } modes[] = {
-    { 1, "Opaque: keep the selection's background" }, { 0, "Transparent: hide background color" },
-  };
+  GtkWidget *leader = NULL;
+  static const char *const select_names[] = { "Transparent: hide background color", "Opaque: keep the selection's background" };
+  static const char *const eraser_names[] = { "Transparent: erase to transparency", "Opaque: erase to the background color" };
+  gboolean current = kind == OPTION_OPAQUE ? self->opaque
+                   : kind == OPTION_ERASER_OPAQUE ? self->eraser_opaque : self->text_opaque;
+  const char *const *names = kind == OPTION_ERASER_OPAQUE ? eraser_names : select_names;
 
-  for (guint i = 0; i < G_N_ELEMENTS (modes); i++)
+  if (grid == NULL)
+    grid = make_options_grid ();
+
+  for (int i = 0; i < 2; i++)
     {
-      GtkWidget *b = make_option_button (self, kind, EASEL_BRUSH_CIRCLE, modes[i].opaque,
-                                         modes[i].name, TRUE, 0);
-      add_option (grid, &leader, b, 0, (int) i,
-                  (modes[i].opaque != 0) == (kind == OPTION_OPAQUE ? self->opaque : self->text_opaque));
+      int opaque = 1 - i; /* Opaque first */
+      GtkWidget *b = make_option_button (self, kind, EASEL_BRUSH_CIRCLE, opaque, names[i == 0 ? 1 : 0], TRUE, 0);
+      add_option (grid, &leader, b, 0, first_row + i, (opaque != 0) == current);
       /* Full width, so the pair reads the same on every page. */
       g_object_ref (b);
       gtk_grid_remove (GTK_GRID (grid), b);
-      gtk_grid_attach (GTK_GRID (grid), b, 0, (int) i, 2, 1);
+      gtk_grid_attach (GTK_GRID (grid), b, 0, first_row + i, 2, 1);
       g_object_unref (b);
     }
   return grid;
@@ -510,7 +479,7 @@ build_opaque_options (EaselToolbox *self, OptionKind kind)
 static GtkWidget *
 build_select_options (EaselToolbox *self)
 {
-  return build_opaque_options (self, OPTION_OPAQUE);
+  return build_opaque_options (self, OPTION_OPAQUE, NULL, 0);
 }
 
 static void
@@ -595,7 +564,7 @@ on_smooth_toggled (GtkToggleButton *button, EaselToolbox *self)
 static GtkWidget *
 build_text_options (EaselToolbox *self)
 {
-  GtkWidget *grid = build_opaque_options (self, OPTION_TEXT_OPAQUE);
+  GtkWidget *grid = build_opaque_options (self, OPTION_TEXT_OPAQUE, NULL, 0);
   GtkWidget *rule = gtk_separator_new (GTK_ORIENTATION_HORIZONTAL);
 
   gtk_widget_set_margin_top (rule, 4);
@@ -704,7 +673,7 @@ build_brush_options (EaselToolbox *self)
 static GtkWidget *
 make_tool_button (EaselTool id, GtkIconTheme *theme)
 {
-  const ToolDef *def = &tools[id];
+  const EaselToolInfo *def = easel_tool_info (id);
   GtkWidget *button = gtk_toggle_button_new ();
 
   if (gtk_icon_theme_has_icon (theme, def->icon))
@@ -719,7 +688,6 @@ make_tool_button (EaselTool id, GtkIconTheme *theme)
   gtk_widget_set_tooltip_text (button, def->name);
   gtk_accessible_update_property (GTK_ACCESSIBLE (button), GTK_ACCESSIBLE_PROPERTY_LABEL,
                                   def->name, -1);
-  gtk_widget_set_sensitive (button, def->implemented);
   g_object_set_data (G_OBJECT (button), "easel-tool", GINT_TO_POINTER (id));
   return button;
 }
@@ -858,6 +826,7 @@ easel_toolbox_init (EaselToolbox *self)
   self->airbrush_size = 16;
   self->zoom_level = 2;
   self->opaque = TRUE;
+  self->eraser_opaque = TRUE;
   self->text_opaque = FALSE; /* text is see-through unless asked otherwise */
   self->font = g_strdup (EASEL_DEFAULT_FONT);
 
@@ -946,7 +915,7 @@ const char *
 easel_toolbox_get_tool_hint (EaselToolbox *self)
 {
   g_return_val_if_fail (EASEL_IS_TOOLBOX (self), "");
-  return tools[self->tool].hint;
+  return easel_tool_info (self->tool)->hint;
 }
 
 int
@@ -1034,6 +1003,13 @@ easel_toolbox_get_text_smooth (EaselToolbox *self)
 {
   g_return_val_if_fail (EASEL_IS_TOOLBOX (self), FALSE);
   return self->text_smooth;
+}
+
+gboolean
+easel_toolbox_get_eraser_opaque (EaselToolbox *self)
+{
+  g_return_val_if_fail (EASEL_IS_TOOLBOX (self), TRUE);
+  return self->eraser_opaque;
 }
 
 gboolean

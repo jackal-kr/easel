@@ -1,0 +1,66 @@
+#include "ui/tool.h"
+
+/* Everything the UI knows about each tool, in one place. Order follows the
+ * enum (the classic two-column toolbox, row by row). */
+static const EaselToolInfo tools[EASEL_N_TOOLS] = {
+  [EASEL_TOOL_GRADIENT] = { "Gradient", "easel-gradient-symbolic", "Gr",
+    "Fills with a blend from the foreground to the background color. Drag to set direction and length.",
+    EASEL_TOOL_SHAPE },
+  [EASEL_TOOL_PAN] = { "Pan", "easel-pan-symbolic", "Pa",
+    "Click and drag to navigate the image.",
+    0 },
+  [EASEL_TOOL_FREE_FORM_SELECT] = { "Free-Form Select", "easel-free-form-select-symbolic", "FS",
+    "Selects a free-form part of the picture to move, copy, or edit.",
+    EASEL_TOOL_SELECTION },
+  [EASEL_TOOL_SELECT] = { "Select", "easel-select-symbolic", "Se",
+    "Selects a rectangular part of the picture to move, copy, or edit.",
+    EASEL_TOOL_SELECTION },
+  [EASEL_TOOL_ERASER] = { "Eraser", "easel-eraser-symbolic", "Er",
+    "Erases a portion of the picture. Right button: replaces the foreground color with the background color.",
+    EASEL_TOOL_HOVER_PREVIEW },
+  [EASEL_TOOL_FILL] = { "Fill With Color", "easel-fill-symbolic", "Fl",
+    "Fills an area with the foreground color (left button) or the background color (right button).",
+    0 },
+  [EASEL_TOOL_PICK_COLOR] = { "Pick Color", "easel-pick-color-symbolic", "Pk",
+    "Picks up a color from the picture for drawing. Left button: foreground. Right button: background.",
+    0 },
+  [EASEL_TOOL_MAGNIFIER] = { "Magnifier", "easel-magnifier-symbolic", "Mg",
+    "Changes the magnification.",
+    0 },
+  [EASEL_TOOL_PENCIL] = { "Pencil", "easel-pencil-symbolic", "Pe",
+    "Draws a free-form line. Left button: foreground color. Right button: background color.",
+    EASEL_TOOL_HOVER_PREVIEW },
+  [EASEL_TOOL_BRUSH] = { "Brush", "easel-brush-symbolic", "Br",
+    "Draws using a brush with the selected shape and size.",
+    EASEL_TOOL_HOVER_PREVIEW },
+  [EASEL_TOOL_AIRBRUSH] = { "Airbrush", "easel-airbrush-symbolic", "Ai",
+    "Draws using an airbrush of the selected size.",
+    0 },
+  [EASEL_TOOL_TEXT] = { "Text", "easel-text-symbolic", "Tx",
+    "Inserts text into the picture.",
+    0 },
+  [EASEL_TOOL_LINE] = { "Line", "easel-line-symbolic", "Ln",
+    "Draws a straight line with the selected line width.",
+    EASEL_TOOL_SHAPE },
+  [EASEL_TOOL_CURVE] = { "Curve", "easel-curve-symbolic", "Cv",
+    "Draws a curved line with the selected line width.",
+    0 },
+  [EASEL_TOOL_RECTANGLE] = { "Rectangle", "easel-rectangle-symbolic", "Re",
+    "Draws a rectangle with the selected fill style.",
+    EASEL_TOOL_SHAPE },
+  [EASEL_TOOL_POLYGON] = { "Polygon", "easel-polygon-symbolic", "Po",
+    "Draws a polygon with the selected fill style.",
+    0 },
+  [EASEL_TOOL_ELLIPSE] = { "Ellipse", "easel-ellipse-symbolic", "El",
+    "Draws an ellipse with the selected fill style.",
+    EASEL_TOOL_SHAPE },
+  [EASEL_TOOL_ROUNDED_RECTANGLE] = { "Rounded Rectangle", "easel-rounded-rectangle-symbolic", "RR",
+    "Draws a rounded rectangle with the selected fill style.",
+    EASEL_TOOL_SHAPE },
+};
+
+const EaselToolInfo *
+easel_tool_info (EaselTool tool)
+{
+  return &tools[tool];
+}
