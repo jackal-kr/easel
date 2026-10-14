@@ -45,6 +45,11 @@
   </supports>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.1.3" date="2026-10-14">
+      <description>
+        <p>Gradients fade to transparent, so a second gradient lays over the first.</p>
+      </description>
+    </release>
     <release version="1.1.2" date="2026-10-14">
       <description>
         <p>Help opens in the web browser. Faster resize, paste and image transforms.</p>

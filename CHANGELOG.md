@@ -2,7 +2,7 @@
 
 All notable user-facing changes to Easel. Newest first. Built from the git history; versions follow the tags.
 
-## Unreleased
+## 1.1.3
 - Gradient fades from the chosen color to transparent, so a second gradient lays over the first instead of replacing it.
 
 ## 1.1.2
