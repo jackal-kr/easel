@@ -64,7 +64,8 @@ describe_color (uint32_t c)
   return g_strdup_printf (_("%s (#%06X)"), _(palette_names[best]), c & 0xFFFFFFu);
 }
 
-/* Swatch geometry: foreground square on top of a background square. */
+/* The two overlapping squares at the left: foreground on top of background,
+ * as in the original. Positions in pixels inside the swatch widget. */
 static const GdkRectangle fg_rect = { 2, 2, 28, 28 };
 static const GdkRectangle bg_rect = { 16, 12, 28, 28 };
 
@@ -118,8 +119,8 @@ set_source_argb (cairo_t *cr, uint32_t c)
 }
 
 
-/* The edited palette lives in settings as 28 "#rrggbb" strings; empty means
- * the classic one. */
+/* The palette is saved in settings as a list of 28 "#rrggbb" strings. An empty
+ * list means the user never edited it, so use the classic colours. */
 static void
 load_palette (EaselColorBox *self)
 {
@@ -285,8 +286,8 @@ on_swatch_pressed (GtkGestureClick *gesture, int n_press, double x, double y, Ea
     choose_color (self, FALSE, -1);
 }
 
-/* The focus ring is for keyboard navigation. Once a colour is picked (by key or
- * mouse) the ring goes away instead of lingering on a stale cell. */
+/* The focus ring is only useful while navigating with the keyboard. After a
+ * colour has been picked it is hidden so it doesn't sit on an old cell. */
 static void
 palette_done (EaselColorBox *self)
 {

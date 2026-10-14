@@ -6,6 +6,6 @@
 override_dh_auto_test:
 	GSK_RENDERER=cairo dh_auto_test
 
-# Easel's Help command opens help.md directly, so keep it uncompressed.
+# Easel's Help command opens help.html directly, so keep it uncompressed.
 override_dh_compress:
-	dh_compress -Xhelp.md
+	dh_compress -Xhelp.html

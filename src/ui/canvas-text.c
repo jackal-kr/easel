@@ -1,6 +1,13 @@
 #include "ui/canvas-private.h"
 
-/* ---- Text ------------------------------------------------------------ */
+/* The Text tool.
+ *
+ * While you type, the text is not in the picture. It's laid out with Pango,
+ * rendered into `text_clip` and shown above the picture as a texture, so you
+ * can keep editing, resizing and moving it. Only when you click away
+ * (canvas_text_commit) is it blended into the real pixels as one undo step.
+ * Per-character style (bold, colour...) is kept in `text_attr`, one entry per
+ * byte of the text. */
 
 gboolean
 canvas_text_sel_range (EaselCanvas *self, int *a, int *b)
@@ -12,7 +19,8 @@ canvas_text_sel_range (EaselCanvas *self, int *a, int *b)
   return TRUE;
 }
 
-/* Tells the options and the Edit menu what the caret or selection looks like. */
+/* Tells the toolbox and the Edit menu about the caret and selection, so the
+ * Bold/Italic buttons and Cut/Copy can enable or disable themselves. */
 static void
 text_emit_state (EaselCanvas *self)
 {
@@ -61,9 +69,10 @@ text_rgb (uint32_t c)
   return c | 0xFF000000u;
 }
 
-/* Lays the text out and draws it, without antialiasing, into a clip the size
- * of the box. Opaque: the background fills the box. Transparent: only the
- * glyph pixels are set. The box grows downward to fit its text. */
+/* Renders the text into text_clip, which is as big as the box. Smoothing is
+ * off unless the user turned it on, to keep the crisp XP look. In Opaque mode
+ * the box is filled with the background colour, in Transparent mode only the
+ * letters get pixels. The box grows downward if the text needs more room. */
 void
 canvas_text_render (EaselCanvas *self)
 {
@@ -202,7 +211,7 @@ text_cancel (EaselCanvas *self)
   gtk_widget_queue_draw (GTK_WIDGET (self));
 }
 
-/* Puts the text down as pixels: one undo step. */
+/* Blends the rendered text into the picture and closes the text box. */
 void
 canvas_text_commit (EaselCanvas *self)
 {
@@ -211,8 +220,11 @@ canvas_text_commit (EaselCanvas *self)
 
   if (self->text_active && self->text_clip != NULL && self->text_buf->len > 0)
     {
-      g_autofree uint32_t *base = g_memdup2 (self->doc->pixels, (gsize) self->doc->width * self->doc->height * 4);
-      /* Source-over, so smoothed edges blend with what is underneath. */
+      uint32_t *base = canvas_snapshot_take (self);
+
+      /* Normal "source over" blending, so anti-aliased edges mix with what is
+       * underneath: result = src + dst * (1 - src_alpha). Pixels are
+       * premultiplied, so that works per channel with no extra maths. */
       EaselRect box = self->text_rect, landed = { 0, 0, 0, 0 };
       for (int y = 0; y < self->text_clip->height; y++)
         for (int x = 0; x < self->text_clip->width; x++)
@@ -240,6 +252,7 @@ canvas_text_commit (EaselCanvas *self)
       self->edit_rect = landed;
       canvas_mark_dirty (self, landed);
       canvas_push_undo (self, base);
+      canvas_snapshot_drop (self, &base);
     }
   text_cancel (self);
 }
@@ -267,8 +280,9 @@ text_insert (EaselCanvas *self, const char *utf8)
   text_emit_state (self);
 }
 
-/* Moves the caret; with `extend` the old position becomes the selection's
- * other end. The typing style follows the character before the caret. */
+/* Moves the caret to byte offset `index`. With `extend` (Shift held) the old
+ * position becomes the other end of the selection. Newly typed text copies the
+ * style of the character before the caret, like any word processor. */
 void
 canvas_text_move_cursor (EaselCanvas *self, int index, gboolean extend)
 {
@@ -301,8 +315,8 @@ canvas_text_index_at (EaselCanvas *self, int ix, int iy)
   return idx;
 }
 
-/* Bold, italic ... on the selection (or, with none, on what is typed next).
- * Returns nothing; the options follow through the text-state signal. */
+/* Turns a style flag (bold, italic...) on or off for the selected text, or for
+ * whatever is typed next when nothing is selected. */
 static void
 text_apply_style (EaselCanvas *self, guint flag, gboolean on)
 {
@@ -325,7 +339,7 @@ text_apply_style (EaselCanvas *self, guint flag, gboolean on)
     text_emit_state (self);
 }
 
-/* The colour goes to the selected text, or to all of it with no selection. */
+/* Colours the selected text, or all of it when nothing is selected. */
 void
 canvas_text_apply_color (EaselCanvas *self, uint32_t color)
 {
@@ -340,7 +354,8 @@ canvas_text_apply_color (EaselCanvas *self, uint32_t color)
   canvas_text_render (self);
 }
 
-/* Returns TRUE if the key was consumed by the text box. */
+/* Keyboard handling for the text box. Returns TRUE if the key was used, so
+ * the window knows not to treat it as a shortcut. */
 gboolean
 canvas_text_key (EaselCanvas *self, guint keyval, GdkModifierType state)
 {
@@ -466,7 +481,9 @@ canvas_draw_text (EaselCanvas *self, GtkSnapshot *snapshot, double s)
       const GdkRGBA tint = { 0.2f, 0.4f, 0.9f, 0.35f };
       const char *str = self->text_buf->str;
 
-      /* One rectangle per character: robust across wrapped and empty lines. */
+      /* Highlight one rectangle per character. It's more rectangles than
+       * needed, but it copes with wrapped lines and empty lines without any
+       * special cases. */
       for (int i = sa; i < sb; i = (int) (g_utf8_next_char (str + i) - str))
         {
           PangoRectangle pos;
@@ -505,7 +522,8 @@ canvas_draw_text (EaselCanvas *self, GtkSnapshot *snapshot, double s)
     }
 }
 
-/* Where a pointer at widget (wx, wy) is relative to the text box. */
+/* What is under the pointer: a resize handle (1..8), the border (to move the
+ * box), the inside (to place the caret) or nothing. */
 int
 canvas_text_hit (EaselCanvas *self, double wx, double wy)
 {

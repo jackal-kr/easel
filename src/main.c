@@ -81,17 +81,17 @@ action_preferences (GSimpleAction *action, GVariant *parameter, gpointer user_da
   easel_preferences_present (GTK_WIDGET (gtk_application_get_active_window (user_data)));
 }
 
-/* Help opens docs/help.md in the user's default Markdown/text viewer. It is
- * found next to the source tree when running from the build directory, else
- * in the installed doc directory. */
+/* Help opens help.html in the default browser. When running from the build
+ * directory the copy in the source tree is used, otherwise the installed one.
+ * help.html is generated from help.md by tools/build-help.py. */
 static void
 action_help (GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
   GtkApplication *app = user_data;
   g_autofree char *exe = g_file_read_link ("/proc/self/exe", NULL);
   g_autofree char *exe_dir = exe != NULL ? g_path_get_dirname (exe) : NULL;
-  g_autofree char *dev = exe_dir != NULL ? g_build_filename (exe_dir, "..", "..", "docs", "help.md", NULL) : NULL;
-  g_autofree char *installed = g_build_filename (EASEL_DOCDIR, "help.md", NULL);
+  g_autofree char *dev = exe_dir != NULL ? g_build_filename (exe_dir, "..", "..", "docs", "help.html", NULL) : NULL;
+  g_autofree char *installed = g_build_filename (EASEL_DOCDIR, "help.html", NULL);
   const char *path = dev != NULL && g_file_test (dev, G_FILE_TEST_EXISTS) ? dev : installed;
   GtkWindow *parent = gtk_application_get_active_window (app);
 

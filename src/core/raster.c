@@ -20,22 +20,20 @@ clamp_size (int size)
   return size;
 }
 
-/* The size x size box whose top-left is (left, top), clipped to the image.
- * Width 0 when entirely outside. */
+/* A size x size box at (left, top), cut down to the picture. Comes back with
+ * zero width if it is completely outside. */
 static EaselRect
 clip_box (const EaselDocument *doc, int left, int top, int size)
 {
-  int x0 = left < 0 ? 0 : left;
-  int y0 = top < 0 ? 0 : top;
-  int x1 = (left + size) > doc->width ? doc->width : (left + size);
-  int y1 = (top + size) > doc->height ? doc->height : (top + size);
+  EaselRect box = { left, top, size, size };
 
-  if (x0 >= x1 || y0 >= y1)
+  if (!easel_rect_clip (&box, doc->width, doc->height))
     return (EaselRect) { 0, 0, 0, 0 };
-  return (EaselRect) { x0, y0, x1 - x0, y1 - y0 };
+  return box;
 }
 
-/* Is pixel (i, j) inside the n x n brush footprint? */
+/* Is pixel (i, j) of the n x n brush box painted? The canvas uses this same
+ * function for the hover preview, so what you see is what you get. */
 bool
 easel_brush_covers (EaselBrushShape shape, int size, int i, int j)
 {
@@ -48,8 +46,10 @@ easel_brush_covers (EaselBrushShape shape, int size, int i, int j)
     {
     case EASEL_BRUSH_CIRCLE:
       {
-        /* Pixel centre within n/2 of the brush centre. Doubled coordinates
-         * keep it integer-only: (2i+1-n)^2 + (2j+1-n)^2 <= n^2. */
+        /* Painted if the pixel's centre is within n/2 of the brush centre.
+         * Doubling every coordinate gets rid of the halves, so it stays pure
+         * integer maths (no float rounding surprises at the circle's edge):
+         * (2i+1-n)^2 + (2j+1-n)^2 <= n^2 */
         long dx = 2L * i + 1 - n;
         long dy = 2L * j + 1 - n;
         return dx * dx + dy * dy <= (long) n * n;
@@ -97,13 +97,14 @@ easel_raster_erase (EaselDocument *doc, int cx, int cy, const EaselEraser *erase
   return box;
 }
 
-typedef EaselRect (*StampFunc) (EaselDocument *doc, int x, int y, const void *data);
+/* Classic Bresenham: calls visit() for every pixel from (x0, y0) to (x1, y1),
+ * both ends included. All the line-ish things below (pencil strokes, the
+ * eraser, shape outlines, free-form selection edges) go through this one. */
+typedef void (*VisitFunc) (int x, int y, void *ctx);
 
-/* Bresenham walk calling `stamp` at every point, both ends included. */
-static EaselRect
-walk_line (EaselDocument *doc, int x0, int y0, int x1, int y1, StampFunc stamp, const void *data)
+static void
+bresenham (int x0, int y0, int x1, int y1, VisitFunc visit, void *ctx)
 {
-  EaselRect dirty = { 0, 0, 0, 0 };
   int dx = abs (x1 - x0);
   int dy = -abs (y1 - y0);
   int sx = x0 < x1 ? 1 : -1;
@@ -112,7 +113,7 @@ walk_line (EaselDocument *doc, int x0, int y0, int x1, int y1, StampFunc stamp, 
 
   for (;;)
     {
-      dirty = easel_rect_union (dirty, stamp (doc, x0, y0, data));
+      visit (x0, y0, ctx);
       if (x0 == x1 && y0 == y1)
         break;
 
@@ -128,10 +129,38 @@ walk_line (EaselDocument *doc, int x0, int y0, int x1, int y1, StampFunc stamp, 
           y0 += sy;
         }
     }
-
-  return dirty;
 }
 
+/* Stamping something (brush, eraser) along a line, collecting the dirty box. */
+typedef EaselRect (*StampFunc) (EaselDocument *doc, int x, int y, const void *data);
+
+typedef struct
+{
+  EaselDocument *doc;
+  StampFunc      stamp;
+  const void    *data;
+  EaselRect      dirty;
+} StampWalk;
+
+static void
+visit_stamp (int x, int y, void *ctx)
+{
+  StampWalk *w = ctx;
+
+  w->dirty = easel_rect_union (w->dirty, w->stamp (w->doc, x, y, w->data));
+}
+
+static EaselRect
+walk_line (EaselDocument *doc, int x0, int y0, int x1, int y1, StampFunc stamp, const void *data)
+{
+  StampWalk w = { doc, stamp, data, { 0, 0, 0, 0 } };
+
+  bresenham (x0, y0, x1, y1, visit_stamp, &w);
+  return w.dirty;
+}
+
+/* Thin adapters so the stamp functions fit the StampFunc signature. Casting
+ * the function pointers instead would be undefined behaviour in C. */
 static EaselRect
 stamp_brush (EaselDocument *doc, int x, int y, const void *data)
 {
@@ -157,7 +186,8 @@ easel_raster_erase_stroke (EaselDocument *doc, int x0, int y0, int x1, int y1,
   return walk_line (doc, x0, y0, x1, y1, stamp_eraser, eraser);
 }
 
-/* Growable stack of (x, y) seeds for the scanline fill. */
+/* Flood fill needs a stack of places still to look at. A recursive fill would
+ * blow the real stack on a big empty picture, so it lives on the heap. */
 typedef struct
 {
   int   *v;
@@ -195,7 +225,7 @@ easel_raster_flood_fill (EaselDocument *doc, int x, int y, uint32_t color)
 
   uint32_t target = doc->pixels[(size_t) y * (size_t) w + (size_t) x];
   if (target == color)
-    return none; /* also prevents an endless loop */
+    return none; /* nothing to do, and without this check we'd never stop */
 
   SeedStack stack = { NULL, 0, 0 };
   int min_x = w, min_y = h, max_x = -1, max_y = -1;
@@ -211,8 +241,9 @@ easel_raster_flood_fill (EaselDocument *doc, int x, int y, uint32_t color)
       uint32_t *row = doc->pixels + (size_t) cy * (size_t) w;
 
       if (row[cx] != target)
-        continue; /* already filled via another seed */
+        continue; /* an earlier seed already covered this run */
 
+      /* Grow to the full run of target-coloured pixels on this row. */
       int lx = cx, rx = cx;
       while (lx > 0 && row[lx - 1] == target)
         lx--;
@@ -226,7 +257,9 @@ easel_raster_flood_fill (EaselDocument *doc, int x, int y, uint32_t color)
       if (cy < min_y) min_y = cy;
       if (cy > max_y) max_y = cy;
 
-      /* One seed per run of target pixels in the rows above and below. */
+      /* Look at the rows above and below the run we just painted. Each
+       * separate stretch of target colour there gets one seed. This is the
+       * "scanline" trick: far fewer pushes than one per pixel. */
       for (int ny = cy - 1; ny <= cy + 1; ny += 2)
         {
           if (ny < 0 || ny >= h)
@@ -262,8 +295,9 @@ easel_raster_line (EaselDocument *doc, int x0, int y0, int x1, int y1, int width
   return easel_raster_stroke (doc, x0, y0, x1, y1, &brush);
 }
 
-/* Is the pixel (x, y) inside the shape filling box (bx, by, bw, bh)? Done in
- * doubled coordinates so pixel centres are exact integers. */
+/* Is pixel (x, y) inside the shape that fills the box (bx, by, bw, bh)?
+ * `r` is the corner radius for rounded rectangles. Same doubled-coordinate
+ * trick as the brush: pixel centres become whole numbers. */
 static bool
 shape_contains (EaselShape shape, int bx, int by, int bw, int bh, int r, int x, int y)
 {
@@ -301,12 +335,15 @@ easel_raster_shape (EaselDocument *doc, EaselShape shape, int x0, int y0, int x1
   if (shape == EASEL_SHAPE_ROUNDED_RECT)
     r = MIN (8, MIN (bw, bh) / 2);
 
-  /* Interior (where the border stops). Empty when the border swallows it. */
+  /* The border is drawn inside the box and is `w` thick, so the inner shape
+   * is the same shape shrunk by w on every side. A pixel is border if it is
+   * in the outer shape but not the inner one. With a thick line there may be
+   * no inner shape left at all. */
   int ix = bx + w, iy = by + w, iw = bw - 2 * w, ih = bh - 2 * w;
   int ir = r > w ? r - w : 0;
   bool has_inner = iw > 0 && ih > 0;
 
-  /* Clip the loop to the image. */
+  /* Only walk the part of the box that is on the picture. */
   int left = MAX (bx, 0), top = MAX (by, 0);
   int right = MIN ((int64_t) bx + bw, doc->width), bottom = MIN ((int64_t) by + bh, doc->height);
   if (left >= right || top >= bottom)
@@ -336,12 +373,6 @@ easel_raster_shape (EaselDocument *doc, EaselShape shape, int x0, int y0, int x1
   return (EaselRect) { left, top, right - left, bottom - top };
 }
 
-static EaselRect
-rect_union (EaselRect a, EaselRect b)
-{
-  return easel_rect_union (a, b);
-}
-
 EaselRect
 easel_raster_polyline (EaselDocument *doc, const EaselPoint *pts, int n, int line_width, uint32_t color)
 {
@@ -350,7 +381,7 @@ easel_raster_polyline (EaselDocument *doc, const EaselPoint *pts, int n, int lin
   if (n == 1)
     return easel_raster_line (doc, pts[0].x, pts[0].y, pts[0].x, pts[0].y, line_width, color);
   for (int i = 0; i + 1 < n; i++)
-    r = rect_union (r, easel_raster_line (doc, pts[i].x, pts[i].y, pts[i + 1].x, pts[i + 1].y,
+    r = easel_rect_union (r, easel_raster_line (doc, pts[i].x, pts[i].y, pts[i + 1].x, pts[i + 1].y,
                                           line_width, color));
   return r;
 }
@@ -360,6 +391,29 @@ compare_double (const void *a, const void *b)
 {
   double x = *(const double *) a, y = *(const double *) b;
   return (x > y) - (x < y);
+}
+
+/* Where the polygon's edges cross the horizontal line through the middle of
+ * pixel row `cy`, sorted left to right. Even-odd rule: pixels between the 1st
+ * and 2nd crossing are inside, between the 3rd and 4th, and so on.
+ * `xs` needs room for n values; returns how many were written. */
+static int
+scan_crossings (const EaselPoint *pts, int n, double cy, double *xs)
+{
+  int count = 0;
+
+  for (int i = 0; i < n; i++)
+    {
+      /* Vertices sit at pixel centres, like the outline pixels do. */
+      EaselPoint a = pts[i], b = pts[(i + 1) % n];
+      double ay = a.y + 0.5, by = b.y + 0.5;
+
+      if ((ay <= cy) == (by <= cy))
+        continue; /* this edge doesn't cross our line (horizontal ones never do) */
+      xs[count++] = a.x + 0.5 + ((cy - ay) / (by - ay)) * (b.x - a.x);
+    }
+  qsort (xs, (size_t) count, sizeof *xs, compare_double);
+  return count;
 }
 
 static EaselRect
@@ -383,19 +437,7 @@ fill_polygon (EaselDocument *doc, const EaselPoint *pts, int n, uint32_t color)
 
   for (int y = top; y <= bottom; y++)
     {
-      double cy = y + 0.5;
-      int count = 0;
-
-      for (int i = 0; i < n; i++)
-        {
-          /* Vertices sit at pixel centres, like the outline pixels. */
-          EaselPoint a = pts[i], b = pts[(i + 1) % n];
-          double ay = a.y + 0.5, by = b.y + 0.5;
-          if ((ay <= cy) == (by <= cy))
-            continue; /* edge does not cross this scanline */
-          xs[count++] = a.x + 0.5 + ((cy - ay) / (by - ay)) * (b.x - a.x);
-        }
-      qsort (xs, (size_t) count, sizeof *xs, compare_double);
+      int count = scan_crossings (pts, n, y + 0.5, xs);
 
       for (int k = 0; k + 1 < count; k += 2)
         {
@@ -426,10 +468,11 @@ easel_raster_polygon (EaselDocument *doc, const EaselPoint *pts, int n, int line
     r = fill_polygon (doc, pts, n,
                       style == EASEL_FILL_SOLID ? outline_color : fill_color);
 
-  /* Closed border; for SOLID it keeps the edges tidy in the same colour. */
-  r = rect_union (r, easel_raster_polyline (doc, pts, n, line_width, outline_color));
+  /* Border on top of the fill. For SOLID it is the same colour as the fill,
+   * which just tidies up the edge pixels. */
+  r = easel_rect_union (r, easel_raster_polyline (doc, pts, n, line_width, outline_color));
   if (n >= 3)
-    r = rect_union (r, easel_raster_line (doc, pts[n - 1].x, pts[n - 1].y, pts[0].x, pts[0].y,
+    r = easel_rect_union (r, easel_raster_line (doc, pts[n - 1].x, pts[n - 1].y, pts[0].x, pts[0].y,
                                           line_width, outline_color));
   return r;
 }
@@ -440,6 +483,8 @@ easel_raster_curve (EaselDocument *doc, EaselPoint p0, EaselPoint c1, EaselPoint
 {
   double len = hypot (c1.x - p0.x, c1.y - p0.y) + hypot (c2.x - c1.x, c2.y - c1.y)
                + hypot (p3.x - c2.x, p3.y - c2.y);
+  /* Enough segments that the polyline looks smooth: about one per pixel of
+   * control-polygon length, but never fewer than 8 or more than 1024. */
   int steps = MAX (8, MIN ((int) len, 1024));
   EaselRect r = { 0, 0, 0, 0 };
   EaselPoint prev = p0;
@@ -452,13 +497,15 @@ easel_raster_curve (EaselDocument *doc, EaselPoint p0, EaselPoint c1, EaselPoint
       EaselPoint cur = { (int) lround (bx), (int) lround (by) };
 
       if (cur.x == prev.x && cur.y == prev.y && i != steps)
-        continue;
-      r = rect_union (r, easel_raster_line (doc, prev.x, prev.y, cur.x, cur.y, line_width, color));
+        continue; /* didn't move a whole pixel yet */
+      r = easel_rect_union (r, easel_raster_line (doc, prev.x, prev.y, cur.x, cur.y, line_width, color));
       prev = cur;
     }
   return r;
 }
 
+/* xorshift32: tiny, fast, and good enough for spraying dots. Keeping the
+ * state in the caller means no hidden global and repeatable tests. */
 static uint32_t
 next_random (uint32_t *rng)
 {
@@ -497,6 +544,22 @@ easel_raster_spray (EaselDocument *doc, int cx, int cy, int diameter, uint32_t c
   return (EaselRect) { x0, y0, x1 - x0, y1 - y0 };
 }
 
+typedef struct
+{
+  uint8_t  *mask;
+  EaselRect box;
+} MaskPlot;
+
+static void
+plot_mask (int x, int y, void *ctx)
+{
+  MaskPlot *m = ctx;
+  int mx = x - m->box.x, my = y - m->box.y;
+
+  if (mx >= 0 && my >= 0 && mx < m->box.width && my < m->box.height)
+    m->mask[(size_t) my * m->box.width + mx] = 1;
+}
+
 uint8_t *
 easel_raster_polygon_mask (const EaselPoint *pts, int n, EaselRect box)
 {
@@ -512,21 +575,11 @@ easel_raster_polygon_mask (const EaselPoint *pts, int n, EaselRect box)
       return NULL;
     }
 
-  /* Inside: even-odd scanline fill at pixel centres. */
+  /* Inside of the outline: same even-odd scanline fill as fill_polygon(). */
   for (int row = 0; row < box.height; row++)
     {
-      double cy = box.y + row + 0.5;
-      int count = 0;
+      int count = scan_crossings (pts, n, box.y + row + 0.5, xs);
 
-      for (int i = 0; i < n; i++)
-        {
-          EaselPoint a = pts[i], b = pts[(i + 1) % n];
-          double ay = a.y + 0.5, by = b.y + 0.5;
-          if ((ay <= cy) == (by <= cy))
-            continue;
-          xs[count++] = a.x + 0.5 + ((cy - ay) / (by - ay)) * (b.x - a.x);
-        }
-      qsort (xs, (size_t) count, sizeof *xs, compare_double);
       for (int k = 0; k + 1 < count; k += 2)
         {
           int from = MAX ((int) ceil (xs[k] - 0.5) - box.x, 0);
@@ -537,26 +590,11 @@ easel_raster_polygon_mask (const EaselPoint *pts, int n, EaselRect box)
     }
   free (xs);
 
-  /* Edges: the drawn outline belongs to the selection too. */
-  for (int i = 0; i < n; i++)
-    {
-      EaselPoint a = pts[i], b = pts[(i + 1) % n];
-      int dx = abs (b.x - a.x), dy = -abs (b.y - a.y);
-      int sx = a.x < b.x ? 1 : -1, sy = a.y < b.y ? 1 : -1;
-      int err = dx + dy, x = a.x, y = a.y;
+  /* The pixels the outline itself passes through belong to the selection too. */
+  MaskPlot plot = { mask, box };
 
-      for (;;)
-        {
-          int mx = x - box.x, my = y - box.y;
-          if (mx >= 0 && my >= 0 && mx < box.width && my < box.height)
-            mask[(size_t) my * box.width + mx] = 1;
-          if (x == b.x && y == b.y)
-            break;
-          int e2 = 2 * err;
-          if (e2 >= dy) { err += dy; x += sx; }
-          if (e2 <= dx) { err += dx; y += sy; }
-        }
-    }
+  for (int i = 0; i < n; i++)
+    bresenham (pts[i].x, pts[i].y, pts[(i + 1) % n].x, pts[(i + 1) % n].y, plot_mask, &plot);
   return mask;
 }
 
@@ -590,6 +628,8 @@ easel_raster_gradient (EaselDocument *doc, EaselRect region, const uint8_t *mask
           }
         t = t < 0 ? 0 : t > 1 ? 1 : t;
 
+        /* Blend each of the four channels (A, R, G, B) on its own. Because
+         * pixels are premultiplied, blending the raw values is correct. */
         uint32_t out = 0;
         for (int sh = 0; sh <= 24; sh += 8)
           {

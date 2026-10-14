@@ -3,32 +3,36 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* One undo step. Normally it is just the rectangle that changed, with the
+ * pixels from before and after. A "full" step keeps the whole picture instead,
+ * because its size changed (resize, rotate, ...) and a rectangle can't say
+ * that. Redo is simply "put the after-pixels back". */
 typedef struct
 {
   EaselRect r;
   uint32_t *before; /* r.width * r.height pixels (full step: bw * bh) */
-  uint32_t *after;  /* (full step: aw * ah) */
-  bool      full;   /* whole picture, possibly of a different size */
-  int       bw, bh, aw, ah;
+  uint32_t *after;  /* same, (full step: aw * ah) */
+  bool      full;
+  int       bw, bh, aw, ah; /* only used by full steps */
 } Step;
 
 struct _EaselHistory
 {
   Step  *steps;
   size_t count;    /* steps stored */
-  size_t cap;
-  size_t pos;      /* steps currently applied; steps[pos..count) are redo */
+  size_t cap;      /* allocated slots in `steps` */
+  size_t pos;      /* steps[0..pos) are applied, steps[pos..count) are what redo would bring back */
   size_t bytes;
   size_t max_bytes;
-  long   saved;    /* value of pos when the picture was saved; -1 = no longer reachable */
+  long   saved;    /* value of pos at the last save; -1 when that state is gone for good */
 };
 
 static size_t
 step_bytes (const Step *s)
 {
   if (s->full)
-    return ((size_t) s->bw * s->bh + (size_t) s->aw * s->ah) * 4;
-  return (size_t) s->r.width * s->r.height * 4 * 2;
+    return ((size_t) s->bw * s->bh + (size_t) s->aw * s->ah) * sizeof (uint32_t);
+  return (size_t) s->r.width * s->r.height * sizeof (uint32_t) * 2;
 }
 
 static void
@@ -72,9 +76,10 @@ append_step (EaselHistory *h, Step *step)
 {
   Step s = *step;
 
-  /* A new edit forgets the redo steps. */
+  /* Doing something new throws the redo steps away. If the file was saved
+   * at one of those states we can never get back to it, hence -1. */
   if (h->saved > (long) h->pos)
-    h->saved = -1; /* the saved state was in the forgotten redo steps */
+    h->saved = -1;
   while (h->count > h->pos)
     free_step (h, &h->steps[--h->count]);
 
@@ -95,7 +100,8 @@ append_step (EaselHistory *h, Step *step)
   h->bytes += step_bytes (&s);
   h->pos = h->count;
 
-  /* Forget the oldest steps if too much is stored, but keep the newest. */
+  /* Over the memory budget: forget the oldest steps, but always keep the
+   * newest one even if it alone is bigger than the budget. */
   size_t drop = 0;
   while (h->bytes > h->max_bytes && drop + 1 < h->count)
     free_step (h, &h->steps[drop++]);
@@ -112,10 +118,12 @@ append_step (EaselHistory *h, Step *step)
 bool
 easel_history_push (EaselHistory *h, const EaselDocument *doc, const uint32_t *before, EaselRect area)
 {
-  /* Clip, then shrink to the pixels that really differ. */
-  int x0 = area.x < 0 ? 0 : area.x, y0 = area.y < 0 ? 0 : area.y;
-  int x1 = area.x + area.width > doc->width ? doc->width : area.x + area.width;
-  int y1 = area.y + area.height > doc->height ? doc->height : area.y + area.height;
+  /* Callers pass the area they *might* have touched, which is usually a lot
+   * bigger than what really changed (a brush stamp over the same colour, say).
+   * Compare against the old picture and store only the box that differs. */
+  if (!easel_rect_clip (&area, doc->width, doc->height))
+    return false;
+  int x0 = area.x, y0 = area.y, x1 = area.x + area.width, y1 = area.y + area.height;
   int minx = x1, miny = y1, maxx = -1, maxy = -1;
 
   for (int y = y0; y < y1; y++)
@@ -135,8 +143,8 @@ easel_history_push (EaselHistory *h, const EaselDocument *doc, const uint32_t *b
 
   Step s = { { minx, miny, maxx - minx + 1, maxy - miny + 1 }, NULL, NULL, false, 0, 0, 0, 0 };
   size_t n = (size_t) s.r.width * s.r.height;
-  s.before = malloc (n * 4);
-  s.after = malloc (n * 4);
+  s.before = malloc (n * sizeof (uint32_t));
+  s.after = malloc (n * sizeof (uint32_t));
   if (s.before == NULL || s.after == NULL)
     {
       free (s.before);

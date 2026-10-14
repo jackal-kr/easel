@@ -1,3 +1,12 @@
+easel (1.1.2) unstable; urgency=medium
+
+  * Help opens as a web page in the default browser.
+  * Faster picture resize and paste, and quicker flip, rotate and skew.
+  * Text commit no longer copies the whole picture.
+  * Safer reference counting for the display buffers.
+
+ -- JOD (Oleksiy Degtyar) <oleksiy.degtyar@gmail.com>  Wed, 14 Oct 2026 19:55:00 +0200
+
 easel (1.1.1) unstable; urgency=medium
 
   * Right-click outside a selection with Select or Free-Form Select now opens the Paste menu.

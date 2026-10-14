@@ -1,5 +1,6 @@
-/* The canvas widget: presents an EaselDocument and turns pointer input into
- * calls on the core engine. It never owns drawing logic itself. */
+/* The canvas widget. It shows an EaselDocument on screen and turns mouse and
+ * keyboard input into calls on the engine in core/. The actual pixel drawing
+ * lives in core/raster.c, not here. */
 #pragma once
 
 #include <gtk/gtk.h>

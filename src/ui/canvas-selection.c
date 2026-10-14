@@ -1,7 +1,7 @@
 #include "ui/canvas-private.h"
 
-/* Floating contents plus a dashed outline (white under black, so it shows on
- * any colour). */
+/* Draws the floating selection contents and its marching-ants style outline:
+ * black dashes over a white line so it reads on light and dark pictures. */
 void
 canvas_draw_selection (EaselCanvas *self, GtkSnapshot *snapshot, double s)
 {
@@ -117,16 +117,18 @@ canvas_sel_notify (EaselCanvas *self)
   g_signal_emit (self, canvas_signals[SIGNAL_SELECTION_CHANGED], 0);
 }
 
-/* What cutting or lifting leaves behind: the background colour in Opaque
- * mode, true transparency (shown as a checkerboard) in Transparent mode. */
+/* What is left on the picture where a selection was lifted away: the
+ * background colour in Opaque mode, real transparency in Transparent mode. */
 static uint32_t
 hole_color (EaselCanvas *self)
 {
   return self->sel_opaque ? self->background : 0;
 }
 
-/* First move of a selection: take its pixels off the picture. With `copy`
- * the original stays (Ctrl-drag stamps a copy). */
+/* A selection starts out as just a rectangle on the picture. This is the
+ * moment it becomes a floating object: its pixels are copied into sel_clip
+ * and, unless `copy` is set (Ctrl+drag), cut out of the picture. sel_base
+ * keeps the untouched picture so the whole move can be undone in one step. */
 void
 canvas_sel_lift (EaselCanvas *self, gboolean copy)
 {
@@ -162,8 +164,9 @@ canvas_sel_discard (EaselCanvas *self)
   gtk_widget_queue_draw (GTK_WIDGET (self));
 }
 
-/* Puts a floating selection down (one undo step covering the lift and the
- * landing) and drops the selection. */
+/* Puts the floating selection down where it is and ends the selection. The
+ * lift and the landing together form one undo step. Also finishes a pending
+ * gradient or text box first, since those use the same "uncommitted" idea. */
 void
 canvas_sel_commit (EaselCanvas *self)
 {
@@ -184,7 +187,7 @@ canvas_sel_commit (EaselCanvas *self)
   canvas_sel_notify (self);
 }
 
-/* Drag corners to an image-clamped rectangle. */
+/* Rectangle between two drag points, kept inside the picture. */
 EaselRect
 canvas_sel_rect_between (EaselCanvas *self, int x0, int y0, int x1, int y1)
 {
@@ -196,7 +199,8 @@ canvas_sel_rect_between (EaselCanvas *self, int x0, int y0, int x1, int y1)
   return (EaselRect) { left, top, right - left + 1, bottom - top + 1 };
 }
 
-/* Stretch handles: 1 NW, 2 N, 3 NE, 4 W, 5 E, 6 SW, 7 S, 8 SE. */
+/* Position of a selection handle on screen. Numbering (also used by the text
+ * box): 1 NW, 2 N, 3 NE, 4 W, 5 E, 6 SW, 7 S, 8 SE. */
 void
 canvas_sel_handle_pos (const EaselRect *r, int h, double s, double *wx, double *wy)
 {
@@ -264,7 +268,9 @@ easel_canvas_has_selection (EaselCanvas *self)
   return self->sel_active || canvas_text_sel_range (self, &a, &b);
 }
 
-/* Puts any floating selection down; call before saving or other whole-picture work. */
+/* Settles everything that is still "in the air" (floating selection, text
+ * box, half-drawn polygon) so the picture is real. Anything that looks at
+ * the whole picture, like saving, must call this first. */
 void
 easel_canvas_flush (EaselCanvas *self)
 {
@@ -301,7 +307,7 @@ easel_canvas_select_all (EaselCanvas *self)
   canvas_sel_notify (self);
 }
 
-/* The selection's pixels, or NULL. */
+/* A copy of what is selected, whether or not it has been lifted yet. */
 static EaselClip *
 selection_pixels (EaselCanvas *self)
 {
@@ -341,7 +347,7 @@ easel_canvas_copy (EaselCanvas *self)
   easel_clip_free (clip);
 }
 
-/* Delete / Cut: removes the selected pixels (background colour behind). */
+/* Delete key and the second half of Cut. */
 void
 easel_canvas_clear_selection (EaselCanvas *self)
 {
@@ -351,7 +357,8 @@ easel_canvas_clear_selection (EaselCanvas *self)
 
   if (self->sel_clip != NULL)
     {
-      /* Already lifted: the hole is there; just don't put the contents back. */
+      /* Already lifted, so the hole is already in the picture. Just never
+       * put the contents back. */
       g_clear_pointer (&self->sel_clip, easel_clip_free);
       g_clear_object (&self->sel_texture);
       self->edit_rect = self->sel_edit;
@@ -385,7 +392,8 @@ paste_texture (EaselCanvas *self, GdkTexture *texture)
   if (clip == NULL)
     return;
   gdk_texture_download (texture, (guchar *) clip->pixels, (gsize) w * 4);
-  /* Flatten onto white: premultiplied, so add the missing white. */
+  /* Flatten onto white. With premultiplied pixels that means adding
+   * (255 - alpha) to every colour channel. */
   for (gsize i = 0; i < (gsize) w * h; i++)
     {
       uint32_t c = clip->pixels[i];
@@ -398,7 +406,8 @@ paste_texture (EaselCanvas *self, GdkTexture *texture)
   easel_canvas_paste_clip (self, clip);
 }
 
-/* Fallback: files copied in the file manager; the first readable picture is pasted. */
+/* Fallback when the clipboard holds files rather than an image (copied in the
+ * file manager): paste the first one that can be read as a picture. */
 static void
 on_clipboard_files (GObject *source, GAsyncResult *result, gpointer data)
 {
@@ -448,8 +457,8 @@ easel_canvas_paste (EaselCanvas *self)
                                     on_clipboard_texture, g_object_ref (self));
 }
 
-/* Floats `clip` (taking ownership) in the top-left of the visible area. The
- * picture grows if the clip does not fit. */
+/* The window gives us a function to call when a pasted image doesn't fit, so
+ * it can ask the user what to do (see easel_canvas_paste_clip). */
 void
 easel_canvas_set_oversize_handler (EaselCanvas *self, EaselCanvasOversizeFunc func, gpointer data)
 {
@@ -458,7 +467,9 @@ easel_canvas_set_oversize_handler (EaselCanvas *self, EaselCanvasOversizeFunc fu
   self->oversize_data = data;
 }
 
-/* Smooth copy of `clip` scaled to fit inside w x h, keeping its proportions. */
+/* Shrinks `clip` to fit inside w x h, keeping its proportions. Uses Cairo's
+ * best filter so a photo pasted into a small canvas still looks decent. (The
+ * selection stretch tool is deliberately nearest-neighbour instead.) */
 static EaselClip *
 clip_fit (const EaselClip *clip, int w, int h)
 {
@@ -485,6 +496,9 @@ clip_fit (const EaselClip *clip, int w, int h)
   return out;
 }
 
+/* Entry point for pasting an image. Takes ownership of `clip`. If it's bigger
+ * than the picture and a handler is set, the user gets to choose between
+ * shrinking the clip and growing the canvas; otherwise it's pasted as is. */
 void
 easel_canvas_paste_clip (EaselCanvas *self, EaselClip *clip)
 {
@@ -497,6 +511,9 @@ easel_canvas_paste_clip (EaselCanvas *self, EaselClip *clip)
     easel_canvas_paste_clip_as (self, clip, FALSE);
 }
 
+/* Does the paste. `fit` TRUE shrinks an oversized clip to the picture; FALSE
+ * grows the picture instead. The clip then floats as a selection in the
+ * top-left corner of the part you can currently see. */
 void
 easel_canvas_paste_clip_as (EaselCanvas *self, EaselClip *clip, gboolean fit)
 {

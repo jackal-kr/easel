@@ -1,6 +1,10 @@
 #include "ui/canvas-private.h"
 
-/* ---- Image menu: flip, rotate, stretch, skew, invert ------------------- */
+/* The Image menu operations: flip, rotate, stretch, skew, invert.
+ *
+ * They are all described by one Transform and applied in a fixed order, so
+ * "rotate and flip" from the dialog is a single undo step. The same code
+ * works on the whole picture or on a selection (pixels plus mask). */
 
 typedef struct
 {
@@ -21,7 +25,9 @@ buf_replace (Buf *b, void *data, int w, int h)
   b->h = h;
 }
 
-/* Runs the transform over the pixels (and the matching mask, if any). */
+/* Applies the steps of `t` to the pixel buffer and, in the same way, to the
+ * selection mask so that a free-form selection keeps its shape. `pix_fill` is
+ * what skewing leaves in the empty corners. */
 static gboolean
 run_transform (const Transform *t, Buf *pix, Buf *mask, uint32_t pix_fill)
 {
@@ -111,7 +117,7 @@ run_transform (const Transform *t, Buf *pix, Buf *mask, uint32_t pix_fill)
   return TRUE;
 }
 
-/* Applies to the selection if there is one, otherwise to the whole picture. */
+/* Runs `t` on the selection if there is one, otherwise on the whole picture. */
 static void
 apply_transform (EaselCanvas *self, const Transform *t)
 {
@@ -133,7 +139,9 @@ apply_transform (EaselCanvas *self, const Transform *t)
         mask.data = g_memdup2 (self->sel_clip->mask, (gsize) pix.w * pix.h);
       else if (t->skew_h != 0 || t->skew_v != 0)
         {
-          mask.data = g_malloc (pix.w * (gsize) pix.h); /* skewing leaves empty corners to hide */
+          /* No mask yet (whole picture): make an all-ones one, so that after a
+           * skew the empty corners come out as 0 and can be left transparent. */
+          mask.data = g_malloc (pix.w * (gsize) pix.h);
           memset (mask.data, 1, pix.w * (gsize) pix.h);
         }
 

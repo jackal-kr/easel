@@ -1,7 +1,7 @@
 #include "ui/canvas-private.h"
 
-/* Applies the freehand tool (pencil, brush or eraser) along a segment. A
- * zero-length segment is a single stamp. */
+/* Pencil, brush or eraser along one segment of a stroke. When both ends are
+ * the same point it's a single stamp, i.e. a click. */
 EaselRect
 canvas_apply_stroke (EaselCanvas *self, int x0, int y0, int x1, int y1)
 {
@@ -19,8 +19,9 @@ canvas_apply_stroke (EaselCanvas *self, int x0, int y0, int x1, int y1)
       }
     case EASEL_TOOL_ERASER:
       {
-        /* Left button: erase to the background colour. Right button: "color
-         * eraser", replace only the foreground colour with the background. */
+        /* Left button wipes everything under it. Right button is the old
+         * Paint "colour eraser": it only turns the foreground colour into the
+         * background colour and leaves the rest alone. */
         EaselEraser eraser = {
           self->tool_size,
           self->eraser_opaque ? self->background : 0,
@@ -44,7 +45,9 @@ canvas_end_seq (EaselCanvas *self)
   canvas_snapshot_drop (self, &self->backup);
 }
 
-/* Redraws the polygon or curve in progress from the saved pixels. */
+/* Polygon and curve are drawn over several clicks, so each time something
+ * changes we restore the picture from `backup` and draw the whole shape again.
+ * `rubber` adds the segment that follows the pointer. */
 void
 canvas_seq_render (EaselCanvas *self, gboolean closed, gboolean rubber, int rx, int ry)
 {
@@ -87,7 +90,8 @@ canvas_cancel_seq (EaselCanvas *self)
   self->drawing = FALSE;
 }
 
-/* Keeps what is on screen (without the rubber-band segment) as the result. */
+/* Finishes the polygon/curve: whatever is drawn now stays, minus the
+ * segment that was following the pointer. `closed` joins last to first. */
 void
 canvas_commit_seq (EaselCanvas *self, gboolean closed)
 {
@@ -110,7 +114,7 @@ canvas_spray_tick (gpointer data)
   return G_SOURCE_CONTINUE;
 }
 
-/* Puts back the pixels the previewed shape covered. */
+/* Rubs out the preview of a shape by copying its area back from `backup`. */
 void
 canvas_restore_shape_area (EaselCanvas *self)
 {
@@ -153,7 +157,8 @@ canvas_update_shape (EaselCanvas *self, int x, int y, gboolean constrain)
       y = sy + dy;
     }
 
-  /* Left button: border in foreground, fill in background. Right: swapped. */
+  /* Left button: outline in the foreground colour, fill in the background
+   * colour. Right button swaps them. */
   uint32_t outline = self->stroke_color;
   uint32_t fill = self->button == GDK_BUTTON_PRIMARY ? self->background : self->foreground;
   EaselRect now;
@@ -191,7 +196,8 @@ canvas_update_shape (EaselCanvas *self, int x, int y, gboolean constrain)
   self->shape_prev = now;
 }
 
-/* Draws the gradient between its two end points over the saved picture. */
+/* (Re)draws the gradient between its two end points over the saved picture.
+ * Called again every time an end point is dragged. */
 void
 canvas_grad_render (EaselCanvas *self)
 {
@@ -233,7 +239,7 @@ canvas_grad_commit (EaselCanvas *self)
   gtk_widget_queue_draw (GTK_WIDGET (self));
 }
 
-/* The gradient's line and its two end points, drawn over the picture. */
+/* The handles you can drag to adjust a gradient: a line with a dot at each end. */
 void
 canvas_draw_gradient_guide (EaselCanvas *self, GtkSnapshot *snapshot, double s)
 {

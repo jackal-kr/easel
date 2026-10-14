@@ -1,13 +1,19 @@
-/* The image document: a plain pixel buffer. No GTK, no Cairo, no GLib. */
+/* The image itself: just a block of pixels. Nothing in core/ may include
+ * GTK, Cairo or GLib, so all of it can be unit-tested without a display. */
 #pragma once
 
 #include <stdbool.h>
 #include <stdint.h>
 
-/* Pixels are 0xAARRGGBB, premultiplied. In memory on little-endian this is
- * B,G,R,A bytes, which matches Cairo ARGB32 and GDK_MEMORY_B8G8R8A8_PREMULTIPLIED. */
+/* Pixel format: 0xAARRGGBB with the colour already multiplied by alpha
+ * ("premultiplied"). On a little-endian CPU the bytes in memory come out as
+ * B,G,R,A, which is exactly what Cairo ARGB32 and GDK's B8G8R8A8_PREMULTIPLIED
+ * expect, so pixels can go to the screen without any conversion. */
 #define EASEL_RGB(r, g, b) \
   ((uint32_t) 0xFF000000u | ((uint32_t) (r) << 16) | ((uint32_t) (g) << 8) | (uint32_t) (b))
+
+/* Hard limit on the picture size: 2^28 pixels, which is 1 GiB of ARGB. */
+#define EASEL_MAX_PIXELS ((uint64_t) 1 << 28)
 
 typedef struct
 {
@@ -30,7 +36,12 @@ void           easel_document_fill (EaselDocument *doc, uint32_t color);
 uint32_t easel_document_get_pixel (const EaselDocument *doc, int x, int y);
 void     easel_document_set_pixel (EaselDocument *doc, int x, int y, uint32_t color);
 
+/* Smallest rectangle holding both. An empty one (width or height 0) is ignored. */
 EaselRect easel_rect_union (EaselRect a, EaselRect b);
+
+/* Cuts *r down to the part inside a width x height picture. Returns false,
+ * leaving *r alone, when nothing is left. */
+bool easel_rect_clip (EaselRect *r, int width, int height);
 
 /* Changes the size, keeping the top-left part of the picture; new area gets
  * `fill`. Returns false (document untouched) on invalid size or no memory. */

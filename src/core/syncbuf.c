@@ -17,14 +17,14 @@ easel_syncbuf_new (void)
 EaselSyncBuf *
 easel_syncbuf_ref (EaselSyncBuf *buf)
 {
-  atomic_fetch_add ((_Atomic int *) &buf->refs, 1);
+  atomic_fetch_add (&buf->refs, 1);
   return buf;
 }
 
 void
 easel_syncbuf_unref (EaselSyncBuf *buf)
 {
-  if (buf != NULL && atomic_fetch_sub ((_Atomic int *) &buf->refs, 1) == 1)
+  if (buf != NULL && atomic_fetch_sub (&buf->refs, 1) == 1)
     {
       free (buf->data);
       free (buf);
@@ -34,7 +34,7 @@ easel_syncbuf_unref (EaselSyncBuf *buf)
 bool
 easel_syncbuf_busy (EaselSyncBuf *buf)
 {
-  return atomic_load ((_Atomic int *) &buf->refs) > 1;
+  return atomic_load (&buf->refs) > 1;
 }
 
 void
@@ -62,16 +62,15 @@ easel_syncbuf_update (EaselSyncBuf *buf, const EaselDocument *doc)
       buf->width = doc->width;
       buf->height = doc->height;
     }
-  else if (buf->stale.width > 0 && buf->stale.height > 0)
+  else
     {
-      int x0 = buf->stale.x < 0 ? 0 : buf->stale.x;
-      int y0 = buf->stale.y < 0 ? 0 : buf->stale.y;
-      int x1 = buf->stale.x + buf->stale.width > doc->width ? doc->width : buf->stale.x + buf->stale.width;
-      int y1 = buf->stale.y + buf->stale.height > doc->height ? doc->height : buf->stale.y + buf->stale.height;
+      /* Same size as before: patch up only the stale box, row by row. */
+      EaselRect r = buf->stale;
 
-      for (int y = y0; y < y1 && x1 > x0; y++)
-        memcpy (&buf->data[(size_t) y * doc->width + x0], &doc->pixels[(size_t) y * doc->width + x0],
-                (size_t) (x1 - x0) * 4);
+      if (easel_rect_clip (&r, doc->width, doc->height))
+        for (int y = r.y; y < r.y + r.height; y++)
+          memcpy (&buf->data[(size_t) y * doc->width + r.x], &doc->pixels[(size_t) y * doc->width + r.x],
+                  (size_t) r.width * sizeof (uint32_t));
     }
   buf->stale = (EaselRect) { 0, 0, 0, 0 };
   return true;

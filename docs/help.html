@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Easel Help</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font: 16px/1.55 system-ui, sans-serif; max-width: 46rem; margin: 2rem auto; padding: 0 1rem; }
+  h1, h2 { line-height: 1.2; }
+  h2 { margin-top: 2rem; border-bottom: 1px solid #8884; padding-bottom: .2rem; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1px solid #8886; padding: .35rem .6rem; text-align: left; vertical-align: top; }
+  th { background: #8882; }
+  code, kbd { font-family: ui-monospace, monospace; background: #8882; padding: 0 .25em; border-radius: 3px; }
+</style>
+</head>
+<body>
+<h1>Easel Help</h1>
+<p>Easel is a simple paint program for GNOME in the spirit of classic Windows Paint. This page covers the
+tools, the menus and the keyboard shortcuts. Press <strong>Ctrl+?</strong> (or <strong>Ctrl+F1</strong>) in the app for the shortcuts window.</p>
+<h2>The window</h2>
+<ul>
+<li><strong>Header bar</strong> — New, Open, Save, Undo, Redo on the left; the <strong>Image</strong> menu, the <strong>View</strong> menu and the main
+  menu (☰) on the right.</li>
+<li><strong>Tool box</strong> (left) — the 18 tools. Below the tools, the options of the current tool (sizes, shapes, fill style, …).</li>
+<li><strong>Canvas</strong> (center) — your picture. Drag the handles on the right, bottom and bottom-right edges to change its size.</li>
+<li><strong>Color box</strong> (bottom) — the palette and the foreground/background swatches.</li>
+<li><strong>Status bar</strong> — a hint for the current tool, pointer position, selection size, zoom and picture size.</li>
+</ul>
+<p>Panels can be hidden from the View menu or from Preferences.</p>
+<h2>Colors</h2>
+<ul>
+<li><strong>Left click</strong> a color: foreground. <strong>Right click</strong>: background. Tools draw with the foreground using the left
+  mouse button and with the background using the right button.</li>
+<li><strong>Double-click</strong> a palette color, press <strong>F2</strong> on it, or click a swatch to change it with the color chooser.
+  Changed palette colors are remembered.</li>
+<li><strong>Keyboard</strong>: Tab to the palette, arrows to move, <strong>Enter/Space</strong> picks the foreground, <strong>Shift+Enter</strong> the background.</li>
+<li><strong>Ctrl+Shift+X</strong> swaps foreground and background.</li>
+</ul>
+<h2>Tools</h2>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pan</td>
+<td>Drag to move around a large or zoomed picture. Right-click for a menu (Paste, Paste From, Select All, zoom, Clear Image).</td>
+</tr>
+<tr>
+<td>Magnifier</td>
+<td>Click to toggle between 100 % and the Magnifier zoom chosen in its options (the click point stays in view).</td>
+</tr>
+<tr>
+<td>Select / Free-Form Select</td>
+<td>Select a rectangle or an outline; drag the selection to move it, <strong>Ctrl+drag</strong> to move a copy. Right-click it for a selection menu; right-click outside it for Paste and the canvas menu.</td>
+</tr>
+<tr>
+<td>Eraser</td>
+<td>Erases to the background color or, in <em>Transparent</em> mode, to transparency. <strong>Right button</strong> replaces only the foreground color with the background (color eraser).</td>
+</tr>
+<tr>
+<td>Fill</td>
+<td>Fills an area (left: foreground, right: background).</td>
+</tr>
+<tr>
+<td>Pick Color</td>
+<td>Takes a color from the picture (left: foreground, right: background).</td>
+</tr>
+<tr>
+<td>Gradient</td>
+<td>Blend from foreground to background; drag to set direction and length, Enter to apply, Esc to cancel.</td>
+</tr>
+<tr>
+<td>Pencil / Brush / Airbrush</td>
+<td>Freehand drawing with the chosen size (and brush shape).</td>
+</tr>
+<tr>
+<td>Text</td>
+<td>Drag a box, type. Choose font, size and style; right-click the box for Cut/Copy/Paste. Opaque keeps a background, transparent lets the picture show through.</td>
+</tr>
+<tr>
+<td>Line / Curve</td>
+<td>Line: drag. Curve: drag a line, then drag to bend it (up to two bends).</td>
+</tr>
+<tr>
+<td>Rectangle / Rounded Rectangle / Ellipse</td>
+<td>Drag; <strong>Shift</strong> keeps it square or round. Fill style: outline, filled, or both.</td>
+</tr>
+<tr>
+<td>Polygon</td>
+<td>Drag the first edge, then click to add corners; double-click to close the shape.</td>
+</tr>
+</tbody>
+</table>
+<p>Selection options (below the tool box) choose <strong>Opaque</strong> (the selection's background color is kept) or
+<strong>Transparent</strong> (that color is treated as see-through when moved).</p>
+<h2>Menus</h2>
+<p><strong>Image</strong> — Flip/Rotate, Stretch/Skew (by percent or exact pixels, with Keep aspect ratio), Invert Colors, Attributes (size and background), Clear Image, Draw Opaque.
+<strong>View</strong> — zoom (Normal, Fit to Window, Custom), Grid… (cell size and an optional axonometric grid), Show Thumbnail, show/hide panels, Frame Time.
+<strong>Main menu</strong> — New, Save As, Print, Edit (Cut, Copy, Paste, Clear Selection, Select All), Copy To / Paste From file,
+Preferences, Keyboard Shortcuts, About.</p>
+<p>Flip, rotate and invert act on the selection when there is one, otherwise on the whole picture.</p>
+<h2>Pasting pictures</h2>
+<p><strong>Ctrl+V</strong> pastes a picture from the clipboard (or copied picture files) as a selection you can move. If it is
+larger than the canvas, Easel asks: <strong>Resize Canvas to Picture</strong> or <strong>Fit Picture to Canvas</strong> (shrinks it, keeping
+proportions), or Cancel. Paste From… in the main menu does the same for a file.</p>
+<h2>Files</h2>
+<p>Open and save PNG, JPEG, BMP, TIFF and WebP (WebP when your system supports writing it). GIF files can be opened
+(first frame only). PNG, TIFF and WebP keep transparency; JPEG and BMP are saved on a white background.
+If a picture has unsaved changes, Easel asks before New, Open or closing.</p>
+<h2>Zoom and grid</h2>
+<p><strong>Ctrl + mouse wheel</strong> zooms (10 %–800 %). <strong>Ctrl+PageUp</strong> large size, <strong>Ctrl+PageDown</strong> normal size.
+<strong>Ctrl+G</strong> shows a pixel grid when zoomed in far enough. The thumbnail window shows the whole picture at 100 %.</p>
+<h2>Keyboard shortcuts</h2>
+<table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Keys</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>New / Open / Save / Save As</td>
+<td>Ctrl+N / Ctrl+O / Ctrl+S / Ctrl+Shift+S</td>
+</tr>
+<tr>
+<td>Print</td>
+<td>Ctrl+P</td>
+</tr>
+<tr>
+<td>Undo / Redo</td>
+<td>Ctrl+Z / Ctrl+Y (or Ctrl+Shift+Z)</td>
+</tr>
+<tr>
+<td>Cut / Copy / Paste / Select All</td>
+<td>Ctrl+X / Ctrl+C / Ctrl+V / Ctrl+A</td>
+</tr>
+<tr>
+<td>Clear Selection</td>
+<td>Delete</td>
+</tr>
+<tr>
+<td>Flip/Rotate / Invert Colors / Attributes</td>
+<td>Ctrl+R / Ctrl+I / Ctrl+E</td>
+</tr>
+<tr>
+<td>Clear Image</td>
+<td>Ctrl+Shift+N</td>
+</tr>
+<tr>
+<td>Swap colors</td>
+<td>Ctrl+Shift+X</td>
+</tr>
+<tr>
+<td>Show grid</td>
+<td>Ctrl+G</td>
+</tr>
+<tr>
+<td>Fit to Window / Normal size</td>
+<td>Ctrl+PageUp / Ctrl+PageDown</td>
+</tr>
+<tr>
+<td>Zoom</td>
+<td>Ctrl+mouse wheel</td>
+</tr>
+<tr>
+<td>Preferences</td>
+<td>Ctrl+,</td>
+</tr>
+<tr>
+<td>Help</td>
+<td>F1</td>
+</tr>
+<tr>
+<td>Keyboard shortcuts</td>
+<td>Ctrl+? or Ctrl+F1</td>
+</tr>
+<tr>
+<td>Quit</td>
+<td>Ctrl+Q</td>
+</tr>
+</tbody>
+</table>
+<h2>Preferences (Ctrl+,)</h2>
+<ul>
+<li><strong>Appearance</strong> — light/dark/system, workspace color, which panels are shown, frame time.</li>
+<li><strong>New Picture</strong> — default size and background.</li>
+<li><strong>Drawing</strong> — default line width, Magnifier zoom, undo memory, text font and style. Most apply the next time Easel starts.</li>
+<li><strong>Palette</strong> — reset to the classic 28 colors.</li>
+</ul>
+<h2>Undo</h2>
+<p>Undo and redo have no fixed step limit; the history is limited by memory (Preferences → Drawing → Undo memory, default 512 MB).</p>
+</body>
+</html>

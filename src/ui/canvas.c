@@ -5,8 +5,9 @@ G_DEFINE_FINAL_TYPE (EaselCanvas, easel_canvas, GTK_TYPE_WIDGET)
 
 guint canvas_signals[N_SIGNALS];
 
-/* One image pixel is one *device* pixel at zoom 1, even on HiDPI screens,
- * so the logical widget size is image size * zoom / scale factor. */
+/* At 100% one picture pixel is one *device* pixel, also on a HiDPI screen
+ * where GTK's logical pixels are 2x bigger. That's why we divide by the scale
+ * factor: GTK sizes are in logical pixels, the picture is not. */
 double
 canvas_logical_per_pixel (EaselCanvas *self)
 {
@@ -21,10 +22,14 @@ to_image (EaselCanvas *self, double wx, double wy, int *ix, int *iy)
   *iy = (int) floor (wy / s);
 }
 
-/* The picture as it is right now, as a read-only "before" image for undo and
- * live shape previews. It costs no copy of the whole picture after the first
- * time, only of the rectangles drawn since. If a previous holder still has it,
- * a private full copy is made instead. Give it back with canvas_snapshot_drop. */
+/* Gives you a frozen copy of the picture as it is now. Undo needs it ("what
+ * did it look like before this stroke?") and so do the shape previews.
+ *
+ * Copying the full picture at the start of every stroke would hurt on big
+ * images, so we keep one long-lived copy (`shadow`) and just patch the
+ * rectangles that changed since the last time. It can only be lent out to one
+ * caller at a time; if it's already out, you get a one-off full copy.
+ * Hand it back with canvas_snapshot_drop(). */
 uint32_t *
 canvas_snapshot_take (EaselCanvas *self)
 {
@@ -50,8 +55,9 @@ canvas_snapshot_drop (EaselCanvas *self, uint32_t **snapshot)
   *snapshot = NULL;
 }
 
-/* Records which image pixels changed so that only that region is re-uploaded
- * to the GPU (see build_texture). */
+/* Call this after every change to the pixels. It remembers the changed area
+ * for the GPU upload (see build_texture), tells the pixel copies they are out
+ * of date there, and schedules a redraw. */
 void
 canvas_mark_dirty (EaselCanvas *self, EaselRect r)
 {
@@ -77,19 +83,23 @@ canvas_mark_all_dirty (EaselCanvas *self)
   canvas_mark_dirty (self, (EaselRect) { 0, 0, self->doc->width, self->doc->height });
 }
 
-/* The texture holds a private copy of the pixels (the document keeps changing
- * while GTK may still be rendering an older frame). Passing the previous
- * texture and the changed region lets GSK upload just that region to the GPU
- * instead of the whole image. */
+/* Called by GDK when a texture is finished with its pixel memory. */
 static void
 release_texture_buffer (gpointer data)
 {
   easel_syncbuf_unref (data);
 }
 
-/* Hands the texture its own copy of the pixels (the picture keeps changing
- * while GTK may still be drawing an older frame). Copies are recycled and
- * brought up to date by copying only the rectangles that changed. */
+/* REVIEW: memory. A picture needs the document, the undo shadow copy and up
+ * to TEXTURE_BUFFERS texture copies, so about five times its size. Fine for
+ * normal pictures, heavy near the 2^28 pixel limit. Sharing buffers or a
+ * lower limit would fix it.
+ *
+ * The memory a new texture will read its pixels from. It can't be doc->pixels
+ * itself: we keep drawing into that while GTK may still be rendering the
+ * previous frame from it. So the texture gets a private copy. To keep that
+ * cheap we recycle a few buffers and refresh only the changed rectangles
+ * (see syncbuf.h). */
 static GBytes *
 texture_bytes (EaselCanvas *self)
 {
@@ -109,7 +119,8 @@ texture_bytes (EaselCanvas *self)
       easel_syncbuf_ref (b);
       return g_bytes_new_with_free_func (b->data, size, release_texture_buffer, b);
     }
-  return g_bytes_new (d->pixels, size); /* every buffer is still in use: plain copy */
+  /* All buffers are still held by GTK (very rare): fall back to a plain copy. */
+  return g_bytes_new (d->pixels, size);
 }
 
 static GdkTexture *
@@ -130,6 +141,9 @@ build_texture (EaselCanvas *self)
   gdk_memory_texture_builder_set_stride (builder, stride);
   gdk_memory_texture_builder_set_bytes (builder, bytes);
 
+  /* If we know the previous texture and which part of it is stale, tell GDK.
+   * The GL/Vulkan renderer then uploads only that region instead of the
+   * whole picture, which is what keeps drawing on a big canvas smooth. */
   if (self->texture != NULL && self->dirty != NULL
       && gdk_texture_get_width (self->texture) == d->width
       && gdk_texture_get_height (self->texture) == d->height)
@@ -145,7 +159,7 @@ static void
 refresh_texture (EaselCanvas *self)
 {
   if (self->texture != NULL && self->dirty == NULL)
-    return; /* nothing changed since the last upload */
+    return; /* no changes since the last upload */
 
   GdkTexture *fresh = build_texture (self);
   g_clear_object (&self->texture);
@@ -169,8 +183,8 @@ easel_canvas_measure (GtkWidget *widget, GtkOrientation orientation, int for_siz
     *natural_baseline = -1;
 }
 
-/* The eraser shows its square under the pointer: black outline with a white
- * line inside it, so it is visible on any colour. */
+/* Square under the pointer showing what the eraser will wipe. Black outline
+ * with a white line inside, so you can see it on any background. */
 static void
 draw_eraser_outline (EaselCanvas *self, GtkSnapshot *snapshot, double s)
 {
@@ -200,9 +214,10 @@ draw_eraser_outline (EaselCanvas *self, GtkSnapshot *snapshot, double s)
     }
 }
 
-/* Shows the exact pixels the next pencil/brush stamp would paint, in the
- * colour the pressed button would use (translucent so the picture stays
- * readable). Uses the engine's own footprint test, so it cannot disagree. */
+/* Ghost of the next brush stamp under the pointer, in the colour the pressed
+ * button would paint with (semi-transparent so you still see the picture).
+ * It asks easel_brush_covers() pixel by pixel, the same function the real
+ * stamp uses, so preview and result can never differ. */
 static void
 draw_brush_preview (EaselCanvas *self, GtkSnapshot *snapshot, double s)
 {
@@ -217,7 +232,8 @@ draw_brush_preview (EaselCanvas *self, GtkSnapshot *snapshot, double s)
   uint32_t c = self->foreground;
   GdkRGBA color = easel_argb_to_rgba (c, 0.65f);
 
-  /* One rectangle per horizontal run keeps the node count small. */
+  /* Merge pixels into horizontal runs. A big round brush would otherwise be
+   * thousands of tiny rectangles for GSK to chew on. */
   for (int j = 0; j < size; j++)
     for (int i = 0; i < size;)
       {
@@ -235,7 +251,7 @@ draw_brush_preview (EaselCanvas *self, GtkSnapshot *snapshot, double s)
       }
 }
 
-/* Centre of each resize handle, in widget coordinates. */
+/* Where handle number `handle` sits, in widget coordinates. */
 static void
 handle_center (EaselCanvas *self, int handle, double *x, double *y)
 {
@@ -279,7 +295,7 @@ draw_handles (EaselCanvas *self, GtkSnapshot *snapshot)
       gtk_snapshot_append_color (snapshot, &dark, &box);
     }
 
-  /* Outline of the size the picture will become while a handle is dragged. */
+  /* While dragging, show where the new edge will be. */
   if (self->resize_handle != 0)
     {
       double s = canvas_logical_per_pixel (self);
@@ -294,9 +310,15 @@ draw_handles (EaselCanvas *self, GtkSnapshot *snapshot)
     }
 }
 
-/* Grid lines between picture cells, one device pixel wide. Two repeating
- * gradients keep the rectangular grid to two render nodes however large the
- * picture is. Nothing is drawn while cells are under 4 screen pixels. */
+/* The grid overlay, with lines one device pixel thick.
+ *
+ * Plain grid: a hard-edged repeating gradient is a line that repeats forever,
+ * so the whole grid is two GSK nodes (vertical + horizontal) no matter how
+ * big the picture is, instead of thousands of line segments.
+ * Axonometric grid: those need diagonal lines, so we build a path.
+ *
+ * When cells get smaller than 4 screen pixels it would just be grey mush, so
+ * nothing is drawn. */
 static void
 draw_grid (EaselCanvas *self, GtkSnapshot *snapshot, const graphene_rect_t *bounds, double s)
 {
@@ -328,6 +350,8 @@ draw_grid (EaselCanvas *self, GtkSnapshot *snapshot, const graphene_rect_t *boun
       float w = (float) (self->axo_w * s), pw = bounds->size.width, ph = bounds->size.height;
       int n = (int) ((pw + 2 * ph) / w) + 2;
 
+      /* Lines slope 1:2, so each one is 2*ph wide and we start far enough to
+       * the left to cover the corner. Skip if it would be an absurd number. */
       if (n < 4000)
         {
           GskPathBuilder *pb = gsk_path_builder_new ();
@@ -366,7 +390,8 @@ easel_canvas_snapshot (GtkWidget *widget, GtkSnapshot *snapshot)
   graphene_rect_t bounds = GRAPHENE_RECT_INIT (0, 0,
                                                (float) (self->doc->width * s),
                                                (float) (self->doc->height * s));
-  /* Transparent pixels show a checkerboard behind them. */
+  /* Checkerboard under the picture so transparent areas are visible. It is
+   * drawn as one 16x16 tile repeated, not as individual squares. */
   {
     graphene_rect_t tile = GRAPHENE_RECT_INIT (0, 0, 16, 16);
     graphene_rect_t a = GRAPHENE_RECT_INIT (0, 0, 8, 8), b = GRAPHENE_RECT_INIT (8, 8, 8, 8);
@@ -379,8 +404,9 @@ easel_canvas_snapshot (GtkWidget *widget, GtkSnapshot *snapshot)
     gtk_snapshot_pop (snapshot);
   }
 
-  /* A hairline edge plus a soft shadow, hugging the picture itself (the
-   * widget is a little larger to leave room for the resize handles). */
+  /* Thin edge and a soft shadow around the picture. The widget itself is a bit
+   * bigger than the picture (room for the resize handles), so this follows the
+   * picture's bounds, not the widget's. */
   {
     GskRoundedRect outline;
     const GdkRGBA edge = { 0, 0, 0, 0.30f };
@@ -391,10 +417,13 @@ easel_canvas_snapshot (GtkWidget *widget, GtkSnapshot *snapshot)
     gtk_snapshot_append_outset_shadow (snapshot, &outline, &edge, 0, 0, 0.5f, 0);
   }
 
+  /* Zoomed out we want smooth mip-mapped shrinking. At 100% and above, hard
+   * square pixels, like the original Paint. */
   gtk_snapshot_append_scaled_texture (snapshot, self->texture,
                                       self->zoom < 100 ? GSK_SCALING_FILTER_TRILINEAR
                                                        : GSK_SCALING_FILTER_NEAREST, &bounds);
 
+  /* Everything that sits on top of the picture, clipped to it. */
   gtk_snapshot_push_clip (snapshot, &bounds);
   draw_brush_preview (self, snapshot, s);
   draw_eraser_outline (self, snapshot, s);
@@ -411,11 +440,11 @@ easel_canvas_snapshot (GtkWidget *widget, GtkSnapshot *snapshot)
 static uint32_t
 sample (EaselCanvas *self, int x, int y)
 {
-  /* Picking outside the image yields white, as classic Paint does. */
+  /* Like old Paint: picking outside the picture gives white. */
   if (x < 0 || y < 0 || x >= self->doc->width || y >= self->doc->height)
     return EASEL_RGB (255, 255, 255);
   uint32_t c = easel_document_get_pixel (self->doc, x, y);
-  if ((c >> 24) != 0xFF) /* see-through pixel: pick what is seen over white */
+  if ((c >> 24) != 0xFF) /* see-through pixel: pick the colour you actually see, i.e. over white */
     {
       uint32_t miss = 255 - (c >> 24);
       return EASEL_RGB (MIN (((c >> 16) & 0xFF) + miss, 255u), MIN (((c >> 8) & 0xFF) + miss, 255u),
@@ -424,7 +453,8 @@ sample (EaselCanvas *self, int x, int y)
   return c;
 }
 
-/* Records the finished edit (whose "before" picture is `base`) for undo. */
+/* Stores the finished edit as one undo step. `base` is the picture from
+ * before the edit; edit_rect says roughly where to look for differences. */
 void
 canvas_push_undo (EaselCanvas *self, const uint32_t *base)
 {
@@ -450,10 +480,23 @@ canvas_finish_edit (EaselCanvas *self)
   canvas_snapshot_drop (self, &self->edit_base);
 }
 
-/* Pointer input is handled by canvas_press / canvas_drag / canvas_release,
- * which take plain values (button, position, modifiers) rather than a GTK
- * gesture, so the same code can be driven by tests. The on_drag_* functions
- * below only translate gesture signals into these calls. */
+/* REVIEW: canvas_press, canvas_drag and canvas_release are each one big switch
+ * over the tool, hundreds of lines apiece. One handler struct per tool would
+ * be easier to read and to test. Left as is for now because it works and the
+ * canvas test covers it.
+ *
+ * ---- Mouse input ----
+ *
+ * One gesture is: press -> drag (many times) -> release. These three
+ * functions are the heart of the editor and each one is basically a big
+ * switch on the current tool:
+ *   press   decides what the click means and sets up the state it needs
+ *   drag    keeps updating that (extend the stroke, redraw the shape preview,
+ *           move the selection, ...)
+ *   release finishes it and commits it as a single undo step
+ *
+ * They take plain numbers instead of a GTK gesture so the tests can call them
+ * directly. The on_drag_* handlers further down only translate. */
 void
 canvas_press (EaselCanvas *self, guint button, double x, double y, gboolean ctrl)
 {
@@ -476,7 +519,9 @@ canvas_press (EaselCanvas *self, guint button, double x, double y, gboolean ctrl
         }
     }
 
-  /* Right-click on a selection or on the text box opens its menu (on release). */
+  /* Right button on a selection or text box doesn't draw, it opens a context
+   * menu. It is opened on release (see ctx_pending), so the click that asks
+   * for it isn't also delivered to the popup. */
   if (button == GDK_BUTTON_SECONDARY)
     {
       int ix, iy, kind = -1;
@@ -498,7 +543,8 @@ canvas_press (EaselCanvas *self, guint button, double x, double y, gboolean ctrl
         }
     }
 
-  /* Left button uses the foreground colour, right the background. */
+  /* Same as the original: left button draws in the foreground colour, right
+   * button in the background colour. */
   self->button = button;
   self->stroke_color = button == GDK_BUTTON_PRIMARY ? self->foreground : self->background;
   self->start_x = x;
@@ -746,7 +792,9 @@ canvas_drag (EaselCanvas *self, double offset_x, double offset_y, gboolean shift
       int nx = (int) lround ((self->start_x + offset_x) / s);
       int ny = (int) lround ((self->start_y + offset_y) / s);
 
-      /* The handle sits just past the edge, so measure from the start point. */
+      /* The handle sits a little outside the picture, so work out the new size
+       * from how far the pointer moved since the press, not from its absolute
+       * position. */
       nx = self->doc->width + (nx - (int) lround (self->start_x / s));
       ny = self->doc->height + (ny - (int) lround (self->start_y / s));
       if (self->resize_handle != 2)
@@ -763,7 +811,9 @@ canvas_drag (EaselCanvas *self, double offset_x, double offset_y, gboolean shift
 
   if (self->panning)
     {
-      /* Measured against the scroller, which does not move while the picture does. */
+      /* Measured against the scrolled window, which stays put while the
+       * picture inside it scrolls. Using the canvas itself would make the
+       * pan jitter. */
       GtkWidget *sw = gtk_widget_get_ancestor (GTK_WIDGET (self), GTK_TYPE_SCROLLED_WINDOW);
       graphene_point_t in = GRAPHENE_POINT_INIT ((float) (self->start_x + offset_x), (float) (self->start_y + offset_y)), out;
 
@@ -864,7 +914,8 @@ canvas_drag (EaselCanvas *self, double offset_x, double offset_y, gboolean shift
   else if (self->tool == EASEL_TOOL_AIRBRUSH)
     ; /* the timer sprays at last_x/last_y */
   else
-    /* Join consecutive samples with a line so fast strokes have no gaps. */
+    /* The mouse only reports now and then, so a fast stroke would be dotted.
+     * Join the last point to this one with a line. */
     canvas_mark_dirty (self, canvas_apply_stroke (self, self->last_x, self->last_y, x, y));
 
   self->last_x = x;
@@ -895,7 +946,7 @@ canvas_release (EaselCanvas *self, double offset_x, double offset_y, gboolean sh
   if (self->resize_handle != 0)
     {
       self->resize_handle = 0;
-      self->handle_hover = -1; /* next motion re-picks the cursor */
+      self->handle_hover = -1; /* forces the next mouse move to pick the right cursor again */
       gtk_widget_set_cursor (GTK_WIDGET (self), easel_cursor_for_tool (self->tool));
       g_signal_emit (self, canvas_signals[SIGNAL_RESIZE_PREVIEW], 0, -1, -1);
       if (self->resize_w != self->doc->width || self->resize_h != self->doc->height)
@@ -907,7 +958,7 @@ canvas_release (EaselCanvas *self, double offset_x, double offset_y, gboolean sh
   if (!self->drawing)
     return;
   self->drawing = FALSE;
-  gtk_widget_queue_draw (GTK_WIDGET (self)); /* hover preview comes back */
+  gtk_widget_queue_draw (GTK_WIDGET (self)); /* bring the brush preview back */
 
   if (self->panning)
     {
@@ -949,7 +1000,7 @@ canvas_release (EaselCanvas *self, double offset_x, double offset_y, gboolean sh
           int x, y;
           to_image (self, self->start_x + offset_x, self->start_y + offset_y, &x, &y);
           self->sel_creating = FALSE;
-          /* A click without dragging just deselects. */
+          /* A click without dragging is "select nothing". */
           self->sel_active = !(x == self->start_ix && y == self->start_iy);
           if (!self->sel_active)
             gtk_widget_queue_draw (GTK_WIDGET (self));
@@ -976,7 +1027,7 @@ canvas_release (EaselCanvas *self, double offset_x, double offset_y, gboolean sh
         {
           self->seq[self->seq_n - 1] = (EaselPoint) { x, y };
           if (self->seq_n == 2 && x == self->seq[0].x && y == self->seq[0].y)
-            self->seq_n = 1; /* first press without a drag: the next click sets the first edge's end */
+            self->seq_n = 1; /* no drag on the first click: the next click gives the end of the first edge */
           canvas_seq_render (self, FALSE, FALSE, 0, 0);
         }
       return;
@@ -1015,7 +1066,7 @@ canvas_release (EaselCanvas *self, double offset_x, double offset_y, gboolean sh
     {
       int x, y;
       to_image (self, self->start_x + offset_x, self->start_y + offset_y, &x, &y);
-      /* A plain click (no movement) draws nothing. */
+      /* A click with no movement doesn't make a gradient. */
       if (self->grad_drag != 0)
         {
           self->grad_drag = 0; /* still adjustable */
@@ -1026,7 +1077,7 @@ canvas_release (EaselCanvas *self, double offset_x, double offset_y, gboolean sh
       else if (self->tool == EASEL_TOOL_GRADIENT)
         {
           canvas_update_shape (self, x, y, shift);
-          self->grad_pending = TRUE; /* kept until accepted: Enter, another press, a tool change */
+          self->grad_pending = TRUE; /* stays editable until Enter, another click elsewhere, or a tool change */
         }
       else
         {
@@ -1128,7 +1179,7 @@ on_key_pressed (GtkEventControllerKey *controller, guint keyval, guint keycode,
 static void
 on_motion (GtkEventControllerMotion *controller, double x, double y, EaselCanvas *self)
 {
-  /* Over a selection the pointer offers to move it. */
+  /* Pointer over a selection: show the "move" cursor. */
   if ((easel_tool_info (self->tool)->flags & EASEL_TOOL_SELECTION) && self->resize_handle == 0 && self->handle_hover == 0)
     {
       int ix, iy;
@@ -1162,7 +1213,8 @@ on_motion (GtkEventControllerMotion *controller, double x, double y, EaselCanvas
         gtk_widget_set_cursor (GTK_WIDGET (self), easel_cursor_for_tool (self->tool));
     }
 
-  /* While a handle is being dragged the pointer keeps its resize cursor. */
+  /* Keep the resize cursor while a handle is being dragged, even if the
+   * pointer wanders off it. */
   int handle = self->resize_handle != 0 ? self->resize_handle : handle_at (self, x, y);
   if (handle != self->handle_hover)
     {
@@ -1272,8 +1324,8 @@ easel_canvas_class_init (EaselCanvasClass *klass)
                   0, NULL, NULL, NULL, G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_BOOLEAN);
 }
 
-/* Menus for right-clicking a selection and the text box; the canvas shows
- * them, the window supplies the actions. */
+/* The canvas owns the popovers, the window supplies the models and the actions
+ * they trigger. Called once at start-up. */
 void
 easel_canvas_set_context_menus (EaselCanvas *self, GMenuModel *selection, GMenuModel *text, GMenuModel *pan)
 {
@@ -1287,8 +1339,8 @@ easel_canvas_set_context_menus (EaselCanvas *self, GMenuModel *selection, GMenuM
     }
 }
 
-/* One notch in (+1) or out (-1); (ix, iy) is the picture pixel to keep in
- * view, or negative for the middle of the window. */
+/* One zoom step in (+1) or out (-1), keeping picture pixel (ix, iy) where it
+ * is on screen. Pass a negative ix to zoom around the middle of the window. */
 void
 easel_canvas_zoom_step (EaselCanvas *self, int direction, int ix, int iy)
 {
@@ -1474,8 +1526,10 @@ apply_center (gpointer data)
   g_object_unref (self);
 }
 
-/* Sets the magnification and keeps image point (ix, iy) in the middle of the
- * view; ix < 0 keeps whatever is in the middle now. */
+/* Sets the zoom and scrolls so picture point (ix, iy) ends up in the middle
+ * of the view; ix < 0 means "whatever is in the middle now". The scrolling
+ * has to wait until GTK has resized the canvas for the new zoom, which is why
+ * it's done later from `apply_center`. */
 void
 easel_canvas_set_zoom (EaselCanvas *self, int zoom, int ix, int iy)
 {
@@ -1498,7 +1552,7 @@ easel_canvas_set_zoom (EaselCanvas *self, int zoom, int ix, int iy)
 
   self->zoom = zoom;
   if (self->sel_clip != NULL && !self->sel_opaque)
-    canvas_sel_refresh_texture (self); /* checkerboard cell size follows the zoom */
+    canvas_sel_refresh_texture (self); /* the checkerboard inside a selection depends on the zoom */
   g_signal_emit (self, canvas_signals[SIGNAL_ZOOM_CHANGED], 0);
   self->center_x = ix + 0.5;
   self->center_y = iy + 0.5;
@@ -1571,7 +1625,7 @@ easel_canvas_undo (EaselCanvas *self)
   EaselRect r;
 
   canvas_sel_commit (self);
-  if (self->seq_active) /* Undo during a polygon or curve abandons it */
+  if (self->seq_active) /* Ctrl+Z while a polygon/curve is half done just cancels it */
     {
       canvas_cancel_seq (self);
       return TRUE;
@@ -1601,7 +1655,7 @@ easel_canvas_redo (EaselCanvas *self)
   return TRUE;
 }
 
-/* Fills the whole image (Image > Clear Image) as one undoable step. */
+/* Image > Clear Image. One undo step. */
 void
 easel_canvas_clear (EaselCanvas *self, uint32_t argb)
 {
@@ -1614,8 +1668,8 @@ easel_canvas_clear (EaselCanvas *self, uint32_t argb)
   canvas_finish_edit (self);
 }
 
-/* Replaces the picture (File > Open, New). Takes ownership of `doc`; undo
- * history and any tool in progress are discarded. */
+/* Swaps in a different picture (File > New / Open). Takes ownership of `doc`.
+ * Undo history and any half-finished tool work are thrown away. */
 void
 easel_canvas_set_document (EaselCanvas *self, EaselDocument *doc)
 {
@@ -1647,8 +1701,8 @@ easel_canvas_set_document (EaselCanvas *self, EaselDocument *doc)
   g_signal_emit (self, canvas_signals[SIGNAL_HISTORY_CHANGED], 0);
 }
 
-/* Changes the picture size (crop or extend with the background colour) as one
- * undoable step. */
+/* Makes the picture bigger (new area in the background colour) or smaller
+ * (crops). One undo step. */
 gboolean
 easel_canvas_resize (EaselCanvas *self, int width, int height)
 {
@@ -1695,8 +1749,8 @@ easel_canvas_get_grid (EaselCanvas *self, gboolean *show, int *grid_w, int *grid
   *axo_w = self->axo_w;
 }
 
-/* Fits the whole picture into the visible area, leaving the same margin the
- * canvas keeps on its left and top for the resize handles. */
+/* Zoom so the whole picture just fits in the window. Leaves the same strip
+ * of room on the right and bottom that is already kept for the resize handles. */
 void
 easel_canvas_zoom_fit (EaselCanvas *self)
 {

@@ -6,7 +6,7 @@
 EaselClip *
 easel_clip_new (int width, int height)
 {
-  if (width <= 0 || height <= 0 || (uint64_t) width * (uint64_t) height > ((uint64_t) 1 << 28))
+  if (width <= 0 || height <= 0 || (uint64_t) width * (uint64_t) height > EASEL_MAX_PIXELS)
     return NULL;
 
   EaselClip *clip = calloc (1, sizeof *clip);
@@ -33,24 +33,11 @@ easel_clip_free (EaselClip *clip)
   free (clip);
 }
 
-static bool
-clip_area (const EaselDocument *doc, EaselRect *a)
-{
-  int x0 = a->x < 0 ? 0 : a->x, y0 = a->y < 0 ? 0 : a->y;
-  int x1 = a->x + a->width > doc->width ? doc->width : a->x + a->width;
-  int y1 = a->y + a->height > doc->height ? doc->height : a->y + a->height;
-
-  if (x0 >= x1 || y0 >= y1)
-    return false;
-  *a = (EaselRect) { x0, y0, x1 - x0, y1 - y0 };
-  return true;
-}
-
 EaselClip *
 easel_clip_copy_from (const EaselDocument *doc, EaselRect area, const uint8_t *mask)
 {
   EaselRect full = area;
-  if (!clip_area (doc, &full))
+  if (!easel_rect_clip (&full, doc->width, doc->height))
     return NULL;
 
   EaselClip *clip = easel_clip_new (full.width, full.height);
@@ -81,9 +68,10 @@ EaselRect
 easel_clip_erase (EaselDocument *doc, EaselRect area, const uint8_t *mask, uint32_t color)
 {
   EaselRect full = area;
-  if (!clip_area (doc, &full))
+  if (!easel_rect_clip (&full, doc->width, doc->height))
     return (EaselRect) { 0, 0, 0, 0 };
 
+  /* `mask` is laid out for the unclipped `area`, hence the offsets. */
   for (int y = 0; y < full.height; y++)
     for (int x = 0; x < full.width; x++)
       {
@@ -99,7 +87,7 @@ easel_clip_blit (EaselDocument *doc, const EaselClip *clip, int x, int y, bool t
 {
   EaselRect dest = { x, y, clip->width, clip->height };
   EaselRect full = dest;
-  if (!clip_area (doc, &full))
+  if (!easel_rect_clip (&full, doc->width, doc->height))
     return (EaselRect) { 0, 0, 0, 0 };
 
   for (int j = 0; j < full.height; j++)

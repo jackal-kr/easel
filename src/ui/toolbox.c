@@ -63,7 +63,7 @@ struct _EaselToolbox
   gboolean        opaque, text_opaque, eraser_opaque;
   GtkWidget      *style_buttons[4];
   gboolean        syncing_style, text_smooth;
-  int             gradient_style; /* EaselGradientStyle */       /* Draw Opaque for selections */
+  int             gradient_style; /* EaselGradientStyle */
 };
 
 G_DEFINE_FINAL_TYPE (EaselToolbox, easel_toolbox, GTK_TYPE_WIDGET)
@@ -176,8 +176,8 @@ typedef struct
   int             form; /* OPTION_FILL: 0 rectangle, 1 rounded, 2 ellipse, 3 polygon */
 } Preview;
 
-/* Draws what the brush footprint looks like, 2x magnified, using the real
- * engine so the preview can never disagree with what gets drawn. */
+/* Little preview on each option button, drawn 2x. It calls the same
+ * easel_brush_covers() the real brush uses, so it always matches. */
 static void
 draw_preview (GtkDrawingArea *area, cairo_t *cr, int width, int height, gpointer data)
 {
@@ -697,7 +697,7 @@ make_tool_button (EaselTool id, GtkIconTheme *theme)
 #define SECTION_SPACING 12
 #define GRID_SPACING    2
 
-/* Height the content needs with the tool grid in `cols` columns. */
+/* How tall the toolbox needs to be if the tool grid has `cols` columns. */
 static int
 needed_height (EaselToolbox *self, int cols)
 {
@@ -763,9 +763,10 @@ easel_toolbox_measure (GtkWidget *widget, GtkOrientation orientation, int for_si
                       minimum, natural, minimum_baseline, natural_baseline);
 }
 
-/* Two columns when the window is tall enough to show everything, three when
- * it is not (the scroller is only the last resort for very short windows).
- * The change is deferred to an idle so we never re-layout inside allocation.
+/* Two columns of tools when the window is tall enough to show everything,
+ * three when it isn't (the scrollbar is the last resort on very short
+ * screens). The switch happens from an idle callback, because changing the
+ * layout in the middle of a layout pass makes GTK complain.
  * (This widget does its own layout: a GtkBox's layout manager would bypass
  * this vfunc.) */
 static void
@@ -829,10 +830,8 @@ easel_toolbox_init (EaselToolbox *self)
   self->opaque = TRUE;
   self->eraser_opaque = TRUE;
   self->text_opaque = FALSE; /* text is see-through unless asked otherwise */
-  self->font = g_strdup (EASEL_DEFAULT_FONT);
 
-  /* Preferences > Drawing. */
-  g_free (self->font);
+  /* The defaults from Preferences > Drawing win over the built-in ones above. */
   self->font = easel_pref_string ("default-font", EASEL_DEFAULT_FONT);
   self->text_opaque = easel_pref_bool ("text-opaque", FALSE);
   self->text_smooth = easel_pref_bool ("text-smooth", FALSE);

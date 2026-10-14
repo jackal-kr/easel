@@ -1,6 +1,5 @@
-/* Left tool strip: the 16 classic tools in two columns, with an options area
- * below that follows the selected tool. Tools that are not implemented yet
- * are shown disabled. */
+/* The tool strip on the left: the 16 classic tools (plus Pan and Gradient) in
+ * a grid, and below it an options area that changes with the selected tool. */
 #pragma once
 
 #include <gtk/gtk.h>

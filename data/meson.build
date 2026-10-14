@@ -14,7 +14,7 @@ custom_target('gschemas',
             '--targetdir', meson.current_build_dir(), meson.current_source_dir()],
   build_by_default: true,
 )
-install_data('../docs/help.md', install_dir: get_option('datadir') / 'doc' / 'easel')
+install_data('../docs/help.html', install_dir: get_option('datadir') / 'doc' / 'easel')
 install_data('io.github.jackal_kr.Easel.gschema.xml',
   install_dir: get_option('datadir') / 'glib-2.0' / 'schemas')
 

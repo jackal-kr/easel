@@ -4,6 +4,21 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Moves one cell (a pixel or a mask byte). Every routine below is generic over
+ * the cell size, but a memcpy with a size only known at run time is not
+ * inlined and costs a function call per pixel. The two sizes we actually use
+ * get a fast path. */
+static inline void
+copy_cell (unsigned char *dst, const unsigned char *src, size_t elem)
+{
+  if (elem == 4)
+    memcpy (dst, src, 4);
+  else if (elem == 1)
+    *dst = *src;
+  else
+    memcpy (dst, src, elem);
+}
+
 void
 easel_flip (void *buf, int w, int h, size_t elem, int horizontal)
 {
@@ -19,9 +34,9 @@ easel_flip (void *buf, int w, int h, size_t elem, int horizontal)
           {
             unsigned char *l = b + ((size_t) y * w + x) * elem;
             unsigned char *r = b + ((size_t) y * w + (w - 1 - x)) * elem;
-            memcpy (tmp, l, elem);
-            memcpy (l, r, elem);
-            memcpy (r, tmp, elem);
+            copy_cell (tmp, l, elem);
+            copy_cell (l, r, elem);
+            copy_cell (r, tmp, elem);
           }
     }
   else
@@ -31,9 +46,9 @@ easel_flip (void *buf, int w, int h, size_t elem, int horizontal)
           {
             unsigned char *t = b + ((size_t) y * w + x) * elem;
             unsigned char *u = b + ((size_t) (h - 1 - y) * w + x) * elem;
-            memcpy (tmp, t, elem);
-            memcpy (t, u, elem);
-            memcpy (u, tmp, elem);
+            copy_cell (tmp, t, elem);
+            copy_cell (t, u, elem);
+            copy_cell (u, tmp, elem);
           }
     }
 }
@@ -59,7 +74,7 @@ easel_rotate (const void *src, int w, int h, size_t elem, int quarter_turns, int
           case 3: dx = y; dy = w - 1 - x; break;
           default: dx = x; dy = y; break;
           }
-        memcpy (out + ((size_t) dy * ow + dx) * elem, s + ((size_t) y * w + x) * elem, elem);
+        copy_cell (out + ((size_t) dy * ow + dx) * elem, s + ((size_t) y * w + x) * elem, elem);
       }
   *nw = ow;
   *nh = oh;
@@ -82,7 +97,7 @@ easel_scale (const void *src, int w, int h, size_t elem, int nw, int nh)
       for (int x = 0; x < nw; x++)
         {
           int sx = (int) ((long long) x * w / nw);
-          memcpy (out + ((size_t) y * nw + x) * elem, s + ((size_t) sy * w + sx) * elem, elem);
+          copy_cell (out + ((size_t) y * nw + x) * elem, s + ((size_t) sy * w + sx) * elem, elem);
         }
     }
   return out;
@@ -101,23 +116,30 @@ easel_skew (const void *src, int w, int h, size_t elem, double degrees, int hori
 
   if (out == NULL)
     return NULL;
+  /* Start with the whole result in the fill colour; the slanted copy of the
+   * picture then leaves the triangles at the corners as they are. */
   for (size_t i = 0; i < (size_t) ow * oh; i++)
-    memcpy (out + i * elem, fill, elem);
+    copy_cell (out + i * elem, fill, elem);
 
   for (int y = 0; y < h; y++)
     for (int x = 0; x < w; x++)
       {
-        int k = horizontal ? y : x;             /* position along the slide axis */
+        /* Every row (or column) k is shifted by a different amount, growing
+         * in a straight line, which is what makes the picture lean. For a
+         * positive angle the first row moves the most. */
+        int k = horizontal ? y : x;
         int off = t >= 0 ? (int) lround (t * (along - 1 - k)) : (int) lround (-t * k);
         int dx = horizontal ? x + off : x, dy = horizontal ? y : y + off;
 
-        memcpy (out + ((size_t) dy * ow + dx) * elem, s + ((size_t) y * w + x) * elem, elem);
+        copy_cell (out + ((size_t) dy * ow + dx) * elem, s + ((size_t) y * w + x) * elem, elem);
       }
   *nw = ow;
   *nh = oh;
   return out;
 }
 
+/* With premultiplied pixels the inverse of colour c is (alpha - c), not
+ * (255 - c). Otherwise transparent areas would turn into light fog. */
 void
 easel_invert (uint32_t *pixels, size_t count)
 {
@@ -137,7 +159,9 @@ easel_black_and_white (uint32_t *pixels, size_t count)
     {
       uint32_t c = pixels[i], a = c >> 24;
       uint32_t r = (c >> 16) & 0xFF, g = (c >> 8) & 0xFF, b = c & 0xFF;
-      uint32_t lum = (299 * r + 587 * g + 114 * b) / 1000; /* premultiplied: compare with a/2 */
+      /* Standard luma weights. The channels are premultiplied, so "at least
+       * half bright" means luma >= a/2 rather than >= 128. */
+      uint32_t lum = (299 * r + 587 * g + 114 * b) / 1000;
 
       pixels[i] = lum * 2 >= a ? (a << 24) | (a << 16) | (a << 8) | a : (a << 24);
     }

@@ -1,12 +1,18 @@
-/* A full-size copy of a picture's pixels that is kept up to date by copying
- * only the rectangle that changed since the last update. Used for the undo
- * "before" image and for the pixel buffers handed to the display.
+/* A full copy of the picture that we keep in step with the real one by
+ * copying only the rectangles that changed. Copying a 4000x3000 picture on
+ * every pencil stroke would be painfully slow; this makes it a few hundred
+ * bytes instead.
  *
- * Reference counted (atomically): the display may still hold a buffer after
- * its owner has let go of it. A buffer someone else holds is "busy" and must
- * not be updated. Pure engine code. */
+ * Used twice: as the "before" image for undo, and as the pixel memory behind
+ * the GPU texture.
+ *
+ * The reference count is atomic because GTK may render on another thread and
+ * keep a buffer alive after we are done with it. While somebody else still
+ * holds it the buffer is "busy" and must not be touched, so the caller picks
+ * another one (or makes a plain copy). */
 #pragma once
 
+#include <stdatomic.h>
 #include <stdbool.h>
 
 #include "core/document.h"
@@ -17,8 +23,8 @@ struct _EaselSyncBuf
 {
   uint32_t *data;       /* NULL until the first update */
   int       width, height;
-  EaselRect stale;      /* where `data` may differ from the picture */
-  int       refs;
+  EaselRect stale;      /* bounding box of everything that changed since the last update */
+  _Atomic int refs;
 };
 
 EaselSyncBuf *easel_syncbuf_new (void);

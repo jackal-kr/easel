@@ -64,7 +64,8 @@ on_colors_changed (EaselColorBox *box, EaselWindow *self)
   easel_canvas_set_background (self->canvas, easel_color_box_get_background (box));
 }
 
-/* Pushes the toolbox's current tool and options to the canvas. */
+/* The toolbox and the colour box hold the settings, the canvas does the
+ * drawing. This copies the current tool and its options over to the canvas. */
 static void
 sync_canvas_tool (EaselWindow *self)
 {
@@ -137,7 +138,7 @@ action_swap_colors (GSimpleAction *action, GVariant *parameter, gpointer user_da
   easel_color_box_swap (self->colorbox);
 }
 
-/* Classic Paint fills the whole image with the background colour. */
+/* Like the original: Clear Image fills everything with the background colour. */
 static void
 action_clear_image (GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
@@ -272,7 +273,9 @@ save_to (EaselWindow *self, GFile *file)
 {
   g_autoptr (GError) error = NULL;
 
-  easel_canvas_flush (self->canvas); /* a floating selection is part of the picture */
+  /* Whatever is still floating (selection, text) must be in the pixels
+   * before we write them to disk. */
+  easel_canvas_flush (self->canvas);
   if (!easel_file_save (easel_canvas_get_document (self->canvas), file, &error))
     {
       show_error (self, _("Could not save the picture"), error);
@@ -349,8 +352,9 @@ on_unsaved_answer (GObject *source, GAsyncResult *result, gpointer data)
 static void
 confirm_discard (EaselWindow *self, ContinueFunc next)
 {
-  /* Text being typed, a floating selection or an unfinished curve only reach
-   * the history once put down; until then the picture looks unmodified. */
+  /* Text being typed, a floating selection or an unfinished curve only count
+   * as an edit once they are put down. Do that first, otherwise we'd say
+   * "nothing changed" and silently throw them away. */
   easel_canvas_flush (self->canvas);
 
   if (!self->modified)
@@ -428,7 +432,10 @@ load_file (EaselWindow *self, GFile *file)
     show_document (self, doc, file);
 }
 
-static GFile *pending_open_file; /* handed from easel_window_open_file to its continuation */
+/* easel_window_open_file may have to ask "save changes?" first. The answer
+ * comes back later through a callback that can't carry arguments, so the file
+ * waits here until then. */
+static GFile *pending_open_file;
 
 static void
 open_pending (EaselWindow *self)
@@ -484,7 +491,8 @@ on_close_request (GtkWindow *window, gpointer user_data)
 
   if (self->closing)
     return FALSE;
-  /* A floating selection or unfinished text only counts once put down. */
+  /* Same as in confirm_discard(): settle floating things before deciding if
+   * the picture was modified. */
   easel_canvas_flush (self->canvas);
   if (!self->modified)
     return FALSE;
@@ -866,7 +874,8 @@ draw_thumbnail (GtkDrawingArea *area, cairo_t *cr, int width, int height, gpoint
   double w = doc->width * scale, h = doc->height * scale;
   double x = (width - w) / 2, y = (height - h) / 2;
 
-  /* The surface wraps the picture's own pixels: no copy. */
+  /* This Cairo surface just points at the picture's own memory, so making the
+   * thumbnail doesn't copy the whole picture first. */
   cairo_surface_t *surface = cairo_image_surface_create_for_data ((unsigned char *) doc->pixels, CAIRO_FORMAT_ARGB32,
                                                                   doc->width, doc->height, doc->width * 4);
   cairo_set_source_rgb (cr, 1, 1, 1);
@@ -880,7 +889,9 @@ draw_thumbnail (GtkDrawingArea *area, cairo_t *cr, int width, int height, gpoint
   cairo_surface_destroy (surface);
 }
 
-/* Follows the picture while the window is open (it may be edited or replaced). */
+/* Timer that keeps the thumbnail window in step with the picture. It's cheap
+ * when nothing happened: the canvas bumps a change counter on every edit, so
+ * we compare numbers and only redraw when it moved. */
 static gboolean
 thumb_tick (gpointer data)
 {
@@ -1213,8 +1224,9 @@ easel_window_init (EaselWindow *self)
 
   GtkWidget *scroller = gtk_scrolled_window_new ();
   gtk_scrolled_window_set_child (GTK_SCROLLED_WINDOW (scroller), workspace);
-  /* The canvas takes keyboard focus (also when a menu closes); the view must
-   * not jump to the picture's corner each time that happens. */
+  /* GTK scrolls a widget into view when it gets focus. The canvas takes focus
+   * back every time a menu closes, which made the picture jump to its corner.
+   * Turning scroll-to-focus off on the viewport stops that. */
   GtkWidget *viewport = gtk_widget_get_ancestor (workspace, GTK_TYPE_VIEWPORT);
   if (viewport != NULL)
     gtk_viewport_set_scroll_to_focus (GTK_VIEWPORT (viewport), FALSE);
@@ -1302,7 +1314,9 @@ easel_window_init (EaselWindow *self)
   sync_canvas_tool (self);
 }
 
-/* Developer aid for store screenshots: EASEL_SCREENSHOT=file.png saves the window and quits. */
+/* Developer aid, used for the store screenshots: run with
+ * EASEL_SCREENSHOT=file.png and the window is saved to that file, then the app
+ * quits. Does nothing when the variable isn't set. */
 static gboolean
 take_screenshot (gpointer data)
 {

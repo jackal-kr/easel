@@ -1,9 +1,7 @@
 #include "core/document.h"
 
 #include <stdlib.h>
-
-/* 2^28 pixels = 1 GiB of ARGB. Refuse anything larger. */
-#define EASEL_MAX_PIXELS ((uint64_t) 1 << 28)
+#include <string.h>
 
 EaselDocument *
 easel_document_new (int width, int height, uint32_t fill)
@@ -78,6 +76,20 @@ easel_rect_union (EaselRect a, EaselRect b)
   return (EaselRect) { x0, y0, x1 - x0, y1 - y0 };
 }
 
+bool
+easel_rect_clip (EaselRect *r, int width, int height)
+{
+  int x0 = r->x < 0 ? 0 : r->x;
+  int y0 = r->y < 0 ? 0 : r->y;
+  int x1 = r->x + r->width > width ? width : r->x + r->width;
+  int y1 = r->y + r->height > height ? height : r->y + r->height;
+
+  if (x0 >= x1 || y0 >= y1)
+    return false;
+  *r = (EaselRect) { x0, y0, x1 - x0, y1 - y0 };
+  return true;
+}
+
 static bool
 size_ok (int width, int height)
 {
@@ -94,13 +106,24 @@ easel_document_resize (EaselDocument *doc, int width, int height, uint32_t fill)
   if (pixels == NULL)
     return false;
 
+  /* Top-left corner survives, everything new is filled. Copy whole rows of
+   * the overlap with memcpy and only loop over the leftover area. */
   int keep_w = width < doc->width ? width : doc->width;
   int keep_h = height < doc->height ? height : doc->height;
 
   for (int y = 0; y < height; y++)
-    for (int x = 0; x < width; x++)
-      pixels[(size_t) y * width + x] =
-        (x < keep_w && y < keep_h) ? doc->pixels[(size_t) y * doc->width + x] : fill;
+    {
+      uint32_t *dst = pixels + (size_t) y * width;
+      int copied = 0;
+
+      if (y < keep_h)
+        {
+          memcpy (dst, doc->pixels + (size_t) y * doc->width, (size_t) keep_w * sizeof *dst);
+          copied = keep_w;
+        }
+      for (int x = copied; x < width; x++)
+        dst[x] = fill;
+    }
 
   free (doc->pixels);
   doc->pixels = pixels;
@@ -119,8 +142,7 @@ easel_document_replace (EaselDocument *doc, int width, int height, const uint32_
   uint32_t *copy = malloc (bytes);
   if (copy == NULL)
     return false;
-  for (size_t i = 0; i < (size_t) width * (size_t) height; i++)
-    copy[i] = pixels[i];
+  memcpy (copy, pixels, bytes);
 
   free (doc->pixels);
   doc->pixels = copy;
