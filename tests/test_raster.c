@@ -610,6 +610,19 @@ test_polygon_mask (void)
   free (m);
 }
 
+static void
+test_clip_scaled (void)
+{
+  EaselClip *c = easel_clip_new (2, 2);
+  c->pixels[0] = 1; c->pixels[1] = 2; c->pixels[2] = 3; c->pixels[3] = 4;
+  EaselClip *b = easel_clip_scaled (c, 4, 4);
+  CHECK (b != NULL && b->pixels[0] == 1 && b->pixels[3] == 2 && b->pixels[12] == 3 && b->pixels[15] == 4);
+  EaselClip *s = easel_clip_scaled (c, 1, 1);
+  CHECK (s != NULL && s->pixels[0] == 1);
+  CHECK (easel_clip_scaled (c, 0, 3) == NULL);
+  easel_clip_free (c); easel_clip_free (b); easel_clip_free (s);
+}
+
 int
 main (void)
 {
@@ -625,6 +638,7 @@ main (void)
   test_resize ();
   test_clip ();
   test_polygon_mask ();
+  test_clip_scaled ();
 
   if (failures != 0)
     {

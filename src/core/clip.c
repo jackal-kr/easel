@@ -115,3 +115,35 @@ easel_clip_blit (EaselDocument *doc, const EaselClip *clip, int x, int y, bool t
       }
   return full;
 }
+
+EaselClip *
+easel_clip_scaled (const EaselClip *clip, int w, int h)
+{
+  if (clip == NULL || w < 1 || h < 1)
+    return NULL;
+  EaselClip *out = easel_clip_new (w, h);
+  if (out == NULL)
+    return NULL;
+  if (clip->mask != NULL)
+    {
+      out->mask = malloc ((size_t) w * h);
+      if (out->mask == NULL)
+        {
+          easel_clip_free (out);
+          return NULL;
+        }
+    }
+  for (int y = 0; y < h; y++)
+    {
+      int sy = (int) ((long long) y * clip->height / h);
+      for (int x = 0; x < w; x++)
+        {
+          int sx = (int) ((long long) x * clip->width / w);
+          size_t si = (size_t) sy * clip->width + sx, di = (size_t) y * w + x;
+          out->pixels[di] = clip->pixels[si];
+          if (out->mask != NULL)
+            out->mask[di] = clip->mask[si];
+        }
+    }
+  return out;
+}

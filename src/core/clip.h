@@ -26,3 +26,6 @@ EaselRect easel_clip_erase (EaselDocument *doc, EaselRect area, const uint8_t *m
  * `transparent`, pixels equal to `key` (and fully transparent ones) are skipped. Returns the area changed. */
 EaselRect easel_clip_blit (EaselDocument *doc, const EaselClip *clip, int x, int y,
                            bool transparent, uint32_t key);
+
+/* Nearest-neighbour copy of `clip` stretched to w x h (mask too). NULL on failure. */
+EaselClip *easel_clip_scaled (const EaselClip *clip, int w, int h);
