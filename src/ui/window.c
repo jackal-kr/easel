@@ -518,8 +518,6 @@ on_zoom_changed (EaselCanvas *canvas, EaselWindow *self)
   update_canvas_a11y (self);
   if (self->menu_zoom_label != NULL)
     gtk_label_set_text (self->menu_zoom_label, text);
-  /* As in XP, the pixel grid only exists from 4x up, so the item is off below that. */
-  set_action_enabled (self, "show-grid", easel_canvas_get_zoom (canvas) >= 400);
 }
 
 static void
@@ -541,18 +539,15 @@ action_zoom_out (GSimpleAction *action, GVariant *parameter, gpointer user_data)
 }
 
 static void
-action_zoom_large (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+action_zoom_fit (GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
-  easel_canvas_set_zoom (((EaselWindow *) user_data)->canvas, 400, -1, -1);
+  easel_canvas_zoom_fit (((EaselWindow *) user_data)->canvas);
 }
 
 static void
-on_grid_change_state (GSimpleAction *action, GVariant *value, gpointer user_data)
+action_grid (GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
-  EaselWindow *self = user_data;
-
-  g_simple_action_set_state (action, value);
-  easel_canvas_set_show_grid (self->canvas, g_variant_get_boolean (value));
+  easel_dialog_grid (GTK_WIDGET (user_data), ((EaselWindow *) user_data)->canvas);
 }
 
 
@@ -974,7 +969,8 @@ static const GActionEntry window_actions[] = {
   { "text-select-all", action_text_edit },
   { "edit-colors", action_edit_colors },
   { "zoom-normal", action_zoom_normal },
-  { "zoom-large", action_zoom_large },
+  { "zoom-fit", action_zoom_fit },
+  { "grid", action_grid },
   { "zoom-in", action_zoom_in },
   { "zoom-out", action_zoom_out },
   { "zoom-custom", action_zoom_custom },
@@ -1284,10 +1280,6 @@ easel_window_init (EaselWindow *self)
   g_signal_connect (thumb, "change-state", G_CALLBACK (on_thumbnail_change_state), self);
   g_action_map_add_action (G_ACTION_MAP (self), G_ACTION (thumb));
   g_object_unref (thumb);
-  GSimpleAction *grid = g_simple_action_new_stateful ("show-grid", NULL, g_variant_new_boolean (FALSE));
-  g_signal_connect (grid, "change-state", G_CALLBACK (on_grid_change_state), self);
-  g_action_map_add_action (G_ACTION_MAP (self), G_ACTION (grid));
-  g_object_unref (grid);
   g_signal_connect (self->canvas, "selection-changed", G_CALLBACK (on_selection_changed), self);
   g_signal_connect (self->canvas, "text-state", G_CALLBACK (on_text_state), self);
   g_signal_connect (self->toolbox, "text-style-toggled", G_CALLBACK (on_text_style_toggled), self);

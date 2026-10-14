@@ -31,7 +31,13 @@ int  easel_canvas_get_zoom (EaselCanvas *self);
 void easel_canvas_zoom_step (EaselCanvas *self, int direction, int ix, int iy);
 guint64 easel_canvas_get_change_count (EaselCanvas *self); /* see window thumbnail */
 gint64 easel_canvas_get_paint_time (EaselCanvas *self); /* microseconds */
-void easel_canvas_set_show_grid (EaselCanvas *self, gboolean show); /* drawn at 4x and above */
+/* Grid lines every grid_w x grid_h picture pixels (1 x 1 is the classic pixel grid); lines are
+ * only drawn once cells are at least 4 screen pixels wide. The axonometric grid has 2:1 diagonals. */
+void easel_canvas_set_grid (EaselCanvas *self, gboolean show, int grid_w, int grid_h, gboolean axo, int axo_w);
+void easel_canvas_get_grid (EaselCanvas *self, gboolean *show, int *grid_w, int *grid_h, gboolean *axo, int *axo_w);
+void easel_canvas_zoom_fit (EaselCanvas *self);  /* largest zoom that shows the whole picture */
+/* Size of what Stretch/Skew acts on: the selection if there is one, else the picture. */
+void easel_canvas_get_transform_size (EaselCanvas *self, int *width, int *height);
 void easel_canvas_set_zoom_level (EaselCanvas *self, int level); /* what a Magnifier click applies */
 
 void     easel_canvas_mark_saved (EaselCanvas *self);
@@ -81,7 +87,7 @@ typedef enum { EASEL_FLIP_H, EASEL_FLIP_V, EASEL_ROTATE_90, EASEL_ROTATE_180, EA
 void     easel_canvas_turn (EaselCanvas *self, EaselTurn turn);
 void     easel_canvas_invert (EaselCanvas *self);
 void     easel_canvas_black_and_white (EaselCanvas *self);
-void     easel_canvas_stretch_skew (EaselCanvas *self, int stretch_h, int stretch_v, double skew_h, double skew_v);
+void     easel_canvas_stretch_skew (EaselCanvas *self, double stretch_h, double stretch_v, double skew_h, double skew_v);
 
 /* Replaces the picture; takes ownership, clears undo history. */
 void easel_canvas_set_document (EaselCanvas *self, EaselDocument *doc);

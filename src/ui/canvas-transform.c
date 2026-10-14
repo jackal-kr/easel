@@ -4,7 +4,7 @@
 
 typedef struct
 {
-  int      stretch_h, stretch_v;  /* percent, 100 = unchanged */
+  double   stretch_h, stretch_v;  /* percent, 100 = unchanged */
   double   skew_h, skew_v;        /* degrees */
   gboolean flip_h, flip_v, invert;
   int      turns;                 /* clockwise quarter turns */
@@ -34,8 +34,8 @@ run_transform (const Transform *t, Buf *pix, Buf *mask, uint32_t pix_fill)
 
   if (t->stretch_h != 100 || t->stretch_v != 100)
     {
-      nw = MAX (1, (int) ((gint64) pix->w * t->stretch_h / 100));
-      nh = MAX (1, (int) ((gint64) pix->h * t->stretch_v / 100));
+      nw = MAX (1, (int) lround (pix->w * t->stretch_h / 100.0));
+      nh = MAX (1, (int) lround (pix->h * t->stretch_v / 100.0));
       if (nw > EASEL_MAX_DIMENSION || nh > EASEL_MAX_DIMENSION)
         return FALSE;
       out = easel_scale (pix->data, pix->w, pix->h, 4, nw, nh);
@@ -221,7 +221,15 @@ easel_canvas_black_and_white (EaselCanvas *self)
 }
 
 void
-easel_canvas_stretch_skew (EaselCanvas *self, int stretch_h, int stretch_v, double skew_h, double skew_v)
+easel_canvas_get_transform_size (EaselCanvas *self, int *width, int *height)
+{
+  g_return_if_fail (EASEL_IS_CANVAS (self));
+  *width = self->sel_active && self->sel_rect.width > 0 ? self->sel_rect.width : self->doc->width;
+  *height = self->sel_active && self->sel_rect.height > 0 ? self->sel_rect.height : self->doc->height;
+}
+
+void
+easel_canvas_stretch_skew (EaselCanvas *self, double stretch_h, double stretch_v, double skew_h, double skew_v)
 {
   g_return_if_fail (EASEL_IS_CANVAS (self));
   Transform t = { stretch_h, stretch_v, skew_h, skew_v, FALSE, FALSE, FALSE, 0 };

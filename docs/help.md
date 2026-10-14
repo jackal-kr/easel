@@ -41,8 +41,8 @@ Selection options (below the tool box) choose **Opaque** (the selection's backgr
 **Transparent** (that color is treated as see-through when moved).
 
 ## Menus
-**Image** — Flip/Rotate, Stretch/Skew, Invert Colors, Attributes (size and background), Clear Image, Draw Opaque.
-**View** — zoom (including Normal, Large, Custom), Show Grid, Show Thumbnail, show/hide panels, Frame Time.
+**Image** — Flip/Rotate, Stretch/Skew (by percent or exact pixels, with Keep aspect ratio), Invert Colors, Attributes (size and background), Clear Image, Draw Opaque.
+**View** — zoom (Normal, Fit to Window, Custom), Grid… (cell size and an optional axonometric grid), Show Thumbnail, show/hide panels, Frame Time.
 **Main menu** — New, Save As, Print, Edit (Cut, Copy, Paste, Clear Selection, Select All), Copy To / Paste From file,
 Preferences, Keyboard Shortcuts, About.
 
@@ -75,7 +75,7 @@ If a picture has unsaved changes, Easel asks before New, Open or closing.
 | Clear Image | Ctrl+Shift+N |
 | Swap colors | Ctrl+Shift+X |
 | Show grid | Ctrl+G |
-| Large / Normal size | Ctrl+PageUp / Ctrl+PageDown |
+| Fit to Window / Normal size | Ctrl+PageUp / Ctrl+PageDown |
 | Zoom | Ctrl+mouse wheel |
 | Preferences | Ctrl+, |
 | Help | F1 |

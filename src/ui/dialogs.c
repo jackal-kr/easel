@@ -217,68 +217,188 @@ easel_dialog_flip_rotate (GtkWidget *parent, EaselCanvas *canvas)
   adw_dialog_present (dialog, parent);
 }
 
+/* A number row whose value shows its unit ("100%", "64 px", "0°"). The unit lives in the row's "unit"
+ * data, so it can change (percent <-> pixels). */
+static void
+spin_show (AdwSpinRow *row)
+{
+  const char *unit = g_object_get_data (G_OBJECT (row), "unit");
+  g_autofree char *text = g_strdup_printf ("%.0f%s", adw_spin_row_get_value (row), unit != NULL ? unit : "");
+
+  gtk_editable_set_text (GTK_EDITABLE (row), text);
+}
+
+static gboolean
+on_spin_output (AdwSpinRow *row, gpointer data)
+{
+  spin_show (row);
+  return TRUE;
+}
+
+static int
+on_spin_input (AdwSpinRow *row, double *value, gpointer data)
+{
+  const char *text = gtk_editable_get_text (GTK_EDITABLE (row));
+  char *end = NULL;
+  double v = g_ascii_strtod (text, &end);
+
+  /* Nothing typed yet (the row is still being built): keep the value instead of snapping to the minimum. */
+  *value = end == text ? adw_spin_row_get_value (row) : v;
+  return TRUE;
+}
+
+static void
+spin_row_set_unit (GtkWidget *row, const char *unit)
+{
+  g_object_set_data (G_OBJECT (row), "unit", (gpointer) unit);
+  if (gtk_widget_get_mapped (row))
+    spin_show (ADW_SPIN_ROW (row));
+}
+
+static GtkWidget *
+unit_spin_row (const char *title, double min, double max, double value, const char *unit)
+{
+  GtkWidget *row = adw_spin_row_new_with_range (min, max, 1);
+
+  adw_preferences_row_set_title (ADW_PREFERENCES_ROW (row), title);
+  adw_spin_row_set_numeric (ADW_SPIN_ROW (row), FALSE); /* a numeric row refuses the unit text */
+  adw_spin_row_set_value (ADW_SPIN_ROW (row), value);
+  g_object_set_data (G_OBJECT (row), "unit", (gpointer) unit);
+  g_signal_connect (row, "output", G_CALLBACK (on_spin_output), NULL);
+  g_signal_connect (row, "input", G_CALLBACK (on_spin_input), NULL);
+  return row;
+}
+
 typedef struct
 {
   EaselCanvas *canvas;
-  GtkWidget   *rows[4];
+  GtkWidget   *by;         /* "Stretch by": percent or pixels */
+  GtkWidget   *rows[2];    /* stretch horizontally, vertically, in the chosen unit */
+  GtkWidget   *skew[2];
   GtkWidget   *lock;
+  int          base_w, base_h; /* size being stretched, in pixels */
+  double       pct[2];     /* the stretch as percent, whatever the display shows */
+  gboolean     busy;       /* a field is being updated from another one */
 } StretchDialog;
 
-/* With the lock on, the two stretch fields move together. */
+static gboolean
+stretch_in_pixels (StretchDialog *sd)
+{
+  return adw_combo_row_get_selected (ADW_COMBO_ROW (sd->by)) == 1;
+}
+
+/* Shows pct[axis] in the row, in percent or pixels. */
+static void
+stretch_show (StretchDialog *sd, int axis)
+{
+  int base = axis == 0 ? sd->base_w : sd->base_h;
+
+  adw_spin_row_set_value (ADW_SPIN_ROW (sd->rows[axis]),
+                          stretch_in_pixels (sd) ? round (base * sd->pct[axis] / 100.0) : round (sd->pct[axis]));
+}
+
 static void
 on_stretch_value_changed (AdwSpinRow *row, GParamSpec *pspec, StretchDialog *sd)
 {
-  if (!adw_switch_row_get_active (ADW_SWITCH_ROW (sd->lock)))
+  if (sd->busy)
     return;
-  AdwSpinRow *other = ADW_SPIN_ROW (GTK_WIDGET (row) == sd->rows[0] ? sd->rows[1] : sd->rows[0]);
-  adw_spin_row_set_value (other, adw_spin_row_get_value (row));
+  sd->busy = TRUE;
+
+  int axis = GTK_WIDGET (row) == sd->rows[0] ? 0 : 1;
+  int base = axis == 0 ? sd->base_w : sd->base_h;
+  double v = adw_spin_row_get_value (row);
+
+  sd->pct[axis] = stretch_in_pixels (sd) ? v * 100.0 / base : v;
+  if (adw_switch_row_get_active (ADW_SWITCH_ROW (sd->lock)))
+    {
+      sd->pct[1 - axis] = sd->pct[axis];
+      stretch_show (sd, 1 - axis);
+    }
+  sd->busy = FALSE;
+}
+
+/* Switching unit re-expresses the same stretch in the other unit. */
+static void
+on_stretch_unit_changed (AdwComboRow *combo, GParamSpec *pspec, StretchDialog *sd)
+{
+  gboolean px = stretch_in_pixels (sd);
+
+  sd->busy = TRUE;
+  for (int i = 0; i < 2; i++)
+    {
+      int base = i == 0 ? sd->base_w : sd->base_h;
+      GtkAdjustment *adj = adw_spin_row_get_adjustment (ADW_SPIN_ROW (sd->rows[i]));
+
+      gtk_adjustment_configure (adj, px ? round (base * sd->pct[i] / 100.0) : round (sd->pct[i]), 1,
+                                px ? MAX (base * 5.0, 2) : 500, 1, 10, 0);
+      spin_row_set_unit (sd->rows[i], px ? " px" : "%");
+    }
+  sd->busy = FALSE;
+}
+
+/* With the lock on, switching on the aspect ratio makes both axes follow the first. */
+static void
+on_stretch_lock_changed (AdwSwitchRow *lock, GParamSpec *pspec, StretchDialog *sd)
+{
+  if (!adw_switch_row_get_active (lock))
+    return;
+  sd->busy = TRUE;
+  sd->pct[1] = sd->pct[0];
+  stretch_show (sd, 1);
+  sd->busy = FALSE;
 }
 
 static void
 on_stretch_response (AdwAlertDialog *dialog, const char *response, StretchDialog *sd)
 {
   if (g_str_equal (response, "ok"))
-    easel_canvas_stretch_skew (sd->canvas,
-                               (int) adw_spin_row_get_value (ADW_SPIN_ROW (sd->rows[0])),
-                               (int) adw_spin_row_get_value (ADW_SPIN_ROW (sd->rows[1])),
-                               adw_spin_row_get_value (ADW_SPIN_ROW (sd->rows[2])),
-                               adw_spin_row_get_value (ADW_SPIN_ROW (sd->rows[3])));
+    easel_canvas_stretch_skew (sd->canvas, sd->pct[0], sd->pct[1],
+                               adw_spin_row_get_value (ADW_SPIN_ROW (sd->skew[0])),
+                               adw_spin_row_get_value (ADW_SPIN_ROW (sd->skew[1])));
   g_free (sd);
 }
 
 void
 easel_dialog_stretch_skew (GtkWidget *parent, EaselCanvas *canvas)
 {
-  const struct { const char *title; double min, max, value; } rows[4] = {
-    { _("Stretch horizontally (%)"), 1, 500, 100 }, { _("Stretch vertically (%)"), 1, 500, 100 },
-    { _("Skew horizontally (°)"), -89, 89, 0 }, { _("Skew vertically (°)"), -89, 89, 0 },
-  };
   StretchDialog *sd = g_new0 (StretchDialog, 1);
   GtkWidget *stretch_group = adw_preferences_group_new ();
   GtkWidget *skew_group = adw_preferences_group_new ();
   GtkWidget *content = gtk_box_new (GTK_ORIENTATION_VERTICAL, 18);
   AdwDialog *dialog = adw_alert_dialog_new (_("Stretch and Skew"), NULL);
+  const char *const units[] = { _("Percent"), _("Pixels"), NULL };
 
+  sd->canvas = canvas;
+  sd->pct[0] = sd->pct[1] = 100;
+  easel_canvas_get_transform_size (canvas, &sd->base_w, &sd->base_h);
   adw_preferences_group_set_title (ADW_PREFERENCES_GROUP (stretch_group), _("Stretch"));
   adw_preferences_group_set_title (ADW_PREFERENCES_GROUP (skew_group), _("Skew"));
   gtk_box_append (GTK_BOX (content), stretch_group);
   gtk_box_append (GTK_BOX (content), skew_group);
 
-  sd->canvas = canvas;
+  sd->by = adw_combo_row_new ();
+  adw_preferences_row_set_title (ADW_PREFERENCES_ROW (sd->by), _("Stretch by"));
+  adw_combo_row_set_model (ADW_COMBO_ROW (sd->by), G_LIST_MODEL (gtk_string_list_new (units)));
+  adw_preferences_group_add (ADW_PREFERENCES_GROUP (stretch_group), sd->by);
+
+  sd->rows[0] = unit_spin_row (_("Horizontally"), 1, 500, 100, "%");
+  sd->rows[1] = unit_spin_row (_("Vertically"), 1, 500, 100, "%");
   sd->lock = adw_switch_row_new ();
   adw_preferences_row_set_title (ADW_PREFERENCES_ROW (sd->lock), _("Keep aspect ratio"));
   adw_switch_row_set_active (ADW_SWITCH_ROW (sd->lock), TRUE);
-  for (int i = 0; i < 4; i++)
-    {
-      sd->rows[i] = adw_spin_row_new_with_range (rows[i].min, rows[i].max, 1);
-      adw_preferences_row_set_title (ADW_PREFERENCES_ROW (sd->rows[i]), rows[i].title);
-      adw_spin_row_set_value (ADW_SPIN_ROW (sd->rows[i]), rows[i].value);
-      adw_preferences_group_add (ADW_PREFERENCES_GROUP (i < 2 ? stretch_group : skew_group), sd->rows[i]);
-      if (i == 1) /* the lock belongs with the stretch rows */
-        adw_preferences_group_add (ADW_PREFERENCES_GROUP (stretch_group), sd->lock);
-    }
+  adw_preferences_group_add (ADW_PREFERENCES_GROUP (stretch_group), sd->rows[0]);
+  adw_preferences_group_add (ADW_PREFERENCES_GROUP (stretch_group), sd->rows[1]);
+  adw_preferences_group_add (ADW_PREFERENCES_GROUP (stretch_group), sd->lock);
+
+  sd->skew[0] = unit_spin_row (_("Horizontally"), -89, 89, 0, "°");
+  sd->skew[1] = unit_spin_row (_("Vertically"), -89, 89, 0, "°");
+  adw_preferences_group_add (ADW_PREFERENCES_GROUP (skew_group), sd->skew[0]);
+  adw_preferences_group_add (ADW_PREFERENCES_GROUP (skew_group), sd->skew[1]);
+
   g_signal_connect (sd->rows[0], "notify::value", G_CALLBACK (on_stretch_value_changed), sd);
   g_signal_connect (sd->rows[1], "notify::value", G_CALLBACK (on_stretch_value_changed), sd);
+  g_signal_connect (sd->by, "notify::selected", G_CALLBACK (on_stretch_unit_changed), sd);
+  g_signal_connect (sd->lock, "notify::active", G_CALLBACK (on_stretch_lock_changed), sd);
 
   adw_alert_dialog_set_extra_child (ADW_ALERT_DIALOG (dialog), content);
   easel_dialog_add_ok_cancel (ADW_ALERT_DIALOG (dialog));
@@ -286,4 +406,61 @@ easel_dialog_stretch_skew (GtkWidget *parent, EaselCanvas *canvas)
   adw_dialog_present (dialog, parent);
 }
 
+typedef struct
+{
+  EaselCanvas *canvas;
+  GtkWidget   *show, *w, *h, *axo, *axo_w;
+} GridDialog;
 
+static void
+on_grid_response (AdwAlertDialog *dialog, const char *response, GridDialog *gd)
+{
+  if (g_str_equal (response, "ok"))
+    easel_canvas_set_grid (gd->canvas, adw_switch_row_get_active (ADW_SWITCH_ROW (gd->show)),
+                           (int) adw_spin_row_get_value (ADW_SPIN_ROW (gd->w)),
+                           (int) adw_spin_row_get_value (ADW_SPIN_ROW (gd->h)),
+                           adw_switch_row_get_active (ADW_SWITCH_ROW (gd->axo)),
+                           (int) adw_spin_row_get_value (ADW_SPIN_ROW (gd->axo_w)));
+  g_free (gd);
+}
+
+void
+easel_dialog_grid (GtkWidget *parent, EaselCanvas *canvas)
+{
+  GridDialog *gd = g_new0 (GridDialog, 1);
+  AdwDialog *dialog = adw_alert_dialog_new (_("Grid"), NULL);
+  GtkWidget *group = adw_preferences_group_new ();
+  gboolean show, axo;
+  int gw, gh, aw;
+
+  gd->canvas = canvas;
+  easel_canvas_get_grid (canvas, &show, &gw, &gh, &axo, &aw);
+
+  gd->show = adw_switch_row_new ();
+  adw_preferences_row_set_title (ADW_PREFERENCES_ROW (gd->show), _("Show grid"));
+  adw_switch_row_set_active (ADW_SWITCH_ROW (gd->show), show);
+  gd->w = unit_spin_row (_("Width"), 1, 4096, gw, " px");
+  gd->h = unit_spin_row (_("Height"), 1, 4096, gh, " px");
+  gd->axo = adw_switch_row_new ();
+  adw_preferences_row_set_title (ADW_PREFERENCES_ROW (gd->axo), _("Show axonometric grid"));
+  adw_switch_row_set_active (ADW_SWITCH_ROW (gd->axo), axo);
+  gd->axo_w = unit_spin_row (_("Width"), 1, 4096, aw, " px");
+  adw_preferences_group_add (ADW_PREFERENCES_GROUP (group), gd->show);
+  adw_preferences_group_add (ADW_PREFERENCES_GROUP (group), gd->w);
+  adw_preferences_group_add (ADW_PREFERENCES_GROUP (group), gd->h);
+  adw_preferences_group_add (ADW_PREFERENCES_GROUP (group), gd->axo);
+  adw_preferences_group_add (ADW_PREFERENCES_GROUP (group), gd->axo_w);
+
+  g_object_bind_property (gd->show, "active", gd->w, "sensitive", G_BINDING_SYNC_CREATE);
+  g_object_bind_property (gd->show, "active", gd->h, "sensitive", G_BINDING_SYNC_CREATE);
+  g_object_bind_property (gd->show, "active", gd->axo, "sensitive", G_BINDING_SYNC_CREATE);
+  g_object_bind_property (gd->axo, "active", gd->axo_w, "sensitive", G_BINDING_SYNC_CREATE);
+
+  adw_dialog_set_content_width (dialog, 440);
+  adw_alert_dialog_set_body (ADW_ALERT_DIALOG (dialog),
+                             _("Lines are drawn only when cells are at least 4 screen pixels wide, so zoom in to see a fine grid."));
+  adw_alert_dialog_set_extra_child (ADW_ALERT_DIALOG (dialog), group);
+  easel_dialog_add_ok_cancel (ADW_ALERT_DIALOG (dialog));
+  g_signal_connect (dialog, "response", G_CALLBACK (on_grid_response), gd);
+  adw_dialog_present (dialog, parent);
+}

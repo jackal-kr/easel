@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: easel\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-14 17:17+0200\n"
+"POT-Creation-Date: 2026-10-14 18:50+0200\n"
 "PO-Revision-Date: 2026-10-14 17:06+0200\n"
 "Last-Translator: JOD (Oleksiy Degtyar)\n"
 "Language-Team: none\n"
@@ -73,7 +73,29 @@ msgstr "Відкриття й збереження PNG, JPEG, BMP, TIFF та Web
 msgid "Light and dark style, keyboard shortcuts, Preferences"
 msgstr "Світлий і темний стиль, клавіатурні скорочення, налаштування"
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:40
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:25
+msgid "Drawing in the light style"
+msgstr "Малювання у світлому стилі"
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:29
+msgid "The dark style"
+msgstr "Темний стиль"
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:50
+msgid "Adds store screenshots."
+msgstr "Додає знімки екрана для магазинів."
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:55
+msgid ""
+"First stable release: translations (Polish, Ukrainian), screen-reader "
+"labels, a right-click menu in Pan mode, and a choice between fitting a "
+"pasted picture to the canvas or resizing the canvas."
+msgstr ""
+"Перший стабільний випуск: переклади (польська, українська), підписи для "
+"зчитувачів з екрана, контекстне меню в режимі Переміщення та вибір між "
+"підгонкою вставленого зображення під полотно і зміною розміру полотна."
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:60
 msgid "First public version."
 msgstr "Перша публічна версія."
 
@@ -172,16 +194,16 @@ msgid "Delete"
 msgstr "Видалити"
 
 #: data/menus.ui:77 src/main.c:62
-msgid "Large Size"
-msgstr "Великий розмір"
+msgid "Fit to Window"
+msgstr "Вмістити у вікно"
 
 #: data/menus.ui:78
 msgid "Custom Zoom…"
 msgstr "Власний масштаб…"
 
 #: data/menus.ui:81 src/main.c:63
-msgid "Show Grid"
-msgstr "Показати сітку"
+msgid "Grid…"
+msgstr "Сітка…"
 
 #: data/menus.ui:82
 msgid "Show Thumbnail"
@@ -291,7 +313,7 @@ msgstr "Скасувати поточне малювання або виділе
 msgid "File"
 msgstr "Файл"
 
-#: src/main.c:72 src/ui/window.c:1243
+#: src/main.c:72 src/ui/window.c:1239
 msgid "View"
 msgstr "Вигляд"
 
@@ -493,7 +515,7 @@ msgstr ""
 "Ліва кнопка: основний колір. Права кнопка: колір тла. Подвійне клацання: "
 "змінити цей колір. Клавіатура: Tab — фокус, стрілки, Enter / Shift+Enter, F2."
 
-#: src/ui/dialogs.c:13 src/ui/window.c:367 src/ui/window.c:741
+#: src/ui/dialogs.c:13 src/ui/window.c:367 src/ui/window.c:736
 msgid "_Cancel"
 msgstr "_Скасувати"
 
@@ -505,15 +527,16 @@ msgstr "_OK"
 msgid "Attributes"
 msgstr "Атрибути"
 
-#: src/ui/dialogs.c:101 src/ui/preferences.c:197
+#: src/ui/dialogs.c:101 src/ui/dialogs.c:442 src/ui/dialogs.c:447
+#: src/ui/preferences.c:197
 msgid "Width"
 msgstr "Ширина"
 
-#: src/ui/dialogs.c:102 src/ui/preferences.c:198
+#: src/ui/dialogs.c:102 src/ui/dialogs.c:443 src/ui/preferences.c:198
 msgid "Height"
 msgstr "Висота"
 
-#: src/ui/dialogs.c:105
+#: src/ui/dialogs.c:105 src/ui/dialogs.c:369
 msgid "Pixels"
 msgstr "Пікселі"
 
@@ -587,37 +610,57 @@ msgstr "Повернути на 270° за годинниковою стрілк
 msgid "Flip and Rotate"
 msgstr "Віддзеркалення та поворот"
 
-#: src/ui/dialogs.c:253
-msgid "Stretch horizontally (%)"
-msgstr "Розтягнути горизонтально (%)"
-
-#: src/ui/dialogs.c:253
-msgid "Stretch vertically (%)"
-msgstr "Розтягнути вертикально (%)"
-
-#: src/ui/dialogs.c:254
-msgid "Skew horizontally (°)"
-msgstr "Нахилити горизонтально (°)"
-
-#: src/ui/dialogs.c:254
-msgid "Skew vertically (°)"
-msgstr "Нахилити вертикально (°)"
-
-#: src/ui/dialogs.c:260
+#: src/ui/dialogs.c:368
 msgid "Stretch and Skew"
 msgstr "Розтягнення та нахил"
 
-#: src/ui/dialogs.c:262
+#: src/ui/dialogs.c:369
+msgid "Percent"
+msgstr "Відсотки"
+
+#: src/ui/dialogs.c:374
 msgid "Stretch"
 msgstr "Розтягнення"
 
-#: src/ui/dialogs.c:263
+#: src/ui/dialogs.c:375
 msgid "Skew"
 msgstr "Нахил"
 
-#: src/ui/dialogs.c:269
+#: src/ui/dialogs.c:380
+msgid "Stretch by"
+msgstr "Розтягувати в"
+
+#: src/ui/dialogs.c:384 src/ui/dialogs.c:393
+msgid "Horizontally"
+msgstr "Горизонтально"
+
+#: src/ui/dialogs.c:385 src/ui/dialogs.c:394
+msgid "Vertically"
+msgstr "Вертикально"
+
+#: src/ui/dialogs.c:387
 msgid "Keep aspect ratio"
 msgstr "Зберігати пропорції"
+
+#: src/ui/dialogs.c:431
+msgid "Grid"
+msgstr "Сітка"
+
+#: src/ui/dialogs.c:440
+msgid "Show grid"
+msgstr "Показати сітку"
+
+#: src/ui/dialogs.c:445
+msgid "Show axonometric grid"
+msgstr "Показати аксонометричну сітку"
+
+#: src/ui/dialogs.c:461
+msgid ""
+"Lines are drawn only when cells are at least 4 screen pixels wide, so zoom "
+"in to see a fine grid."
+msgstr ""
+"Лінії малюються лише тоді, коли клітинки мають щонайменше 4 пікселі на "
+"екрані, тож збільште масштаб, щоб побачити дрібну сітку."
 
 #: src/ui/fileio.c:58
 #, c-format
@@ -1073,7 +1116,7 @@ msgstr "Інструмент: %s"
 msgid "Untitled"
 msgstr "Без назви"
 
-#: src/ui/window.c:180 src/ui/window.c:504 src/ui/window.c:1129
+#: src/ui/window.c:180 src/ui/window.c:504 src/ui/window.c:1125
 #, c-format
 msgid "%d × %d px"
 msgstr "%d × %d px"
@@ -1111,97 +1154,116 @@ msgstr "_Зберегти"
 msgid "Open"
 msgstr "Відкрити"
 
-#: src/ui/window.c:426 src/ui/window.c:638
+#: src/ui/window.c:426 src/ui/window.c:633
 msgid "Could not open the picture"
 msgstr "Не вдалося відкрити зображення"
 
-#: src/ui/window.c:606
+#: src/ui/window.c:601
 msgid "Could not save the selection"
 msgstr "Не вдалося зберегти виділення"
 
-#: src/ui/window.c:620
+#: src/ui/window.c:615
 msgid "Copy To"
 msgstr "Копіювати до"
 
-#: src/ui/window.c:661
+#: src/ui/window.c:656
 msgid "Paste From"
 msgstr "Вставити з"
 
-#: src/ui/window.c:734
+#: src/ui/window.c:729
+#, c-format
 msgid "The picture is %d × %d pixels; the canvas is %d × %d."
 msgstr "Зображення має %d × %d пікселів; полотно має %d × %d."
 
-#: src/ui/window.c:737
+#: src/ui/window.c:732
 msgid "Pasted picture is larger than the canvas"
 msgstr "Вставлене зображення більше за полотно"
 
-#: src/ui/window.c:742
+#: src/ui/window.c:737
 msgid "Fit Picture to Canvas"
 msgstr "Підігнати зображення під полотно"
 
-#: src/ui/window.c:742
+#: src/ui/window.c:737
 msgid "Resize Canvas to Picture"
 msgstr "Змінити розмір полотна під зображення"
 
-#: src/ui/window.c:933
+#: src/ui/window.c:928
 msgid "Thumbnail"
 msgstr "Мініатюра"
 
-#: src/ui/window.c:1010
+#: src/ui/window.c:1006
 #, c-format
 msgid "Paint %.2f ms · %.0f fps"
 msgstr "Малювання %.2f мс · %.0f к/с"
 
-#: src/ui/window.c:1039 src/ui/window.c:1041
+#: src/ui/window.c:1035 src/ui/window.c:1037
 msgid "Zoom out"
 msgstr "Зменшити"
 
-#: src/ui/window.c:1040 src/ui/window.c:1042
+#: src/ui/window.c:1036 src/ui/window.c:1038
 msgid "Zoom in"
 msgstr "Збільшити"
 
-#: src/ui/window.c:1067 src/ui/window.c:1068
+#: src/ui/window.c:1063 src/ui/window.c:1064
 msgid "Main Menu"
 msgstr "Головне меню"
 
-#: src/ui/window.c:1125 src/ui/window.c:1126
+#: src/ui/window.c:1121 src/ui/window.c:1122
 msgid "Pointer position"
 msgstr "Позиція вказівника"
 
-#: src/ui/window.c:1134 src/ui/window.c:1135
+#: src/ui/window.c:1130 src/ui/window.c:1131
 msgid "Zoom"
 msgstr "Масштаб"
 
-#: src/ui/window.c:1141 src/ui/window.c:1142
+#: src/ui/window.c:1137 src/ui/window.c:1138
 msgid "Image size"
 msgstr "Розмір зображення"
 
-#: src/ui/window.c:1149 src/ui/window.c:1150
+#: src/ui/window.c:1145 src/ui/window.c:1146
 msgid "Time to paint the last frame, and frames per second while drawing"
 msgstr ""
 "Час малювання останнього кадру та кількість кадрів за секунду під час "
 "малювання"
 
-#: src/ui/window.c:1244
+#: src/ui/window.c:1240
 msgid "Image"
 msgstr "Зображення"
 
-#: src/ui/window.c:1245
+#: src/ui/window.c:1241
 msgid "New (Ctrl+N)"
 msgstr "Створити (Ctrl+N)"
 
-#: src/ui/window.c:1246
+#: src/ui/window.c:1242
 msgid "Open (Ctrl+O)"
 msgstr "Відкрити (Ctrl+O)"
 
-#: src/ui/window.c:1247
+#: src/ui/window.c:1243
 msgid "Save (Ctrl+S)"
 msgstr "Зберегти (Ctrl+S)"
 
-#: src/ui/window.c:1250
+#: src/ui/window.c:1246
 msgid "Undo (Ctrl+Z)"
 msgstr "Скасувати (Ctrl+Z)"
 
-#: src/ui/window.c:1251
+#: src/ui/window.c:1247
 msgid "Redo (Ctrl+Y)"
 msgstr "Повторити (Ctrl+Y)"
+
+#~ msgid "Stretch horizontally"
+#~ msgstr "Розтягнути горизонтально"
+
+#~ msgid "Stretch vertically"
+#~ msgstr "Розтягнути вертикально"
+
+#~ msgid "Skew horizontally"
+#~ msgstr "Нахилити горизонтально"
+
+#~ msgid "Skew vertically"
+#~ msgstr "Нахилити вертикально"
+
+#~ msgid "Exact size"
+#~ msgstr "Точний розмір"
+
+#~ msgid "Large Size"
+#~ msgstr "Великий розмір"

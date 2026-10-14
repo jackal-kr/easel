@@ -59,8 +59,8 @@ action_shortcuts (GSimpleAction *action, GVariant *parameter, gpointer user_data
     _("Cut"), "<Primary>x", _("Copy"), "<Primary>c", _("Paste"), "<Primary>v", _("Select All"), "<Primary>a",
     _("Clear Selection"), "Delete", NULL };
   const char *const view[] = {
-    _("Normal Size"), "<Primary>Page_Down", _("Large Size"), "<Primary>Page_Up", _("Zoom with the wheel"), "<Primary>Scroll_Up",
-    _("Show Grid"), "<Primary>g", NULL };
+    _("Normal Size"), "<Primary>Page_Down", _("Fit to Window"), "<Primary>Page_Up", _("Zoom with the wheel"), "<Primary>Scroll_Up",
+    _("Grid…"), "<Primary>g", NULL };
   const char *const image[] = {
     _("Flip/Rotate…"), "<Primary>r", _("Invert Colors"), "<Primary>i", _("Attributes…"), "<Primary>e",
     _("Clear Image"), "<Primary><Shift>n", _("Swap Foreground/Background"), "<Primary><Shift>x", NULL };
@@ -154,8 +154,8 @@ on_startup (GApplication *app)
   const char *grid_accels[] = { "<Primary>g", NULL };
   const char *large_accels[] = { "<Primary>Page_Up", NULL };
   const char *normal_accels[] = { "<Primary>Page_Down", NULL };
-  gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.show-grid", grid_accels);
-  gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.zoom-large", large_accels);
+  gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.grid", grid_accels);
+  gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.zoom-fit", large_accels);
   gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.zoom-normal", normal_accels);
   const char *cut_accels[] = { "<Primary>x", NULL };
   const char *copy_accels[] = { "<Primary>c", NULL };

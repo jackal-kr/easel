@@ -1,3 +1,11 @@
+easel (1.1.0) unstable; urgency=medium
+
+  * Fit to Window zoom replaces Large Size.
+  * Grid dialog: cell size and axonometric grid.
+  * Stretch and Skew by percent or exact pixels.
+
+ -- JOD (Oleksiy Degtyar) <oleksiy.degtyar@gmail.com>  Wed, 14 Oct 2026 18:55:00 +0200
+
 easel (1.0.1) unstable; urgency=medium
 
   * Add screenshots to the AppStream metadata.

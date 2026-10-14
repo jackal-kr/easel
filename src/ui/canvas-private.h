@@ -75,6 +75,9 @@ struct _EaselCanvas
 
   /* Resize handles: 0 none, 1 right edge, 2 bottom edge, 3 corner */
   gboolean show_grid;
+  int      grid_w, grid_h;   /* grid cell in picture pixels */
+  gboolean show_axo;         /* axonometric (2:1 isometric) grid */
+  int      axo_w;            /* its horizontal spacing in picture pixels */
   int      handle_hover;
   int      resize_handle;   /* handle being dragged, 0 when not resizing */
   int      resize_w, resize_h;

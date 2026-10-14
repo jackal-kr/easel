@@ -74,11 +74,11 @@
     </section>
     <section>
       <item><attribute name="label" translatable="yes">Normal Size</attribute><attribute name="action">win.zoom-normal</attribute></item>
-      <item><attribute name="label" translatable="yes">Large Size</attribute><attribute name="action">win.zoom-large</attribute></item>
+      <item><attribute name="label" translatable="yes">Fit to Window</attribute><attribute name="action">win.zoom-fit</attribute></item>
       <item><attribute name="label" translatable="yes">Custom Zoom…</attribute><attribute name="action">win.zoom-custom</attribute></item>
     </section>
     <section>
-      <item><attribute name="label" translatable="yes">Show Grid</attribute><attribute name="action">win.show-grid</attribute></item>
+      <item><attribute name="label" translatable="yes">Grid…</attribute><attribute name="action">win.grid</attribute></item>
       <item><attribute name="label" translatable="yes">Show Thumbnail</attribute><attribute name="action">win.show-thumbnail</attribute></item>
     </section>
     <section>

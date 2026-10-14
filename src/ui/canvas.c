@@ -294,26 +294,64 @@ draw_handles (EaselCanvas *self, GtkSnapshot *snapshot)
     }
 }
 
-/* One-device-pixel lines between image pixels, only when zoomed in enough
- * (4x and up) for them to help instead of clutter. Two repeating gradients
- * keep it to two render nodes however large the picture is. */
+/* Grid lines between picture cells, one device pixel wide. Two repeating
+ * gradients keep the rectangular grid to two render nodes however large the
+ * picture is. Nothing is drawn while cells are under 4 screen pixels. */
 static void
 draw_grid (EaselCanvas *self, GtkSnapshot *snapshot, const graphene_rect_t *bounds, double s)
 {
-  if (!self->show_grid || self->zoom < 400)
+  if (!self->show_grid)
     return;
 
-  float step = (float) s;
-  float line = 1.0f / (float) gtk_widget_get_scale_factor (GTK_WIDGET (self));
-  float cut = line / step;
   GdkRGBA ink = { 0.45f, 0.45f, 0.5f, 0.55f }, none = { 0.45f, 0.45f, 0.5f, 0 };
-  GskColorStop stops[4] = { { 0, ink }, { cut, ink }, { cut, none }, { 1, none } };
+  float line = 1.0f / (float) gtk_widget_get_scale_factor (GTK_WIDGET (self));
 
-  graphene_point_t o = GRAPHENE_POINT_INIT (0, 0);
-  graphene_point_t right = GRAPHENE_POINT_INIT (step, 0), down = GRAPHENE_POINT_INIT (0, step);
+  if (self->grid_w * s >= 4)
+    {
+      float step = (float) (self->grid_w * s), cut = line / step;
+      GskColorStop stops[4] = { { 0, ink }, { cut, ink }, { cut, none }, { 1, none } };
+      graphene_point_t o = GRAPHENE_POINT_INIT (0, 0), right = GRAPHENE_POINT_INIT (step, 0);
 
-  gtk_snapshot_append_repeating_linear_gradient (snapshot, bounds, &o, &right, stops, 4);
-  gtk_snapshot_append_repeating_linear_gradient (snapshot, bounds, &o, &down, stops, 4);
+      gtk_snapshot_append_repeating_linear_gradient (snapshot, bounds, &o, &right, stops, 4);
+    }
+  if (self->grid_h * s >= 4)
+    {
+      float step = (float) (self->grid_h * s), cut = line / step;
+      GskColorStop stops[4] = { { 0, ink }, { cut, ink }, { cut, none }, { 1, none } };
+      graphene_point_t o = GRAPHENE_POINT_INIT (0, 0), down = GRAPHENE_POINT_INIT (0, step);
+
+      gtk_snapshot_append_repeating_linear_gradient (snapshot, bounds, &o, &down, stops, 4);
+    }
+
+  if (self->show_axo && self->axo_w * s >= 4)
+    {
+      float w = (float) (self->axo_w * s), pw = bounds->size.width, ph = bounds->size.height;
+      int n = (int) ((pw + 2 * ph) / w) + 2;
+
+      if (n < 4000)
+        {
+          GskPathBuilder *pb = gsk_path_builder_new ();
+
+          for (int k = -(int) (2 * ph / w) - 1; k <= n; k++)
+            {
+              gsk_path_builder_move_to (pb, k * w, 0);          /* slope +1/2 */
+              gsk_path_builder_line_to (pb, k * w + 2 * ph, ph);
+            }
+          for (int k = 0; k <= n + (int) (2 * ph / w) + 1; k++)
+            {
+              gsk_path_builder_move_to (pb, k * w, 0);          /* slope -1/2 */
+              gsk_path_builder_line_to (pb, k * w - 2 * ph, ph);
+            }
+          GskPath *path = gsk_path_builder_free_to_path (pb);
+          GskStroke *stroke = gsk_stroke_new (line);
+
+          gtk_snapshot_push_clip (snapshot, bounds);
+          gtk_snapshot_append_stroke (snapshot, path, stroke, &ink);
+          gtk_snapshot_pop (snapshot);
+          gsk_stroke_free (stroke);
+          gsk_path_unref (path);
+        }
+    }
 }
 
 static void
@@ -1290,6 +1328,8 @@ easel_canvas_init (EaselCanvas *self)
   self->sel_opaque = TRUE;
   self->eraser_opaque = TRUE;
   self->ctx_pending = -1;
+  self->grid_w = self->grid_h = 1;
+  self->axo_w = 64;
   self->history = easel_history_new ((size_t) CLAMP (easel_pref_int ("undo-limit-mb", EASEL_UNDO_LIMIT_MB), 16, 8192) << 20);
   self->spray_rng = 2463534242u;
   self->fill_style = EASEL_FILL_OUTLINE;
@@ -1633,9 +1673,43 @@ easel_canvas_resize (EaselCanvas *self, int width, int height)
 }
 
 void
-easel_canvas_set_show_grid (EaselCanvas *self, gboolean show)
+easel_canvas_set_grid (EaselCanvas *self, gboolean show, int grid_w, int grid_h, gboolean axo, int axo_w)
 {
   g_return_if_fail (EASEL_IS_CANVAS (self));
   self->show_grid = show;
+  self->grid_w = CLAMP (grid_w, 1, 4096);
+  self->grid_h = CLAMP (grid_h, 1, 4096);
+  self->show_axo = axo;
+  self->axo_w = CLAMP (axo_w, 1, 4096);
   gtk_widget_queue_draw (GTK_WIDGET (self));
 }
+
+void
+easel_canvas_get_grid (EaselCanvas *self, gboolean *show, int *grid_w, int *grid_h, gboolean *axo, int *axo_w)
+{
+  g_return_if_fail (EASEL_IS_CANVAS (self));
+  *show = self->show_grid;
+  *grid_w = self->grid_w;
+  *grid_h = self->grid_h;
+  *axo = self->show_axo;
+  *axo_w = self->axo_w;
+}
+
+/* Fits the whole picture into the visible area, leaving the same margin the
+ * canvas keeps on its left and top for the resize handles. */
+void
+easel_canvas_zoom_fit (EaselCanvas *self)
+{
+  g_return_if_fail (EASEL_IS_CANVAS (self));
+  GtkWidget *sw = gtk_widget_get_ancestor (GTK_WIDGET (self), GTK_TYPE_SCROLLED_WINDOW);
+
+  if (sw == NULL)
+    return;
+
+  double pw = gtk_adjustment_get_page_size (gtk_scrolled_window_get_hadjustment (GTK_SCROLLED_WINDOW (sw)));
+  double ph = gtk_adjustment_get_page_size (gtk_scrolled_window_get_vadjustment (GTK_SCROLLED_WINDOW (sw)));
+  double kx = (pw - 2 * HANDLE_PAD) / self->doc->width, ky = (ph - 2 * HANDLE_PAD) / self->doc->height;
+
+  easel_canvas_set_zoom (self, (int) (MIN (kx, ky) * 100), self->doc->width / 2, self->doc->height / 2);
+}
+
