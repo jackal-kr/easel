@@ -27,6 +27,7 @@ void easel_canvas_set_fill_style (EaselCanvas *self, EaselFillStyle style);
 
 void easel_canvas_set_zoom (EaselCanvas *self, int zoom, int ix, int iy);
 int  easel_canvas_get_zoom (EaselCanvas *self);
+void easel_canvas_set_show_grid (EaselCanvas *self, gboolean show); /* drawn at 4x and above */
 void easel_canvas_set_zoom_level (EaselCanvas *self, int level); /* what a Magnifier click applies */
 
 gboolean easel_canvas_can_undo (EaselCanvas *self);
@@ -48,6 +49,7 @@ void easel_canvas_invalidate (EaselCanvas *self);
  *  "pointer-moved" (int x, int y): image coordinates, or -1,-1 when the
  *                  pointer leaves the canvas.
  *  "history-changed": undo/redo availability may have changed.
+ *  "zoom-changed": the magnification changed.
  *  "resize-preview" (int w, int h): size while a resize handle is dragged;
  *                  -1,-1 when the drag ends.
  *  "color-picked"  (guint argb, gboolean foreground): Pick Color released. */

@@ -54,6 +54,12 @@ on_startup (GApplication *app)
   gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.save-as", save_as_accels);
   const char *attr_accels[] = { "<Primary>e", NULL };
   gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.attributes", attr_accels);
+  const char *grid_accels[] = { "<Primary>g", NULL };
+  const char *large_accels[] = { "<Primary>Page_Up", NULL };
+  const char *normal_accels[] = { "<Primary>Page_Down", NULL };
+  gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.show-grid", grid_accels);
+  gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.zoom-large", large_accels);
+  gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.zoom-normal", normal_accels);
   const char *undo_accels[] = { "<Primary>z", NULL };
   const char *redo_accels[] = { "<Primary>y", "<Primary><Shift>z", NULL };
   gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.undo", undo_accels);

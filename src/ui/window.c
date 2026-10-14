@@ -23,6 +23,7 @@ struct _EaselWindow
   GtkLabel  *hint_label;
   GtkLabel  *position_label;
   GtkLabel  *size_label;
+  GtkLabel  *zoom_label;
 
   GFile    *file;     /* where the picture was last opened from / saved to */
   gboolean  modified;
@@ -567,6 +568,79 @@ on_resize_preview (EaselCanvas *canvas, int w, int h, EaselWindow *self)
   gtk_label_set_text (self->size_label, text);
 }
 
+
+/* ---- View > Zoom, Grid ---------------------------------------------- */
+
+static void
+on_zoom_changed (EaselCanvas *canvas, EaselWindow *self)
+{
+  g_autofree char *text = g_strdup_printf ("%d%%", easel_canvas_get_zoom (canvas) * 100);
+  gtk_label_set_text (self->zoom_label, text);
+}
+
+static void
+action_zoom_normal (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+  easel_canvas_set_zoom (((EaselWindow *) user_data)->canvas, 1, -1, -1);
+}
+
+static void
+action_zoom_large (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+  easel_canvas_set_zoom (((EaselWindow *) user_data)->canvas, 4, -1, -1);
+}
+
+static const int zoom_choices[] = { 1, 2, 4, 6, 8 };
+
+static void
+on_zoom_custom_response (AdwAlertDialog *dialog, const char *response, EaselWindow *self)
+{
+  if (!g_str_equal (response, "ok"))
+    return;
+
+  AdwComboRow *row = g_object_get_data (G_OBJECT (dialog), "zoom-row");
+  guint i = adw_combo_row_get_selected (row);
+  if (i < G_N_ELEMENTS (zoom_choices))
+    easel_canvas_set_zoom (self->canvas, zoom_choices[i], -1, -1);
+}
+
+static void
+action_zoom_custom (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+  EaselWindow *self = user_data;
+  AdwDialog *dialog = adw_alert_dialog_new ("Custom Zoom", NULL);
+  AdwComboRow *row = ADW_COMBO_ROW (adw_combo_row_new ());
+  const char *const labels[] = { "100%", "200%", "400%", "600%", "800%", NULL };
+  GtkWidget *group = adw_preferences_group_new ();
+  guint current = 0;
+
+  for (guint i = 0; i < G_N_ELEMENTS (zoom_choices); i++)
+    if (zoom_choices[i] == easel_canvas_get_zoom (self->canvas))
+      current = i;
+  adw_preferences_row_set_title (ADW_PREFERENCES_ROW (row), "Zoom to");
+  adw_combo_row_set_model (row, G_LIST_MODEL (gtk_string_list_new (labels)));
+  adw_combo_row_set_selected (row, current);
+  adw_preferences_group_add (ADW_PREFERENCES_GROUP (group), GTK_WIDGET (row));
+
+  adw_alert_dialog_set_extra_child (ADW_ALERT_DIALOG (dialog), group);
+  adw_alert_dialog_add_responses (ADW_ALERT_DIALOG (dialog), "cancel", "_Cancel", "ok", "_OK", NULL);
+  adw_alert_dialog_set_response_appearance (ADW_ALERT_DIALOG (dialog), "ok", ADW_RESPONSE_SUGGESTED);
+  adw_alert_dialog_set_default_response (ADW_ALERT_DIALOG (dialog), "ok");
+  adw_alert_dialog_set_close_response (ADW_ALERT_DIALOG (dialog), "cancel");
+  g_object_set_data (G_OBJECT (dialog), "zoom-row", row);
+  g_signal_connect (dialog, "response", G_CALLBACK (on_zoom_custom_response), self);
+  adw_dialog_present (dialog, GTK_WIDGET (self));
+}
+
+static void
+on_grid_change_state (GSimpleAction *action, GVariant *value, gpointer user_data)
+{
+  EaselWindow *self = user_data;
+
+  g_simple_action_set_state (action, value);
+  easel_canvas_set_show_grid (self->canvas, g_variant_get_boolean (value));
+}
+
 static const GActionEntry window_actions[] = {
   { "swap-colors", action_swap_colors },
   { "clear-image", action_clear_image },
@@ -575,6 +649,9 @@ static const GActionEntry window_actions[] = {
   { "save", action_save },
   { "save-as", action_save_as },
   { "attributes", action_attributes },
+  { "zoom-normal", action_zoom_normal },
+  { "zoom-large", action_zoom_large },
+  { "zoom-custom", action_zoom_custom },
   { "undo", action_undo },
   { "redo", action_redo },
 };
@@ -628,6 +705,13 @@ build_status_bar (EaselWindow *self, const EaselDocument *doc)
   gtk_box_append (GTK_BOX (bar), GTK_WIDGET (self->position_label));
 
   g_autofree char *size_text = g_strdup_printf ("%d × %d px", doc->width, doc->height);
+  self->zoom_label = GTK_LABEL (gtk_label_new ("100%"));
+  gtk_label_set_width_chars (self->zoom_label, 5);
+  gtk_widget_add_css_class (GTK_WIDGET (self->zoom_label), "caption");
+  gtk_widget_add_css_class (GTK_WIDGET (self->zoom_label), "numeric");
+  gtk_widget_set_tooltip_text (GTK_WIDGET (self->zoom_label), "Zoom");
+  gtk_box_append (GTK_BOX (bar), GTK_WIDGET (self->zoom_label));
+
   self->size_label = GTK_LABEL (gtk_label_new (size_text));
   gtk_widget_add_css_class (GTK_WIDGET (self->size_label), "caption");
   gtk_widget_add_css_class (GTK_WIDGET (self->size_label), "numeric");
@@ -720,6 +804,11 @@ easel_window_init (EaselWindow *self)
   add_visibility_action (self, "show-statusbar", self->status_bar);
 
   g_signal_connect (self, "close-request", G_CALLBACK (on_close_request), NULL);
+  GSimpleAction *grid = g_simple_action_new_stateful ("show-grid", NULL, g_variant_new_boolean (FALSE));
+  g_signal_connect (grid, "change-state", G_CALLBACK (on_grid_change_state), self);
+  g_action_map_add_action (G_ACTION_MAP (self), G_ACTION (grid));
+  g_object_unref (grid);
+  g_signal_connect (self->canvas, "zoom-changed", G_CALLBACK (on_zoom_changed), self);
   g_signal_connect (self->canvas, "resize-preview", G_CALLBACK (on_resize_preview), self);
   g_signal_connect (self->canvas, "history-changed", G_CALLBACK (on_history_changed), self);
   on_history_changed (self->canvas, self);

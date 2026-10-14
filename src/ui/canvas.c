@@ -50,6 +50,7 @@ struct _EaselCanvas
   gint64     last_press_us;
 
   /* Resize handles: 0 none, 1 right edge, 2 bottom edge, 3 corner */
+  gboolean show_grid;
   int      handle_hover;
   int      resize_handle;   /* handle being dragged, 0 when not resizing */
   int      resize_w, resize_h;
@@ -73,7 +74,7 @@ struct _EaselCanvas
 
 G_DEFINE_FINAL_TYPE (EaselCanvas, easel_canvas, GTK_TYPE_WIDGET)
 
-enum { SIGNAL_POINTER_MOVED, SIGNAL_COLOR_PICKED, SIGNAL_HISTORY_CHANGED, SIGNAL_RESIZE_PREVIEW, N_SIGNALS };
+enum { SIGNAL_POINTER_MOVED, SIGNAL_COLOR_PICKED, SIGNAL_HISTORY_CHANGED, SIGNAL_RESIZE_PREVIEW, SIGNAL_ZOOM_CHANGED, N_SIGNALS };
 static guint signals[N_SIGNALS];
 
 /* One image pixel is one *device* pixel at zoom 1, even on HiDPI screens,
@@ -309,6 +310,28 @@ draw_handles (EaselCanvas *self, GtkSnapshot *snapshot)
     }
 }
 
+/* One-device-pixel lines between image pixels, only when zoomed in enough
+ * (4x and up) for them to help instead of clutter. Two repeating gradients
+ * keep it to two render nodes however large the picture is. */
+static void
+draw_grid (EaselCanvas *self, GtkSnapshot *snapshot, const graphene_rect_t *bounds, double s)
+{
+  if (!self->show_grid || self->zoom < 4)
+    return;
+
+  float step = (float) s;
+  float line = 1.0f / (float) gtk_widget_get_scale_factor (GTK_WIDGET (self));
+  float cut = line / step;
+  GdkRGBA ink = { 0.45f, 0.45f, 0.5f, 0.55f }, none = { 0.45f, 0.45f, 0.5f, 0 };
+  GskColorStop stops[4] = { { 0, ink }, { cut, ink }, { cut, none }, { 1, none } };
+
+  graphene_point_t o = GRAPHENE_POINT_INIT (0, 0);
+  graphene_point_t right = GRAPHENE_POINT_INIT (step, 0), down = GRAPHENE_POINT_INIT (0, step);
+
+  gtk_snapshot_append_repeating_linear_gradient (snapshot, bounds, &o, &right, stops, 4);
+  gtk_snapshot_append_repeating_linear_gradient (snapshot, bounds, &o, &down, stops, 4);
+}
+
 static void
 easel_canvas_snapshot (GtkWidget *widget, GtkSnapshot *snapshot)
 {
@@ -338,6 +361,7 @@ easel_canvas_snapshot (GtkWidget *widget, GtkSnapshot *snapshot)
   gtk_snapshot_push_clip (snapshot, &bounds);
   draw_brush_preview (self, snapshot, s);
   draw_eraser_outline (self, snapshot, s);
+  draw_grid (self, snapshot, &bounds, s);
   gtk_snapshot_pop (snapshot);
 
   draw_handles (self, snapshot);
@@ -1006,6 +1030,9 @@ easel_canvas_class_init (EaselCanvasClass *klass)
   signals[SIGNAL_HISTORY_CHANGED] =
     g_signal_new ("history-changed", G_TYPE_FROM_CLASS (klass), G_SIGNAL_RUN_LAST,
                   0, NULL, NULL, NULL, G_TYPE_NONE, 0);
+  signals[SIGNAL_ZOOM_CHANGED] =
+    g_signal_new ("zoom-changed", G_TYPE_FROM_CLASS (klass), G_SIGNAL_RUN_LAST,
+                  0, NULL, NULL, NULL, G_TYPE_NONE, 0);
   signals[SIGNAL_RESIZE_PREVIEW] =
     g_signal_new ("resize-preview", G_TYPE_FROM_CLASS (klass), G_SIGNAL_RUN_LAST,
                   0, NULL, NULL, NULL, G_TYPE_NONE, 2, G_TYPE_INT, G_TYPE_INT);
@@ -1176,6 +1203,7 @@ easel_canvas_set_zoom (EaselCanvas *self, int zoom, int ix, int iy)
     }
 
   self->zoom = zoom;
+  g_signal_emit (self, signals[SIGNAL_ZOOM_CHANGED], 0);
   self->center_x = ix + 0.5;
   self->center_y = iy + 0.5;
   gtk_widget_queue_resize (GTK_WIDGET (self));
@@ -1286,6 +1314,7 @@ easel_canvas_set_document (EaselCanvas *self, EaselDocument *doc)
   g_clear_object (&self->texture);
   g_clear_pointer (&self->dirty, cairo_region_destroy);
   self->zoom = 1;
+  g_signal_emit (self, signals[SIGNAL_ZOOM_CHANGED], 0);
   gtk_widget_queue_resize (GTK_WIDGET (self));
   mark_all_dirty (self);
   g_signal_emit (self, signals[SIGNAL_HISTORY_CHANGED], 0);
@@ -1313,4 +1342,12 @@ easel_canvas_resize (EaselCanvas *self, int width, int height)
   mark_all_dirty (self);
   g_signal_emit (self, signals[SIGNAL_HISTORY_CHANGED], 0);
   return TRUE;
+}
+
+void
+easel_canvas_set_show_grid (EaselCanvas *self, gboolean show)
+{
+  g_return_if_fail (EASEL_IS_CANVAS (self));
+  self->show_grid = show;
+  gtk_widget_queue_draw (GTK_WIDGET (self));
 }
