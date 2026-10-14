@@ -1,0 +1,14 @@
+/* Gray workspace around the canvas, following the light/dark theme. */
+.easel-workspace {
+  background-color: color-mix(in srgb, var(--window-fg-color) 10%, var(--window-bg-color));
+}
+
+.easel-canvas {
+  box-shadow: 0 1px 3px 1px alpha(black, 0.35);
+}
+
+.easel-toolbox button {
+  min-width: 0;
+  min-height: 0;
+  padding: 6px;
+}

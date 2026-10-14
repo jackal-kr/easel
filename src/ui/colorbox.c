@@ -1,0 +1,299 @@
+#include "ui/colorbox.h"
+
+#include "core/document.h"
+
+#define PALETTE_COLUMNS 14
+#define PALETTE_ROWS    2
+#define CELL            20
+#define GAP             2
+#define STEP            (CELL + GAP)
+
+#define SWATCH_W 46
+#define SWATCH_H 42
+
+/* The classic 28-colour Paint palette, top row first. */
+static const uint32_t palette[PALETTE_COLUMNS * PALETTE_ROWS] = {
+  EASEL_RGB (0, 0, 0),       EASEL_RGB (128, 128, 128), EASEL_RGB (128, 0, 0),
+  EASEL_RGB (128, 128, 0),   EASEL_RGB (0, 128, 0),     EASEL_RGB (0, 128, 128),
+  EASEL_RGB (0, 0, 128),     EASEL_RGB (128, 0, 128),   EASEL_RGB (128, 128, 64),
+  EASEL_RGB (0, 64, 64),     EASEL_RGB (0, 128, 255),   EASEL_RGB (0, 64, 128),
+  EASEL_RGB (64, 0, 255),    EASEL_RGB (128, 64, 0),
+
+  EASEL_RGB (255, 255, 255), EASEL_RGB (192, 192, 192), EASEL_RGB (255, 0, 0),
+  EASEL_RGB (255, 255, 0),   EASEL_RGB (0, 255, 0),     EASEL_RGB (0, 255, 255),
+  EASEL_RGB (0, 0, 255),     EASEL_RGB (255, 0, 255),   EASEL_RGB (255, 255, 128),
+  EASEL_RGB (0, 255, 128),   EASEL_RGB (128, 255, 255), EASEL_RGB (128, 128, 255),
+  EASEL_RGB (255, 0, 128),   EASEL_RGB (255, 128, 64),
+};
+
+/* Swatch geometry: foreground square on top of a background square. */
+static const GdkRectangle fg_rect = { 2, 2, 28, 28 };
+static const GdkRectangle bg_rect = { 16, 12, 28, 28 };
+
+struct _EaselColorBox
+{
+  GtkBox parent_instance;
+
+  uint32_t foreground;
+  uint32_t background;
+
+  GtkWidget *swatch_area;
+  GtkWidget *palette_area;
+};
+
+G_DEFINE_FINAL_TYPE (EaselColorBox, easel_color_box, GTK_TYPE_BOX)
+
+enum { SIGNAL_COLORS_CHANGED, N_SIGNALS };
+static guint signals[N_SIGNALS];
+
+static void
+set_source_argb (cairo_t *cr, uint32_t c)
+{
+  cairo_set_source_rgb (cr, ((c >> 16) & 0xFF) / 255.0, ((c >> 8) & 0xFF) / 255.0, (c & 0xFF) / 255.0);
+}
+
+static uint32_t
+argb_from_rgba (const GdkRGBA *rgba)
+{
+  return EASEL_RGB ((int) (rgba->red * 255.0 + 0.5),
+                    (int) (rgba->green * 255.0 + 0.5),
+                    (int) (rgba->blue * 255.0 + 0.5));
+}
+
+static GdkRGBA
+rgba_from_argb (uint32_t c)
+{
+  return (GdkRGBA) { ((c >> 16) & 0xFF) / 255.0f, ((c >> 8) & 0xFF) / 255.0f,
+                     (c & 0xFF) / 255.0f, 1.0f };
+}
+
+static void
+colors_changed (EaselColorBox *self)
+{
+  gtk_widget_queue_draw (self->swatch_area);
+  g_signal_emit (self, signals[SIGNAL_COLORS_CHANGED], 0);
+}
+
+static void
+draw_framed_square (cairo_t *cr, GtkWidget *widget, const GdkRectangle *r, uint32_t color)
+{
+  GdkRGBA border;
+  gtk_widget_get_color (widget, &border);
+  border.alpha *= 0.5;
+
+  set_source_argb (cr, color);
+  cairo_rectangle (cr, r->x, r->y, r->width, r->height);
+  cairo_fill (cr);
+
+  gdk_cairo_set_source_rgba (cr, &border);
+  cairo_set_line_width (cr, 1);
+  cairo_rectangle (cr, r->x + 0.5, r->y + 0.5, r->width - 1, r->height - 1);
+  cairo_stroke (cr);
+}
+
+static void
+draw_swatch (GtkDrawingArea *area, cairo_t *cr, int width, int height, gpointer data)
+{
+  EaselColorBox *self = data;
+  draw_framed_square (cr, GTK_WIDGET (area), &bg_rect, self->background);
+  draw_framed_square (cr, GTK_WIDGET (area), &fg_rect, self->foreground);
+}
+
+static void
+draw_palette (GtkDrawingArea *area, cairo_t *cr, int width, int height, gpointer data)
+{
+  for (int i = 0; i < PALETTE_COLUMNS * PALETTE_ROWS; i++)
+    {
+      GdkRectangle r = { (i % PALETTE_COLUMNS) * STEP, (i / PALETTE_COLUMNS) * STEP, CELL, CELL };
+      draw_framed_square (cr, GTK_WIDGET (area), &r, palette[i]);
+    }
+}
+
+typedef struct
+{
+  EaselColorBox *box; /* strong reference */
+  gboolean       foreground;
+} ChooseData;
+
+static void
+on_color_chosen (GObject *source, GAsyncResult *result, gpointer user_data)
+{
+  ChooseData *data = user_data;
+  g_autoptr (GError) error = NULL;
+  GdkRGBA *rgba = gtk_color_dialog_choose_rgba_finish (GTK_COLOR_DIALOG (source), result, &error);
+
+  /* A dismissed dialog is not an error worth reporting. */
+  if (rgba != NULL)
+    {
+      if (data->foreground)
+        easel_color_box_set_foreground (data->box, argb_from_rgba (rgba));
+      else
+        easel_color_box_set_background (data->box, argb_from_rgba (rgba));
+      gdk_rgba_free (rgba);
+    }
+
+  g_object_unref (data->box);
+  g_free (data);
+}
+
+static void
+choose_color (EaselColorBox *self, gboolean foreground)
+{
+  GtkRoot *root = gtk_widget_get_root (GTK_WIDGET (self));
+  GdkRGBA initial = rgba_from_argb (foreground ? self->foreground : self->background);
+  g_autoptr (GtkColorDialog) dialog = gtk_color_dialog_new ();
+  ChooseData *data = g_new0 (ChooseData, 1);
+
+  data->box = g_object_ref (self);
+  data->foreground = foreground;
+
+  gtk_color_dialog_set_title (dialog, foreground ? "Foreground Color" : "Background Color");
+  gtk_color_dialog_set_with_alpha (dialog, FALSE);
+  gtk_color_dialog_choose_rgba (dialog, GTK_WINDOW (root), &initial, NULL, on_color_chosen, data);
+}
+
+static gboolean
+rect_contains (const GdkRectangle *r, double x, double y)
+{
+  return x >= r->x && x < r->x + r->width && y >= r->y && y < r->y + r->height;
+}
+
+static void
+on_swatch_pressed (GtkGestureClick *gesture, int n_press, double x, double y, EaselColorBox *self)
+{
+  if (rect_contains (&fg_rect, x, y))
+    choose_color (self, TRUE);
+  else if (rect_contains (&bg_rect, x, y))
+    choose_color (self, FALSE);
+}
+
+static void
+on_palette_pressed (GtkGestureClick *gesture, int n_press, double x, double y, EaselColorBox *self)
+{
+  guint button = gtk_gesture_single_get_current_button (GTK_GESTURE_SINGLE (gesture));
+  int col = (int) x / STEP;
+  int row = (int) y / STEP;
+
+  /* Ignore clicks in the gaps between cells. */
+  if (x < 0 || y < 0 || (int) x % STEP >= CELL || (int) y % STEP >= CELL
+      || col >= PALETTE_COLUMNS || row >= PALETTE_ROWS)
+    return;
+
+  uint32_t color = palette[row * PALETTE_COLUMNS + col];
+  if (button == GDK_BUTTON_PRIMARY)
+    easel_color_box_set_foreground (self, color);
+  else if (button == GDK_BUTTON_SECONDARY)
+    easel_color_box_set_background (self, color);
+}
+
+static void
+on_swap_clicked (GtkButton *button, EaselColorBox *self)
+{
+  easel_color_box_swap (self);
+}
+
+static GtkWidget *
+make_drawing_area (int width, int height, GtkDrawingAreaDrawFunc draw, gpointer data)
+{
+  GtkWidget *area = gtk_drawing_area_new ();
+  gtk_drawing_area_set_content_width (GTK_DRAWING_AREA (area), width);
+  gtk_drawing_area_set_content_height (GTK_DRAWING_AREA (area), height);
+  gtk_drawing_area_set_draw_func (GTK_DRAWING_AREA (area), draw, data, NULL);
+  gtk_widget_set_valign (area, GTK_ALIGN_CENTER);
+  return area;
+}
+
+static void
+easel_color_box_class_init (EaselColorBoxClass *klass)
+{
+  signals[SIGNAL_COLORS_CHANGED] =
+    g_signal_new ("colors-changed", G_TYPE_FROM_CLASS (klass), G_SIGNAL_RUN_LAST,
+                  0, NULL, NULL, NULL, G_TYPE_NONE, 0);
+}
+
+static void
+easel_color_box_init (EaselColorBox *self)
+{
+  self->foreground = EASEL_RGB (0, 0, 0);
+  self->background = EASEL_RGB (255, 255, 255);
+
+  gtk_orientable_set_orientation (GTK_ORIENTABLE (self), GTK_ORIENTATION_HORIZONTAL);
+  gtk_box_set_spacing (GTK_BOX (self), 8);
+  gtk_widget_set_margin_start (GTK_WIDGET (self), 8);
+  gtk_widget_set_margin_end (GTK_WIDGET (self), 8);
+  gtk_widget_set_margin_top (GTK_WIDGET (self), 6);
+  gtk_widget_set_margin_bottom (GTK_WIDGET (self), 6);
+
+  self->swatch_area = make_drawing_area (SWATCH_W, SWATCH_H, draw_swatch, self);
+  gtk_widget_set_tooltip_text (self->swatch_area, "Foreground and background colors. Click a square to choose a color.");
+  GtkGesture *swatch_click = gtk_gesture_click_new ();
+  g_signal_connect (swatch_click, "pressed", G_CALLBACK (on_swatch_pressed), self);
+  gtk_widget_add_controller (self->swatch_area, GTK_EVENT_CONTROLLER (swatch_click));
+  gtk_box_append (GTK_BOX (self), self->swatch_area);
+
+  GtkWidget *swap = gtk_button_new_with_label ("⇄");
+  gtk_widget_add_css_class (swap, "flat");
+  gtk_widget_set_valign (swap, GTK_ALIGN_CENTER);
+  gtk_widget_set_tooltip_text (swap, "Swap foreground and background (Ctrl+Shift+X)");
+  g_signal_connect (swap, "clicked", G_CALLBACK (on_swap_clicked), self);
+  gtk_box_append (GTK_BOX (self), swap);
+
+  self->palette_area = make_drawing_area (PALETTE_COLUMNS * STEP - GAP, PALETTE_ROWS * STEP - GAP,
+                                          draw_palette, self);
+  gtk_widget_set_tooltip_text (self->palette_area, "Left-click: foreground. Right-click: background.");
+  GtkGesture *palette_click = gtk_gesture_click_new ();
+  gtk_gesture_single_set_button (GTK_GESTURE_SINGLE (palette_click), 0);
+  g_signal_connect (palette_click, "pressed", G_CALLBACK (on_palette_pressed), self);
+  gtk_widget_add_controller (self->palette_area, GTK_EVENT_CONTROLLER (palette_click));
+  gtk_box_append (GTK_BOX (self), self->palette_area);
+}
+
+GtkWidget *
+easel_color_box_new (void)
+{
+  return g_object_new (EASEL_TYPE_COLOR_BOX, NULL);
+}
+
+uint32_t
+easel_color_box_get_foreground (EaselColorBox *self)
+{
+  g_return_val_if_fail (EASEL_IS_COLOR_BOX (self), 0);
+  return self->foreground;
+}
+
+uint32_t
+easel_color_box_get_background (EaselColorBox *self)
+{
+  g_return_val_if_fail (EASEL_IS_COLOR_BOX (self), 0);
+  return self->background;
+}
+
+void
+easel_color_box_set_foreground (EaselColorBox *self, uint32_t argb)
+{
+  g_return_if_fail (EASEL_IS_COLOR_BOX (self));
+  if (self->foreground == argb)
+    return;
+  self->foreground = argb;
+  colors_changed (self);
+}
+
+void
+easel_color_box_set_background (EaselColorBox *self, uint32_t argb)
+{
+  g_return_if_fail (EASEL_IS_COLOR_BOX (self));
+  if (self->background == argb)
+    return;
+  self->background = argb;
+  colors_changed (self);
+}
+
+void
+easel_color_box_swap (EaselColorBox *self)
+{
+  g_return_if_fail (EASEL_IS_COLOR_BOX (self));
+  uint32_t tmp = self->foreground;
+  self->foreground = self->background;
+  self->background = tmp;
+  colors_changed (self);
+}
