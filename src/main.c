@@ -14,16 +14,20 @@ static void
 action_about (GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
   GtkApplication *app = user_data;
-  static const char *inspired_by[] = { "JS Paint by Isaiah Odhner https://jspaint.app", NULL };
+  static const char *inspired_by[] = {
+    "Microsoft Paint in Windows XP, the original that inspired Easel",
+    "JS Paint by Isaiah Odhner https://jspaint.app",
+    NULL
+  };
 
   AdwDialog *dialog = adw_about_dialog_new ();
   adw_about_dialog_set_application_name (ADW_ABOUT_DIALOG (dialog), "Easel");
-  adw_about_dialog_set_developer_name (ADW_ABOUT_DIALOG (dialog), "Easel contributors");
+  adw_about_dialog_set_developer_name (ADW_ABOUT_DIALOG (dialog), "JOD (Oleksiy Degtyar)");
   adw_about_dialog_set_version (ADW_ABOUT_DIALOG (dialog), EASEL_VERSION);
   adw_about_dialog_set_comments (ADW_ABOUT_DIALOG (dialog),
                                  "A simple paint program in the spirit of classic Microsoft Paint, "
                                  "built for GNOME.");
-  adw_about_dialog_set_copyright (ADW_ABOUT_DIALOG (dialog), "© 2026 The Easel authors");
+  adw_about_dialog_set_copyright (ADW_ABOUT_DIALOG (dialog), "© 2026 JOD (Oleksiy Degtyar)");
   adw_about_dialog_set_license_type (ADW_ABOUT_DIALOG (dialog), GTK_LICENSE_GPL_3_0);
   adw_about_dialog_add_acknowledgement_section (ADW_ABOUT_DIALOG (dialog), "Inspired by",
                                                 inspired_by);
@@ -76,7 +80,37 @@ action_preferences (GSimpleAction *action, GVariant *parameter, gpointer user_da
   easel_preferences_present (GTK_WIDGET (gtk_application_get_active_window (user_data)));
 }
 
+/* Help opens docs/help.md in the user's default Markdown/text viewer. It is
+ * found next to the source tree when running from the build directory, else
+ * in the installed doc directory. */
+static void
+action_help (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+  GtkApplication *app = user_data;
+  g_autofree char *exe = g_file_read_link ("/proc/self/exe", NULL);
+  g_autofree char *exe_dir = exe != NULL ? g_path_get_dirname (exe) : NULL;
+  g_autofree char *dev = exe_dir != NULL ? g_build_filename (exe_dir, "..", "..", "docs", "help.md", NULL) : NULL;
+  g_autofree char *installed = g_build_filename (EASEL_DOCDIR, "help.md", NULL);
+  const char *path = dev != NULL && g_file_test (dev, G_FILE_TEST_EXISTS) ? dev : installed;
+  GtkWindow *parent = gtk_application_get_active_window (app);
+
+  if (!g_file_test (path, G_FILE_TEST_EXISTS))
+    {
+      AdwDialog *dialog = adw_alert_dialog_new ("Help Not Found", "The help file is not installed.");
+
+      adw_alert_dialog_add_response (ADW_ALERT_DIALOG (dialog), "ok", "_OK");
+      adw_dialog_present (dialog, GTK_WIDGET (parent));
+      return;
+    }
+
+  g_autoptr (GFile) file = g_file_new_for_path (path);
+  g_autoptr (GtkFileLauncher) launcher = gtk_file_launcher_new (file);
+
+  gtk_file_launcher_launch (launcher, parent, NULL, NULL, NULL);
+}
+
 static const GActionEntry app_actions[] = {
+  { "help", action_help },
   { "preferences", action_preferences },
   { "shortcuts", action_shortcuts },
   { "quit", action_quit },
@@ -93,6 +127,8 @@ on_startup (GApplication *app)
   gtk_application_set_accels_for_action (GTK_APPLICATION (app), "app.preferences", prefs_accels);
   const char *shortcuts_accels[] = { "<Primary>question", "<Primary>F1", NULL };
   gtk_application_set_accels_for_action (GTK_APPLICATION (app), "app.shortcuts", shortcuts_accels);
+  const char *help_accels[] = { "F1", NULL };
+  gtk_application_set_accels_for_action (GTK_APPLICATION (app), "app.help", help_accels);
   const char *swap_accels[] = { "<Primary><Shift>x", NULL };
   const char *clear_accels[] = { "<Primary><Shift>n", NULL };
   gtk_application_set_accels_for_action (GTK_APPLICATION (app), "app.quit", quit_accels);

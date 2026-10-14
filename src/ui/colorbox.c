@@ -225,6 +225,18 @@ on_swatch_pressed (GtkGestureClick *gesture, int n_press, double x, double y, Ea
     choose_color (self, FALSE, -1);
 }
 
+/* The focus ring is for keyboard navigation. Once a colour is picked (by key or
+ * mouse) the ring goes away instead of lingering on a stale cell. */
+static void
+palette_done (EaselColorBox *self)
+{
+  GtkRoot *root = gtk_widget_get_root (GTK_WIDGET (self));
+
+  if (gtk_widget_has_focus (self->palette_area) && GTK_IS_WINDOW (root))
+    gtk_window_set_focus (GTK_WINDOW (root), NULL);
+  gtk_widget_queue_draw (self->palette_area);
+}
+
 static void
 on_palette_pressed (GtkGestureClick *gesture, int n_press, double x, double y, EaselColorBox *self)
 {
@@ -250,6 +262,7 @@ on_palette_pressed (GtkGestureClick *gesture, int n_press, double x, double y, E
     easel_color_box_set_foreground (self, color);
   else if (button == GDK_BUTTON_SECONDARY)
     easel_color_box_set_background (self, color);
+  palette_done (self);
 }
 
 /* Arrow keys move over the palette; Enter/Space picks the foreground,
@@ -277,10 +290,11 @@ on_palette_key (GtkEventControllerKey *controller, guint keyval, guint keycode,
       else
         easel_color_box_set_foreground (self, self->colors[cell]);
       self->selected = cell;
-      gtk_widget_queue_draw (self->palette_area);
+      palette_done (self);
       return GDK_EVENT_STOP;
     case GDK_KEY_Menu:
       easel_color_box_set_background (self, self->colors[cell]);
+      palette_done (self);
       return GDK_EVENT_STOP;
     case GDK_KEY_F2:
       self->selected = cell;

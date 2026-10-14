@@ -24,6 +24,7 @@ add_project_arguments(
     '-Wno-missing-field-initializers',  # GActionEntry tables rely on zero fill
   ]),
   '-DEASEL_VERSION="@0@"'.format(meson.project_version()),
+  '-DEASEL_DOCDIR="@0@"'.format(get_option('prefix') / get_option('datadir') / 'doc' / 'easel'),
   '-DEASEL_APP_ID="@0@"'.format(app_id),
   language: 'c',
 )
