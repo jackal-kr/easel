@@ -1310,8 +1310,39 @@ easel_window_init (EaselWindow *self)
   sync_canvas_tool (self);
 }
 
+/* Developer aid for store screenshots: EASEL_SCREENSHOT=file.png saves the window and quits. */
+static gboolean
+take_screenshot (gpointer data)
+{
+  GtkWidget *widget = data;
+  const char *path = g_getenv ("EASEL_SCREENSHOT");
+  GdkPaintable *paintable = gtk_widget_paintable_new (widget);
+  GtkSnapshot *snapshot = gtk_snapshot_new ();
+
+  gdk_paintable_snapshot (paintable, snapshot, gtk_widget_get_width (widget), gtk_widget_get_height (widget));
+  GskRenderNode *node = gtk_snapshot_free_to_node (snapshot);
+  GskRenderer *renderer = gtk_native_get_renderer (GTK_NATIVE (widget));
+
+  if (node != NULL && renderer != NULL)
+    {
+      GdkTexture *texture = gsk_renderer_render_texture (renderer, node, NULL);
+
+      gdk_texture_save_to_png (texture, path);
+      g_object_unref (texture);
+    }
+  if (node != NULL)
+    gsk_render_node_unref (node);
+  g_object_unref (paintable);
+  g_application_quit (G_APPLICATION (gtk_window_get_application (GTK_WINDOW (widget))));
+  return G_SOURCE_REMOVE;
+}
+
 EaselWindow *
 easel_window_new (GtkApplication *app)
 {
-  return g_object_new (EASEL_TYPE_WINDOW, "application", app, NULL);
+  EaselWindow *window = g_object_new (EASEL_TYPE_WINDOW, "application", app, NULL);
+
+  if (g_getenv ("EASEL_SCREENSHOT") != NULL)
+    g_timeout_add (3000, take_screenshot, window);
+  return window;
 }

@@ -20,6 +20,16 @@
       <li>Light and dark style, keyboard shortcuts, Preferences</li>
     </ul>
   </description>
+  <screenshots>
+    <screenshot type="default">
+      <caption>Drawing in the light style</caption>
+      <image type="source">https://raw.githubusercontent.com/jackal-kr/easel/v1.0.1/docs/screenshots/main.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>The dark style</caption>
+      <image type="source">https://raw.githubusercontent.com/jackal-kr/easel/v1.0.1/docs/screenshots/dark.png</image>
+    </screenshot>
+  </screenshots>
   <launchable type="desktop-id">io.github.jackal_kr.Easel.desktop</launchable>
   <url type="homepage">https://github.com/jackal-kr/easel</url>
   <url type="bugtracker">https://github.com/jackal-kr/easel/issues</url>
@@ -35,6 +45,11 @@
   </supports>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.0.1" date="2026-10-14">
+      <description>
+        <p>Adds store screenshots.</p>
+      </description>
+    </release>
     <release version="1.0.0" date="2026-10-14">
       <description>
         <p>First stable release: translations (Polish, Ukrainian), screen-reader labels, a right-click menu in Pan mode, and a choice between fitting a pasted picture to the canvas or resizing the canvas.</p>
