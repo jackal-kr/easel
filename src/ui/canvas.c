@@ -1868,6 +1868,13 @@ selection_pixels (EaselCanvas *self)
   return easel_clip_copy_from (self->doc, self->sel_rect, self->sel_mask);
 }
 
+EaselClip *
+easel_canvas_get_selection (EaselCanvas *self)
+{
+  g_return_val_if_fail (EASEL_IS_CANVAS (self), NULL);
+  return selection_pixels (self);
+}
+
 void
 easel_canvas_copy (EaselCanvas *self)
 {

@@ -662,6 +662,93 @@ on_selection_changed (EaselCanvas *canvas, EaselWindow *self)
   set_action_enabled (self, "cut", has);
   set_action_enabled (self, "copy", has);
   set_action_enabled (self, "clear-selection", has);
+  set_action_enabled (self, "copy-to", has);
+}
+
+static void
+on_copy_to_done (GObject *source, GAsyncResult *result, gpointer data)
+{
+  EaselWindow *self = data;
+  g_autoptr (GError) error = NULL;
+  g_autoptr (GFile) file = gtk_file_dialog_save_finish (GTK_FILE_DIALOG (source), result, &error);
+  EaselClip *clip = file != NULL ? easel_canvas_get_selection (self->canvas) : NULL;
+
+  if (clip != NULL)
+    {
+      EaselDocument *doc = easel_document_new (clip->width, clip->height, 0);
+      g_autofree char *name = g_file_get_basename (file);
+      g_autoptr (GFile) target = g_object_ref (file);
+
+      if (doc != NULL)
+        {
+          for (gsize i = 0; i < (gsize) clip->width * clip->height; i++)
+            doc->pixels[i] = (clip->mask != NULL && !clip->mask[i]) ? 0 : clip->pixels[i];
+          if (!easel_file_has_known_extension (name))
+            {
+              g_autofree char *with_ext = g_strconcat (name, ".png", NULL);
+              g_autoptr (GFile) parent = g_file_get_parent (file);
+              g_clear_object (&target);
+              target = g_file_get_child (parent, with_ext);
+            }
+          if (!easel_file_save (doc, target, &error))
+            show_error (self, "Could not save the selection", error);
+          easel_document_free (doc);
+        }
+      easel_clip_free (clip);
+    }
+  g_object_unref (self);
+}
+
+static void
+action_copy_to (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+  EaselWindow *self = user_data;
+  GtkFileDialog *dialog = make_file_dialog ();
+
+  gtk_file_dialog_set_title (dialog, "Copy To");
+  gtk_file_dialog_set_initial_name (dialog, "Selection.png");
+  gtk_file_dialog_save (dialog, GTK_WINDOW (self), NULL, on_copy_to_done, g_object_ref (self));
+  g_object_unref (dialog);
+}
+
+static void
+on_paste_from_done (GObject *source, GAsyncResult *result, gpointer data)
+{
+  EaselWindow *self = data;
+  g_autoptr (GError) error = NULL;
+  g_autoptr (GFile) file = gtk_file_dialog_open_finish (GTK_FILE_DIALOG (source), result, &error);
+
+  if (file != NULL)
+    {
+      EaselDocument *doc = easel_file_load (file, &error);
+
+      if (doc == NULL)
+        show_error (self, "Could not open the picture", error);
+      else
+        {
+          EaselClip *clip = easel_clip_new (doc->width, doc->height);
+
+          if (clip != NULL)
+            {
+              memcpy (clip->pixels, doc->pixels, (gsize) doc->width * doc->height * 4);
+              easel_toolbox_select_tool (self->toolbox, EASEL_TOOL_SELECT);
+              easel_canvas_paste_clip (self->canvas, clip);
+            }
+          easel_document_free (doc);
+        }
+    }
+  g_object_unref (self);
+}
+
+static void
+action_paste_from (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+  EaselWindow *self = user_data;
+  GtkFileDialog *dialog = make_file_dialog ();
+
+  gtk_file_dialog_set_title (dialog, "Paste From");
+  gtk_file_dialog_open (dialog, GTK_WINDOW (self), NULL, on_paste_from_done, g_object_ref (self));
+  g_object_unref (dialog);
 }
 
 static void
@@ -714,6 +801,8 @@ static const GActionEntry window_actions[] = {
   { "cut", action_cut },
   { "copy", action_copy },
   { "paste", action_paste },
+  { "copy-to", action_copy_to },
+  { "paste-from", action_paste_from },
   { "clear-selection", action_clear_selection },
   { "select-all", action_select_all },
   { "undo", action_undo },

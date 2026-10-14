@@ -41,6 +41,7 @@ void     easel_canvas_clear (EaselCanvas *self, uint32_t argb); /* undoable */
 gboolean easel_canvas_has_selection (EaselCanvas *self);
 void     easel_canvas_flush (EaselCanvas *self); /* put a floating selection down */
 void     easel_canvas_select_all (EaselCanvas *self);
+EaselClip *easel_canvas_get_selection (EaselCanvas *self); /* a copy; caller frees */
 void     easel_canvas_copy (EaselCanvas *self);
 void     easel_canvas_cut (EaselCanvas *self);
 void     easel_canvas_clear_selection (EaselCanvas *self);
