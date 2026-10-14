@@ -663,6 +663,11 @@ test_transform (void)
   free (r);
 
   uint32_t c[2] = { 0xFF102030u, 0x80000000u };
+  {
+    uint32_t bw[3] = { 0xFF101010, 0xFFF0F0F0, 0xFF808080 };
+    easel_black_and_white (bw, 3);
+    CHECK (bw[0] == 0xFF000000u && bw[1] == 0xFFFFFFFFu && bw[2] == 0xFFFFFFFFu);
+  }
   easel_invert (c, 2);
   CHECK (c[0] == 0xFFEFDFCFu && c[1] == 0x80808080u);
 }

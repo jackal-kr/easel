@@ -1,5 +1,7 @@
 #include <adwaita.h>
 
+#include "ui/preferences.h"
+#include "ui/settings.h"
 #include "ui/window.h"
 
 static void
@@ -28,7 +30,55 @@ action_about (GSimpleAction *action, GVariant *parameter, gpointer user_data)
   adw_dialog_present (dialog, GTK_WIDGET (gtk_application_get_active_window (app)));
 }
 
+static void
+add_shortcuts (AdwShortcutsDialog *dialog, const char *title, const char *const *entries)
+{
+  AdwShortcutsSection *section = adw_shortcuts_section_new (title);
+
+  for (int i = 0; entries[i] != NULL; i += 2)
+    adw_shortcuts_section_add (section, adw_shortcuts_item_new (entries[i], entries[i + 1]));
+  adw_shortcuts_dialog_add (dialog, section);
+}
+
+static void
+action_shortcuts (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+  GtkApplication *app = user_data;
+  AdwShortcutsDialog *dialog = ADW_SHORTCUTS_DIALOG (adw_shortcuts_dialog_new ());
+
+  static const char *const file[] = {
+    "New", "<Primary>n", "Open…", "<Primary>o", "Save", "<Primary>s", "Save As…", "<Primary><Shift>s",
+    "Print…", "<Primary>p", "Quit", "<Primary>q", NULL };
+  static const char *const edit[] = {
+    "Undo", "<Primary>z", "Redo", "<Primary>y", "Redo (alternative)", "<Primary><Shift>z",
+    "Cut", "<Primary>x", "Copy", "<Primary>c", "Paste", "<Primary>v", "Select All", "<Primary>a",
+    "Clear Selection", "Delete", NULL };
+  static const char *const view[] = {
+    "Normal Size", "<Primary>Page_Down", "Large Size", "<Primary>Page_Up", "Zoom with the wheel", "<Primary>Scroll_Up",
+    "Show Grid", "<Primary>g", NULL };
+  static const char *const image[] = {
+    "Flip/Rotate…", "<Primary>r", "Invert Colors", "<Primary>i", "Attributes…", "<Primary>e",
+    "Clear Image", "<Primary><Shift>n", "Swap Foreground/Background", "<Primary><Shift>x", NULL };
+  static const char *const general[] = {
+    "Keyboard Shortcuts", "<Primary>question", "Cancel the current drawing or selection", "Escape", NULL };
+
+  add_shortcuts (dialog, "File", file);
+  add_shortcuts (dialog, "Edit", edit);
+  add_shortcuts (dialog, "View", view);
+  add_shortcuts (dialog, "Image and Colors", image);
+  add_shortcuts (dialog, "General", general);
+  adw_dialog_present (ADW_DIALOG (dialog), GTK_WIDGET (gtk_application_get_active_window (app)));
+}
+
+static void
+action_preferences (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+  easel_preferences_present (GTK_WIDGET (gtk_application_get_active_window (user_data)));
+}
+
 static const GActionEntry app_actions[] = {
+  { "preferences", action_preferences },
+  { "shortcuts", action_shortcuts },
   { "quit", action_quit },
   { "about", action_about },
 };
@@ -39,6 +89,10 @@ on_startup (GApplication *app)
   g_action_map_add_action_entries (G_ACTION_MAP (app), app_actions, G_N_ELEMENTS (app_actions), app);
 
   const char *quit_accels[] = { "<Primary>q", NULL };
+  const char *prefs_accels[] = { "<Primary>comma", NULL };
+  gtk_application_set_accels_for_action (GTK_APPLICATION (app), "app.preferences", prefs_accels);
+  const char *shortcuts_accels[] = { "<Primary>question", "<Primary>F1", NULL };
+  gtk_application_set_accels_for_action (GTK_APPLICATION (app), "app.shortcuts", shortcuts_accels);
   const char *swap_accels[] = { "<Primary><Shift>x", NULL };
   const char *clear_accels[] = { "<Primary><Shift>n", NULL };
   gtk_application_set_accels_for_action (GTK_APPLICATION (app), "app.quit", quit_accels);
@@ -58,6 +112,8 @@ on_startup (GApplication *app)
   gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.flip-rotate", flip_accels);
   const char *invert_accels[] = { "<Primary>i", NULL };
   gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.invert-colors", invert_accels);
+  const char *print_accels[] = { "<Primary>p", NULL };
+  gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.print", print_accels);
   const char *grid_accels[] = { "<Primary>g", NULL };
   const char *large_accels[] = { "<Primary>Page_Up", NULL };
   const char *normal_accels[] = { "<Primary>Page_Down", NULL };
@@ -83,6 +139,8 @@ on_startup (GApplication *app)
                                               GTK_STYLE_PROVIDER (css),
                                               GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
   g_object_unref (css);
+
+  easel_settings_apply_appearance ();
 }
 
 static void

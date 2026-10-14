@@ -20,6 +20,7 @@ struct _EaselHistory
   size_t pos;      /* steps currently applied; steps[pos..count) are redo */
   size_t bytes;
   size_t max_bytes;
+  long   saved;    /* value of pos when the picture was saved; -1 = no longer reachable */
 };
 
 static size_t
@@ -53,6 +54,7 @@ easel_history_clear (EaselHistory *h)
   for (size_t i = 0; i < h->count; i++)
     free_step (h, &h->steps[i]);
   h->count = h->pos = 0;
+  h->saved = 0;
 }
 
 void
@@ -71,6 +73,8 @@ append_step (EaselHistory *h, Step *step)
   Step s = *step;
 
   /* A new edit forgets the redo steps. */
+  if (h->saved > (long) h->pos)
+    h->saved = -1; /* the saved state was in the forgotten redo steps */
   while (h->count > h->pos)
     free_step (h, &h->steps[--h->count]);
 
@@ -100,6 +104,7 @@ append_step (EaselHistory *h, Step *step)
       memmove (h->steps, h->steps + drop, (h->count - drop) * sizeof *h->steps);
       h->count -= drop;
       h->pos = h->count;
+      h->saved = h->saved >= (long) drop ? h->saved - (long) drop : -1;
     }
   return true;
 }
@@ -232,4 +237,16 @@ easel_history_push_full (EaselHistory *h, const uint32_t *before, int before_w, 
   memcpy (s.before, before, bn * 4);
   memcpy (s.after, doc->pixels, an * 4);
   return append_step (h, &s);
+}
+
+void
+easel_history_mark_saved (EaselHistory *h)
+{
+  h->saved = (long) h->pos;
+}
+
+bool
+easel_history_is_saved (const EaselHistory *h)
+{
+  return h->saved == (long) h->pos;
 }

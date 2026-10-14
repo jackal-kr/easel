@@ -6,10 +6,21 @@
 #include "ui/canvas.h"
 #include "ui/colorbox.h"
 #include "ui/fileio.h"
+#include "ui/settings.h"
 #include "ui/toolbox.h"
 
-#define DEFAULT_IMAGE_WIDTH  800
-#define DEFAULT_IMAGE_HEIGHT 600
+/* Size and background of a new picture come from Preferences. */
+#define DEFAULT_IMAGE_WIDTH  easel_pref_int ("default-width", 800)
+#define DEFAULT_IMAGE_HEIGHT easel_pref_int ("default-height", 600)
+
+static uint32_t
+default_background (void)
+{
+  g_autofree char *hex = easel_pref_string ("default-background", "#ffffff");
+  uint32_t argb;
+
+  return easel_parse_hex_color (hex, &argb) ? argb : EASEL_RGB (255, 255, 255);
+}
 
 struct _EaselWindow
 {
@@ -24,6 +35,9 @@ struct _EaselWindow
   GtkLabel  *position_label;
   GtkLabel  *size_label;
   GtkLabel  *zoom_label;
+  GtkLabel  *menu_zoom_label; /* zoom row in the main menu */
+  GtkLabel  *frame_label;   /* View > Frame Time */
+  guint      frame_timer;
 
   GtkWidget *thumb_window;  /* View > Zoom > Show Thumbnail */
   GtkWidget *thumb_area;
@@ -156,7 +170,7 @@ update_size_label (EaselWindow *self)
 static void
 on_history_changed (EaselCanvas *canvas, EaselWindow *self)
 {
-  set_modified (self, TRUE);
+  set_modified (self, !easel_canvas_is_saved (canvas));
   update_size_label (self);
   g_simple_action_set_enabled (G_SIMPLE_ACTION (g_action_map_lookup_action (G_ACTION_MAP (self), "undo")),
                                easel_canvas_can_undo (canvas));
@@ -244,6 +258,7 @@ save_to (EaselWindow *self, GFile *file)
       return FALSE;
     }
   g_set_object (&self->file, file);
+  easel_canvas_mark_saved (self->canvas);
   set_modified (self, FALSE);
   return TRUE;
 }
@@ -348,9 +363,7 @@ show_document (EaselWindow *self, EaselDocument *doc, GFile *file)
 static void
 do_new (EaselWindow *self)
 {
-  EaselDocument *old = easel_canvas_get_document (self->canvas);
-  EaselDocument *doc = easel_document_new (old->width, old->height,
-                                           easel_color_box_get_background (self->colorbox));
+  EaselDocument *doc = easel_document_new (DEFAULT_IMAGE_WIDTH, DEFAULT_IMAGE_HEIGHT, default_background ());
   if (doc != NULL)
     show_document (self, doc, NULL);
 }
@@ -459,7 +472,7 @@ typedef struct
 {
   EaselWindow *self;
   AdwSpinRow  *width_row, *height_row;
-  AdwComboRow *units_row;
+  AdwComboRow *units_row, *colors_row;
   int          unit;        /* 0 pixels, 1 inches, 2 centimetres */
   double       px_w, px_h;  /* the size in pixels, whatever the unit shows */
 } AttrState;
@@ -508,6 +521,8 @@ on_attr_response (AdwAlertDialog *dialog, const char *response, AttrState *st)
     {
       attr_read_size (st);
       easel_canvas_resize (st->self->canvas, (int) lround (st->px_w), (int) lround (st->px_h));
+      if (adw_combo_row_get_selected (st->colors_row) == 1)
+        easel_canvas_black_and_white (st->self->canvas);
     }
 }
 
@@ -545,6 +560,12 @@ action_attributes (GSimpleAction *action, GVariant *parameter, gpointer user_dat
   adw_preferences_group_add (ADW_PREFERENCES_GROUP (group), GTK_WIDGET (st->width_row));
   adw_preferences_group_add (ADW_PREFERENCES_GROUP (group), GTK_WIDGET (st->height_row));
   adw_preferences_group_add (ADW_PREFERENCES_GROUP (group), GTK_WIDGET (st->units_row));
+
+  st->colors_row = ADW_COMBO_ROW (adw_combo_row_new ());
+  const char *const colors[] = { "Colors", "Black and white", NULL };
+  adw_preferences_row_set_title (ADW_PREFERENCES_ROW (st->colors_row), "Color mode");
+  adw_combo_row_set_model (st->colors_row, G_LIST_MODEL (gtk_string_list_new (colors)));
+  adw_preferences_group_add (ADW_PREFERENCES_GROUP (group), GTK_WIDGET (st->colors_row));
   attr_show_size (st);
   g_signal_connect (st->units_row, "notify::selected", G_CALLBACK (on_attr_units_changed), st);
 
@@ -556,7 +577,7 @@ action_attributes (GSimpleAction *action, GVariant *parameter, gpointer user_dat
   gtk_box_append (GTK_BOX (box), reset);
   adw_alert_dialog_set_extra_child (ADW_ALERT_DIALOG (dialog), box);
   adw_alert_dialog_set_body (ADW_ALERT_DIALOG (dialog),
-                             "New area is filled with the background color; a smaller size crops the picture.");
+                             "New area is filled with the background color; a smaller size crops the picture. Black and white converts the picture and cannot be reverted except with Undo.");
   adw_alert_dialog_add_responses (ADW_ALERT_DIALOG (dialog),
                                   "cancel", "_Cancel", "ok", "_OK", NULL);
   adw_alert_dialog_set_response_appearance (ADW_ALERT_DIALOG (dialog), "ok", ADW_RESPONSE_SUGGESTED);
@@ -589,6 +610,8 @@ on_zoom_changed (EaselCanvas *canvas, EaselWindow *self)
 {
   g_autofree char *text = g_strdup_printf ("%d%%", easel_canvas_get_zoom (canvas));
   gtk_label_set_text (self->zoom_label, text);
+  if (self->menu_zoom_label != NULL)
+    gtk_label_set_text (self->menu_zoom_label, text);
   /* As in XP, the pixel grid only exists from 4x up, so the item is off below that. */
   set_action_enabled (self, "show-grid", easel_canvas_get_zoom (canvas) >= 400);
 }
@@ -597,6 +620,18 @@ static void
 action_zoom_normal (GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
   easel_canvas_set_zoom (((EaselWindow *) user_data)->canvas, 100, -1, -1);
+}
+
+static void
+action_zoom_in (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+  easel_canvas_zoom_step (((EaselWindow *) user_data)->canvas, 1, -1, -1);
+}
+
+static void
+action_zoom_out (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+  easel_canvas_zoom_step (((EaselWindow *) user_data)->canvas, -1, -1, -1);
 }
 
 static void
@@ -869,6 +904,67 @@ on_flip_response (AdwAlertDialog *dialog, const char *response, FlipDialog *fd)
   g_free (fd);
 }
 
+/* ---- File > Print ---------------------------------------------------- */
+
+static GtkPrintSettings *print_settings;
+static GtkPageSetup *page_setup;
+
+static void
+on_draw_page (GtkPrintOperation *op, GtkPrintContext *context, int page_nr, EaselWindow *self)
+{
+  EaselDocument *doc = easel_canvas_get_document (self->canvas);
+  cairo_t *cr = gtk_print_context_get_cairo_context (context);
+  double pw = gtk_print_context_get_width (context), ph = gtk_print_context_get_height (context);
+  double dpi = gtk_print_context_get_dpi_x (context);
+  /* Actual size (96 pixels to the inch), shrunk to fit the page. */
+  double scale = dpi / SCREEN_DPI;
+
+  scale = MIN (scale, MIN (pw / doc->width, ph / doc->height));
+
+  cairo_surface_t *surface = cairo_image_surface_create_for_data ((unsigned char *) doc->pixels,
+                                                                  CAIRO_FORMAT_ARGB32, doc->width,
+                                                                  doc->height, doc->width * 4);
+  cairo_scale (cr, scale, scale);
+  cairo_set_source_surface (cr, surface, 0, 0);
+  cairo_pattern_set_filter (cairo_get_source (cr), scale >= 1 ? CAIRO_FILTER_NEAREST : CAIRO_FILTER_BEST);
+  cairo_paint (cr);
+  cairo_surface_destroy (surface);
+}
+
+static void
+on_print_done (GtkPrintOperation *op, GtkPrintOperationResult result, EaselWindow *self)
+{
+  if (result == GTK_PRINT_OPERATION_RESULT_APPLY)
+    {
+      g_clear_object (&print_settings);
+      print_settings = g_object_ref (gtk_print_operation_get_print_settings (op));
+    }
+  g_object_unref (op);
+}
+
+static void
+action_print (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+  EaselWindow *self = user_data;
+  GtkPrintOperation *op = gtk_print_operation_new ();
+  g_autoptr (GError) error = NULL;
+
+  easel_canvas_flush (self->canvas);
+  gtk_print_operation_set_n_pages (op, 1);
+  gtk_print_operation_set_unit (op, GTK_UNIT_POINTS);
+  if (print_settings != NULL)
+    gtk_print_operation_set_print_settings (op, print_settings);
+  if (page_setup != NULL)
+    gtk_print_operation_set_default_page_setup (op, page_setup);
+  g_signal_connect (op, "draw-page", G_CALLBACK (on_draw_page), self);
+  g_signal_connect (op, "done", G_CALLBACK (on_print_done), self);
+  gtk_print_operation_run (op, GTK_PRINT_OPERATION_ACTION_PRINT_DIALOG, GTK_WINDOW (self), &error);
+  if (error != NULL)
+    {
+      show_error (self, "Could not print the picture", error); /* "done" releases op */
+    }
+}
+
 static void
 action_flip_rotate (GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
@@ -1064,11 +1160,14 @@ static const GActionEntry window_actions[] = {
   { "save-as", action_save_as },
   { "attributes", action_attributes },
   { "flip-rotate", action_flip_rotate },
+  { "print", action_print },
   { "stretch-skew", action_stretch_skew },
   { "invert-colors", action_invert_colors },
   { "edit-colors", action_edit_colors },
   { "zoom-normal", action_zoom_normal },
   { "zoom-large", action_zoom_large },
+  { "zoom-in", action_zoom_in },
+  { "zoom-out", action_zoom_out },
   { "zoom-custom", action_zoom_custom },
   { "cut", action_cut },
   { "copy", action_copy },
@@ -1091,19 +1190,103 @@ add_visibility_action (EaselWindow *self, const char *name, GtkWidget *widget)
   g_object_unref (action);
 }
 
+/* ---- View > Frame Time ------------------------------------------------ */
+
+static gboolean
+frame_tick (gpointer data)
+{
+  EaselWindow *self = data;
+  GdkFrameClock *clock = gtk_widget_get_frame_clock (GTK_WIDGET (self->canvas));
+  double fps = clock != NULL ? gdk_frame_clock_get_fps (clock) : 0;
+  g_autofree char *text = g_strdup_printf ("Paint %.2f ms · %.0f fps",
+                                           easel_canvas_get_paint_time (self->canvas) / 1000.0, fps);
+
+  gtk_label_set_text (self->frame_label, text);
+  return G_SOURCE_CONTINUE;
+}
+
+static void
+on_frame_visible (GtkWidget *label, GParamSpec *pspec, EaselWindow *self)
+{
+  g_clear_handle_id (&self->frame_timer, g_source_remove);
+  if (gtk_widget_get_visible (label))
+    {
+      frame_tick (self);
+      self->frame_timer = g_timeout_add (500, frame_tick, self);
+    }
+}
+
 static GtkWidget *
-build_menu_button (void)
+make_zoom_row (EaselWindow *self)
+{
+  GtkWidget *box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
+  GtkWidget *out = gtk_button_new_from_icon_name ("zoom-out-symbolic");
+  GtkWidget *in = gtk_button_new_from_icon_name ("zoom-in-symbolic");
+
+  gtk_actionable_set_action_name (GTK_ACTIONABLE (out), "win.zoom-out");
+  gtk_actionable_set_action_name (GTK_ACTIONABLE (in), "win.zoom-in");
+  gtk_widget_add_css_class (out, "flat");
+  gtk_widget_add_css_class (in, "flat");
+  gtk_widget_set_tooltip_text (out, "Zoom out");
+  gtk_widget_set_tooltip_text (in, "Zoom in");
+
+  self->menu_zoom_label = GTK_LABEL (gtk_label_new ("100%"));
+  gtk_widget_add_css_class (GTK_WIDGET (self->menu_zoom_label), "numeric");
+  gtk_widget_set_hexpand (GTK_WIDGET (self->menu_zoom_label), TRUE);
+  gtk_label_set_width_chars (self->menu_zoom_label, 6);
+  g_object_add_weak_pointer (G_OBJECT (self->menu_zoom_label), (gpointer *) &self->menu_zoom_label);
+
+  gtk_box_append (GTK_BOX (box), out);
+  gtk_box_append (GTK_BOX (box), GTK_WIDGET (self->menu_zoom_label));
+  gtk_box_append (GTK_BOX (box), in);
+  return box;
+}
+
+static GtkWidget *
+build_menu_button (EaselWindow *self)
 {
   g_autoptr (GtkBuilder) builder =
     gtk_builder_new_from_resource ("/io/github/jackal_kr/Easel/menus.ui");
   GMenuModel *model = G_MENU_MODEL (gtk_builder_get_object (builder, "primary_menu"));
+  GtkWidget *popover = gtk_popover_menu_new_from_model (model);
 
   GtkWidget *button = gtk_menu_button_new ();
   gtk_menu_button_set_icon_name (GTK_MENU_BUTTON (button), "open-menu-symbolic");
-  gtk_menu_button_set_menu_model (GTK_MENU_BUTTON (button), model);
-  gtk_menu_button_set_primary (GTK_MENU_BUTTON (button), TRUE);
+  gtk_menu_button_set_popover (GTK_MENU_BUTTON (button), popover);
   gtk_widget_set_tooltip_text (button, "Main Menu");
   return button;
+}
+
+/* A header-bar button with an icon, a label and a drop-down menu. */
+static GtkWidget *
+build_labeled_menu (EaselWindow *self, const char *menu_id, const char *label, const char *icon,
+                    gboolean with_zoom)
+{
+  g_autoptr (GtkBuilder) builder =
+    gtk_builder_new_from_resource ("/io/github/jackal_kr/Easel/menus.ui");
+  GMenuModel *model = G_MENU_MODEL (gtk_builder_get_object (builder, menu_id));
+  GtkWidget *popover = gtk_popover_menu_new_from_model (model);
+  GtkWidget *content = adw_button_content_new ();
+
+  if (with_zoom)
+    gtk_popover_menu_add_child (GTK_POPOVER_MENU (popover), make_zoom_row (self), "zoom");
+  adw_button_content_set_label (ADW_BUTTON_CONTENT (content), label);
+  adw_button_content_set_icon_name (ADW_BUTTON_CONTENT (content), icon);
+
+  GtkWidget *button = gtk_menu_button_new ();
+  gtk_menu_button_set_child (GTK_MENU_BUTTON (button), content);
+  gtk_menu_button_set_popover (GTK_MENU_BUTTON (button), popover);
+  gtk_menu_button_set_always_show_arrow (GTK_MENU_BUTTON (button), TRUE);
+  return button;
+}
+
+static GtkWidget *
+make_header_button (const char *icon, const char *action, const char *tooltip)
+{
+  GtkWidget *b = gtk_button_new_from_icon_name (icon);
+  gtk_actionable_set_action_name (GTK_ACTIONABLE (b), action);
+  gtk_widget_set_tooltip_text (b, tooltip);
+  return b;
 }
 
 static GtkWidget *
@@ -1143,6 +1326,15 @@ build_status_bar (EaselWindow *self, const EaselDocument *doc)
   gtk_widget_set_tooltip_text (GTK_WIDGET (self->size_label), "Image size");
   gtk_box_append (GTK_BOX (bar), GTK_WIDGET (self->size_label));
 
+  self->frame_label = GTK_LABEL (gtk_label_new (""));
+  gtk_label_set_width_chars (self->frame_label, 22);
+  gtk_widget_add_css_class (GTK_WIDGET (self->frame_label), "caption");
+  gtk_widget_add_css_class (GTK_WIDGET (self->frame_label), "numeric");
+  gtk_widget_set_tooltip_text (GTK_WIDGET (self->frame_label), "Time to paint the last frame, and frames per second while drawing");
+  gtk_widget_set_visible (GTK_WIDGET (self->frame_label), FALSE);
+  g_signal_connect (self->frame_label, "notify::visible", G_CALLBACK (on_frame_visible), self);
+  gtk_box_append (GTK_BOX (bar), GTK_WIDGET (self->frame_label));
+
   return bar;
 }
 
@@ -1151,6 +1343,7 @@ easel_window_dispose (GObject *object)
 {
   EaselWindow *self = EASEL_WINDOW (object);
   g_clear_handle_id (&self->thumb_timer, g_source_remove);
+  g_clear_handle_id (&self->frame_timer, g_source_remove);
   if (self->thumb_window != NULL)
     gtk_window_destroy (GTK_WINDOW (self->thumb_window));
   self->thumb_window = NULL;
@@ -1184,8 +1377,7 @@ easel_window_init (EaselWindow *self)
   gtk_window_set_default_size (GTK_WINDOW (self), want_w, want_h);
   gtk_window_set_title (GTK_WINDOW (self), "Untitled - Easel");
 
-  EaselDocument *doc = easel_document_new (DEFAULT_IMAGE_WIDTH, DEFAULT_IMAGE_HEIGHT,
-                                           EASEL_RGB (255, 255, 255));
+  EaselDocument *doc = easel_document_new (DEFAULT_IMAGE_WIDTH, DEFAULT_IMAGE_HEIGHT, default_background ());
   if (doc == NULL)
     g_error ("out of memory creating the initial image");
 
@@ -1225,7 +1417,17 @@ easel_window_init (EaselWindow *self)
 
   /* Header bar with the main menu, then everything in an AdwToolbarView. */
   AdwHeaderBar *header = ADW_HEADER_BAR (adw_header_bar_new ());
-  adw_header_bar_pack_end (header, build_menu_button ());
+  adw_header_bar_pack_end (header, build_menu_button (self));
+  adw_header_bar_pack_end (header, build_labeled_menu (self, "view_menu", "View", "zoom-fit-best-symbolic", TRUE));
+  adw_header_bar_pack_end (header, build_labeled_menu (self, "image_menu", "Image", "image-x-generic-symbolic", FALSE));
+  adw_header_bar_pack_start (header, make_header_button ("document-new-symbolic", "win.new", "New (Ctrl+N)"));
+  adw_header_bar_pack_start (header, make_header_button ("document-open-symbolic", "win.open", "Open (Ctrl+O)"));
+  adw_header_bar_pack_start (header, make_header_button ("document-save-symbolic", "win.save", "Save (Ctrl+S)"));
+  GtkWidget *history_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+  gtk_widget_add_css_class (history_box, "linked");
+  gtk_box_append (GTK_BOX (history_box), make_header_button ("edit-undo-symbolic", "win.undo", "Undo (Ctrl+Z)"));
+  gtk_box_append (GTK_BOX (history_box), make_header_button ("edit-redo-symbolic", "win.redo", "Redo (Ctrl+Y)"));
+  adw_header_bar_pack_start (header, history_box);
 
   GtkWidget *view = adw_toolbar_view_new ();
   adw_toolbar_view_add_top_bar (ADW_TOOLBAR_VIEW (view), GTK_WIDGET (header));
@@ -1245,6 +1447,15 @@ easel_window_init (EaselWindow *self)
   add_visibility_action (self, "show-toolbox", GTK_WIDGET (self->toolbox));
   add_visibility_action (self, "show-colorbox", GTK_WIDGET (self->colorbox));
   add_visibility_action (self, "show-statusbar", self->status_bar);
+  add_visibility_action (self, "show-frame-time", GTK_WIDGET (self->frame_label));
+  if (easel_settings () != NULL)
+    {
+      /* The panels keep their state between runs. */
+      g_settings_bind (easel_settings (), "show-toolbox", self->toolbox, "visible", G_SETTINGS_BIND_DEFAULT);
+      g_settings_bind (easel_settings (), "show-colorbox", self->colorbox, "visible", G_SETTINGS_BIND_DEFAULT);
+      g_settings_bind (easel_settings (), "show-statusbar", self->status_bar, "visible", G_SETTINGS_BIND_DEFAULT);
+      g_settings_bind (easel_settings (), "show-frame-time", self->frame_label, "visible", G_SETTINGS_BIND_DEFAULT);
+    }
 
   g_signal_connect (self, "close-request", G_CALLBACK (on_close_request), NULL);
   GSimpleAction *thumb = g_simple_action_new_stateful ("show-thumbnail", NULL, g_variant_new_boolean (FALSE));

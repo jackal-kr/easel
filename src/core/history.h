@@ -26,6 +26,11 @@ bool easel_history_push (EaselHistory *history, const EaselDocument *doc,
 bool easel_history_push_full (EaselHistory *history, const uint32_t *before,
                               int before_w, int before_h, const EaselDocument *doc);
 
+/* Remembers the current state as the saved one; is_saved tells whether the
+ * picture is back at it (e.g. after undoing everything done since saving). */
+void easel_history_mark_saved (EaselHistory *history);
+bool easel_history_is_saved (const EaselHistory *history);
+
 bool easel_history_can_undo (const EaselHistory *history);
 bool easel_history_can_redo (const EaselHistory *history);
 

@@ -1,30 +1,50 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Same menus as Windows XP Paint. Items whose action does not exist yet
-     are shown disabled; they light up as the actions are implemented. -->
+<!-- Header bar menus: Image, View, and the app (hamburger) menu. Items whose
+     action does not exist are shown disabled. -->
 <interface>
+  <menu id="image_menu">
+    <section>
+      <item><attribute name="label">Flip/Rotate…</attribute><attribute name="action">win.flip-rotate</attribute></item>
+      <item><attribute name="label">Stretch/Skew…</attribute><attribute name="action">win.stretch-skew</attribute></item>
+      <item><attribute name="label">Invert Colors</attribute><attribute name="action">win.invert-colors</attribute></item>
+      <item><attribute name="label">Attributes…</attribute><attribute name="action">win.attributes</attribute></item>
+    </section>
+    <section>
+      <item><attribute name="label">Clear Image</attribute><attribute name="action">win.clear-image</attribute></item>
+      <item><attribute name="label">Draw Opaque</attribute><attribute name="action">win.draw-opaque</attribute></item>
+    </section>
+  </menu>
+
+  <menu id="view_menu">
+    <section>
+      <item><attribute name="custom">zoom</attribute></item>
+    </section>
+    <section>
+      <item><attribute name="label">Normal Size</attribute><attribute name="action">win.zoom-normal</attribute></item>
+      <item><attribute name="label">Large Size</attribute><attribute name="action">win.zoom-large</attribute></item>
+      <item><attribute name="label">Custom Zoom…</attribute><attribute name="action">win.zoom-custom</attribute></item>
+    </section>
+    <section>
+      <item><attribute name="label">Show Grid</attribute><attribute name="action">win.show-grid</attribute></item>
+      <item><attribute name="label">Show Thumbnail</attribute><attribute name="action">win.show-thumbnail</attribute></item>
+    </section>
+    <section>
+      <item><attribute name="label">Tool Box</attribute><attribute name="action">win.show-toolbox</attribute></item>
+      <item><attribute name="label">Color Box</attribute><attribute name="action">win.show-colorbox</attribute></item>
+      <item><attribute name="label">Status Bar</attribute><attribute name="action">win.show-statusbar</attribute></item>
+      <item><attribute name="label">Frame Time</attribute><attribute name="action">win.show-frame-time</attribute></item>
+    </section>
+  </menu>
+
   <menu id="primary_menu">
     <section>
-      <submenu>
-        <attribute name="label">File</attribute>
-        <section>
-          <item><attribute name="label">New</attribute><attribute name="action">win.new</attribute></item>
-          <item><attribute name="label">Open…</attribute><attribute name="action">win.open</attribute></item>
-          <item><attribute name="label">Save</attribute><attribute name="action">win.save</attribute></item>
-          <item><attribute name="label">Save As…</attribute><attribute name="action">win.save-as</attribute></item>
-        </section>
-        <section>
-          <item><attribute name="label">Print…</attribute><attribute name="action">win.print</attribute></item>
-        </section>
-        <section>
-          <item><attribute name="label">Quit</attribute><attribute name="action">app.quit</attribute></item>
-        </section>
-      </submenu>
+      <item><attribute name="label">New</attribute><attribute name="action">win.new</attribute></item>
+      <item><attribute name="label">Save As…</attribute><attribute name="action">win.save-as</attribute></item>
+      <item><attribute name="label">Print…</attribute><attribute name="action">win.print</attribute></item>
+    </section>
+    <section>
       <submenu>
         <attribute name="label">Edit</attribute>
-        <section>
-          <item><attribute name="label">Undo</attribute><attribute name="action">win.undo</attribute></item>
-          <item><attribute name="label">Redo</attribute><attribute name="action">win.redo</attribute></item>
-        </section>
         <section>
           <item><attribute name="label">Cut</attribute><attribute name="action">win.cut</attribute></item>
           <item><attribute name="label">Copy</attribute><attribute name="action">win.copy</attribute></item>
@@ -32,58 +52,15 @@
           <item><attribute name="label">Clear Selection</attribute><attribute name="action">win.clear-selection</attribute></item>
           <item><attribute name="label">Select All</attribute><attribute name="action">win.select-all</attribute></item>
         </section>
-        <section>
-          <item><attribute name="label">Copy To…</attribute><attribute name="action">win.copy-to</attribute></item>
-          <item><attribute name="label">Paste From…</attribute><attribute name="action">win.paste-from</attribute></item>
-        </section>
       </submenu>
-      <submenu>
-        <attribute name="label">View</attribute>
-        <section>
-          <item><attribute name="label">Tool Box</attribute><attribute name="action">win.show-toolbox</attribute></item>
-          <item><attribute name="label">Color Box</attribute><attribute name="action">win.show-colorbox</attribute></item>
-          <item><attribute name="label">Status Bar</attribute><attribute name="action">win.show-statusbar</attribute></item>
-        </section>
-        <section>
-          <submenu>
-            <attribute name="label">Zoom</attribute>
-            <section>
-              <item><attribute name="label">Normal Size</attribute><attribute name="action">win.zoom-normal</attribute></item>
-              <item><attribute name="label">Large Size</attribute><attribute name="action">win.zoom-large</attribute></item>
-              <item><attribute name="label">Custom…</attribute><attribute name="action">win.zoom-custom</attribute></item>
-            </section>
-          </submenu>
-          <item><attribute name="label">Show Grid</attribute><attribute name="action">win.show-grid</attribute></item>
-          <item><attribute name="label">Show Thumbnail</attribute><attribute name="action">win.show-thumbnail</attribute></item>
-        </section>
-      </submenu>
-      <submenu>
-        <attribute name="label">Image</attribute>
-        <section>
-          <item><attribute name="label">Flip/Rotate…</attribute><attribute name="action">win.flip-rotate</attribute></item>
-          <item><attribute name="label">Stretch/Skew…</attribute><attribute name="action">win.stretch-skew</attribute></item>
-          <item><attribute name="label">Invert Colors</attribute><attribute name="action">win.invert-colors</attribute></item>
-          <item><attribute name="label">Attributes…</attribute><attribute name="action">win.attributes</attribute></item>
-        </section>
-        <section>
-          <item><attribute name="label">Clear Image</attribute><attribute name="action">win.clear-image</attribute></item>
-          <item><attribute name="label">Draw Opaque</attribute><attribute name="action">win.draw-opaque</attribute></item>
-        </section>
-      </submenu>
-      <submenu>
-        <attribute name="label">Colors</attribute>
-        <section>
-          <item><attribute name="label">Edit Colors…</attribute><attribute name="action">win.edit-colors</attribute></item>
-          <item><attribute name="label">Swap Foreground/Background</attribute><attribute name="action">win.swap-colors</attribute></item>
-        </section>
-      </submenu>
-      <submenu>
-        <attribute name="label">Help</attribute>
-        <section>
-          <item><attribute name="label">Help Topics</attribute><attribute name="action">app.help</attribute></item>
-          <item><attribute name="label">About Easel</attribute><attribute name="action">app.about</attribute></item>
-        </section>
-      </submenu>
+      <item><attribute name="label">Copy To…</attribute><attribute name="action">win.copy-to</attribute></item>
+      <item><attribute name="label">Paste From…</attribute><attribute name="action">win.paste-from</attribute></item>
+    </section>
+    <section>
+      <item><attribute name="label">Preferences</attribute><attribute name="action">app.preferences</attribute></item>
+      <item><attribute name="label">Keyboard Shortcuts</attribute><attribute name="action">app.shortcuts</attribute></item>
+      <item><attribute name="label">Help</attribute><attribute name="action">app.help</attribute></item>
+      <item><attribute name="label">About Easel</attribute><attribute name="action">app.about</attribute></item>
     </section>
   </menu>
 </interface>

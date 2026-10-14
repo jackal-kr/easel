@@ -22,6 +22,7 @@ struct _EaselCanvas
   GdkTexture     *texture; /* last uploaded snapshot of doc */
   cairo_region_t *dirty;   /* image pixels changed since `texture` was built */
 
+  gint64   paint_us; /* time the last snapshot took (CPU side) */
   int      zoom; /* magnification in percent, 100 = actual size */
   uint32_t foreground;
   uint32_t background;
@@ -464,6 +465,7 @@ easel_canvas_snapshot (GtkWidget *widget, GtkSnapshot *snapshot)
   EaselCanvas *self = EASEL_CANVAS (widget);
   double s = logical_per_pixel (self);
 
+  gint64 t0 = g_get_monotonic_time ();
   refresh_texture (self);
 
   graphene_rect_t bounds = GRAPHENE_RECT_INIT (0, 0,
@@ -508,6 +510,7 @@ easel_canvas_snapshot (GtkWidget *widget, GtkSnapshot *snapshot)
   gtk_snapshot_pop (snapshot);
 
   draw_handles (self, snapshot);
+  self->paint_us = g_get_monotonic_time () - t0;
 }
 
 static uint32_t
@@ -2387,6 +2390,20 @@ easel_canvas_class_init (EaselCanvasClass *klass)
                   0, NULL, NULL, NULL, G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_BOOLEAN);
 }
 
+/* One notch in (+1) or out (-1); (ix, iy) is the picture pixel to keep in
+ * view, or negative for the middle of the window. */
+void
+easel_canvas_zoom_step (EaselCanvas *self, int direction, int ix, int iy)
+{
+  static const int steps[] = { 10, 15, 20, 25, 33, 50, 67, 100, 200, 300, 400, 600, 800 };
+  int n = G_N_ELEMENTS (steps), i = 0;
+
+  while (i < n - 1 && steps[i] < self->zoom)
+    i++;
+  i = CLAMP (i + direction, 0, n - 1);
+  easel_canvas_set_zoom (self, steps[i], ix >= 0 ? ix : -1, iy >= 0 ? iy : -1);
+}
+
 static gboolean
 on_scroll (GtkEventControllerScroll *controller, double dx, double dy, EaselCanvas *self)
 {
@@ -2394,13 +2411,7 @@ on_scroll (GtkEventControllerScroll *controller, double dx, double dy, EaselCanv
   if (!(state & GDK_CONTROL_MASK) || dy == 0)
     return GDK_EVENT_PROPAGATE;
 
-  static const int steps[] = { 10, 15, 20, 25, 33, 50, 67, 100, 200, 300, 400, 600, 800 };
-  int n = G_N_ELEMENTS (steps), i = 0;
-  while (i < n - 1 && steps[i] < self->zoom)
-    i++;
-  i = CLAMP (i + (dy < 0 ? 1 : -1), 0, n - 1);
-  easel_canvas_set_zoom (self, steps[i], self->hover_x >= 0 ? self->hover_x : -1,
-                         self->hover_y >= 0 ? self->hover_y : -1);
+  easel_canvas_zoom_step (self, dy < 0 ? 1 : -1, self->hover_x, self->hover_y);
   return GDK_EVENT_STOP;
 }
 
@@ -2600,6 +2611,12 @@ easel_canvas_set_zoom (EaselCanvas *self, int zoom, int ix, int iy)
     }
 }
 
+gint64
+easel_canvas_get_paint_time (EaselCanvas *self)
+{
+  return self->paint_us;
+}
+
 int
 easel_canvas_get_zoom (EaselCanvas *self)
 {
@@ -2612,6 +2629,18 @@ easel_canvas_set_zoom_level (EaselCanvas *self, int level)
 {
   g_return_if_fail (EASEL_IS_CANVAS (self));
   self->zoom_level = CLAMP (level, 1, 8);
+}
+
+void
+easel_canvas_mark_saved (EaselCanvas *self)
+{
+  easel_history_mark_saved (self->history);
+}
+
+gboolean
+easel_canvas_is_saved (EaselCanvas *self)
+{
+  return easel_history_is_saved (self->history);
 }
 
 gboolean
@@ -2933,6 +2962,27 @@ easel_canvas_invert (EaselCanvas *self)
   g_return_if_fail (EASEL_IS_CANVAS (self));
   Transform t = { 100, 100, 0, 0, FALSE, FALSE, TRUE, 0 };
   apply_transform (self, &t);
+}
+
+void
+easel_canvas_black_and_white (EaselCanvas *self)
+{
+  g_return_if_fail (EASEL_IS_CANVAS (self));
+  if (self->text_active || self->text_creating)
+    text_commit (self);
+  commit_seq (self, FALSE);
+  easel_canvas_flush (self);
+
+  int w = self->doc->width, h = self->doc->height;
+  g_autofree uint32_t *old = g_memdup2 (self->doc->pixels, (gsize) w * h * 4);
+
+  easel_black_and_white (self->doc->pixels, (size_t) w * h);
+  if (easel_history_push (self->history, self->doc, old, (EaselRect) { 0, 0, w, h }))
+    {
+      mark_all_dirty (self);
+      g_signal_emit (self, signals[SIGNAL_HISTORY_CHANGED], 0);
+    }
+  gtk_widget_queue_draw (GTK_WIDGET (self));
 }
 
 void

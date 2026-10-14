@@ -24,3 +24,7 @@ void *easel_skew (const void *src, int w, int h, size_t elem, double degrees, in
 
 /* Inverts the colour of premultiplied ARGB pixels (alpha stays). */
 void easel_invert (uint32_t *pixels, size_t count);
+
+/* Reduces to two colors: pixels at least half as bright as white become white,
+ * the rest black. Alpha is kept. */
+void easel_black_and_white (uint32_t *pixels, size_t count);

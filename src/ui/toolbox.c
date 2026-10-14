@@ -1,5 +1,7 @@
 #include "ui/toolbox.h"
 
+#include "ui/settings.h"
+
 typedef struct
 {
   const char *name;
@@ -857,6 +859,14 @@ easel_toolbox_init (EaselToolbox *self)
   self->opaque = TRUE;
   self->text_opaque = FALSE; /* text is see-through unless asked otherwise */
   self->font = g_strdup ("Arial 11");
+
+  /* Preferences > Drawing. */
+  g_free (self->font);
+  self->font = easel_pref_string ("default-font", "Arial 11");
+  self->text_opaque = easel_pref_bool ("text-opaque", FALSE);
+  self->text_smooth = easel_pref_bool ("text-smooth", FALSE);
+  self->line_width = easel_pref_int ("line-width", 1);
+  self->zoom_level = easel_pref_int ("magnifier-zoom", 2);
 
   self->columns = 2;
 

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="io.github.jackal_kr.Easel" path="/io/github/jackal_kr/Easel/">
+
+    <!-- Appearance -->
+    <key name="color-scheme" type="s">
+      <choices>
+        <choice value="system"/>
+        <choice value="light"/>
+        <choice value="dark"/>
+      </choices>
+      <default>"system"</default>
+      <summary>Color scheme</summary>
+      <description>Follow the system style, or force a light or dark one.</description>
+    </key>
+    <key name="workspace-color" type="s">
+      <default>""</default>
+      <summary>Workspace color</summary>
+      <description>Color of the area around the picture as #rrggbb. Empty uses the theme's gray.</description>
+    </key>
+    <key name="show-toolbox" type="b">
+      <default>true</default>
+      <summary>Show the tool box</summary>
+    </key>
+    <key name="show-colorbox" type="b">
+      <default>true</default>
+      <summary>Show the color box</summary>
+    </key>
+    <key name="show-statusbar" type="b">
+      <default>true</default>
+      <summary>Show the status bar</summary>
+    </key>
+    <key name="show-frame-time" type="b">
+      <default>false</default>
+      <summary>Show the frame time in the status bar</summary>
+    </key>
+
+    <!-- New pictures -->
+    <key name="default-width" type="i">
+      <range min="1" max="16384"/>
+      <default>800</default>
+      <summary>Width of a new picture, in pixels</summary>
+    </key>
+    <key name="default-height" type="i">
+      <range min="1" max="16384"/>
+      <default>600</default>
+      <summary>Height of a new picture, in pixels</summary>
+    </key>
+    <key name="default-background" type="s">
+      <default>"#ffffff"</default>
+      <summary>Background color of a new picture as #rrggbb</summary>
+    </key>
+
+    <!-- Drawing defaults (used when the app starts) -->
+    <key name="default-font" type="s">
+      <default>"Arial 11"</default>
+      <summary>Text tool font, as a Pango description</summary>
+    </key>
+    <key name="text-opaque" type="b">
+      <default>false</default>
+      <summary>Text starts with an opaque background</summary>
+    </key>
+    <key name="text-smooth" type="b">
+      <default>false</default>
+      <summary>Text starts smoothed (antialiased)</summary>
+    </key>
+    <key name="line-width" type="i">
+      <range min="1" max="5"/>
+      <default>1</default>
+      <summary>Line width of Line, Curve and the shape tools</summary>
+    </key>
+    <key name="magnifier-zoom" type="i">
+      <range min="1" max="8"/>
+      <default>2</default>
+      <summary>Zoom a Magnifier click applies</summary>
+    </key>
+
+    <!-- Palette -->
+    <key name="palette" type="as">
+      <default>[]</default>
+      <summary>Edited palette</summary>
+      <description>The 28 palette colors as #rrggbb, top row first. Empty means the classic palette.</description>
+    </key>
+  </schema>
+</schemalist>

@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "core/document.h"
+#include "ui/settings.h"
 
 #define PALETTE_COLUMNS 14
 #define PALETTE_ROWS    2
@@ -71,6 +72,50 @@ rgba_from_argb (uint32_t c)
                      (c & 0xFF) / 255.0f, 1.0f };
 }
 
+/* The edited palette lives in settings as 28 "#rrggbb" strings; empty means
+ * the classic one. */
+static void
+load_palette (EaselColorBox *self)
+{
+  GSettings *s = easel_settings ();
+  g_auto (GStrv) hex = s != NULL ? g_settings_get_strv (s, "palette") : NULL;
+
+  memcpy (self->colors, palette, sizeof palette);
+  if (hex == NULL || g_strv_length (hex) != PALETTE_COLUMNS * PALETTE_ROWS)
+    return;
+  for (int i = 0; i < PALETTE_COLUMNS * PALETTE_ROWS; i++)
+    {
+      uint32_t argb;
+      if (easel_parse_hex_color (hex[i], &argb))
+        self->colors[i] = argb;
+    }
+}
+
+static void
+save_palette (EaselColorBox *self)
+{
+  GSettings *s = easel_settings ();
+  if (s == NULL)
+    return;
+
+  GStrvBuilder *builder = g_strv_builder_new ();
+  for (int i = 0; i < PALETTE_COLUMNS * PALETTE_ROWS; i++)
+    {
+      g_autofree char *hex = g_strdup_printf ("#%06x", self->colors[i] & 0xFFFFFF);
+      g_strv_builder_add (builder, hex);
+    }
+  g_auto (GStrv) strv = g_strv_builder_end (builder);
+  g_strv_builder_unref (builder);
+  g_settings_set_strv (s, "palette", (const char *const *) strv);
+}
+
+static void
+on_palette_setting_changed (GSettings *settings, const char *key, EaselColorBox *self)
+{
+  load_palette (self);
+  gtk_widget_queue_draw (self->palette_area);
+}
+
 static void
 colors_changed (EaselColorBox *self)
 {
@@ -111,6 +156,19 @@ draw_palette (GtkDrawingArea *area, cairo_t *cr, int width, int height, gpointer
       GdkRectangle r = { (i % PALETTE_COLUMNS) * STEP, (i / PALETTE_COLUMNS) * STEP, CELL, CELL };
       draw_framed_square (cr, GTK_WIDGET (area), &r, ((EaselColorBox *) data)->colors[i]);
     }
+
+  /* Keyboard focus ring on the current cell. */
+  EaselColorBox *self = data;
+  if (gtk_widget_has_focus (GTK_WIDGET (area)) && self->selected >= 0)
+    {
+      GdkRGBA c;
+      gtk_widget_get_color (GTK_WIDGET (area), &c);
+      gdk_cairo_set_source_rgba (cr, &c);
+      cairo_set_line_width (cr, 2);
+      cairo_rectangle (cr, (self->selected % PALETTE_COLUMNS) * STEP - 1,
+                       (self->selected / PALETTE_COLUMNS) * STEP - 1, CELL + 2, CELL + 2);
+      cairo_stroke (cr);
+    }
 }
 
 typedef struct
@@ -134,6 +192,7 @@ on_color_chosen (GObject *source, GAsyncResult *result, gpointer user_data)
         {
           /* Edit Colors: the cell takes the new colour, and so does the pen. */
           data->box->colors[data->cell] = argb_from_rgba (rgba);
+          save_palette (data->box);
           gtk_widget_queue_draw (data->box->palette_area);
         }
       if (data->foreground)
@@ -206,6 +265,56 @@ on_palette_pressed (GtkGestureClick *gesture, int n_press, double x, double y, E
     easel_color_box_set_background (self, color);
 }
 
+/* Arrow keys move over the palette; Enter/Space picks the foreground,
+ * Shift+Enter/Shift+Space (or Menu) the background, F2 edits the cell. */
+static gboolean
+on_palette_key (GtkEventControllerKey *controller, guint keyval, guint keycode,
+                GdkModifierType state, EaselColorBox *self)
+{
+  int cell = self->selected < 0 ? 0 : self->selected;
+  int col = cell % PALETTE_COLUMNS, row = cell / PALETTE_COLUMNS;
+
+  switch (keyval)
+    {
+    case GDK_KEY_Left:  col = MAX (col - 1, 0); break;
+    case GDK_KEY_Right: col = MIN (col + 1, PALETTE_COLUMNS - 1); break;
+    case GDK_KEY_Up:    row = MAX (row - 1, 0); break;
+    case GDK_KEY_Down:  row = MIN (row + 1, PALETTE_ROWS - 1); break;
+    case GDK_KEY_Home:  col = 0; break;
+    case GDK_KEY_End:   col = PALETTE_COLUMNS - 1; break;
+    case GDK_KEY_Return:
+    case GDK_KEY_KP_Enter:
+    case GDK_KEY_space:
+      if (state & GDK_SHIFT_MASK)
+        easel_color_box_set_background (self, self->colors[cell]);
+      else
+        easel_color_box_set_foreground (self, self->colors[cell]);
+      self->selected = cell;
+      gtk_widget_queue_draw (self->palette_area);
+      return GDK_EVENT_STOP;
+    case GDK_KEY_Menu:
+      easel_color_box_set_background (self, self->colors[cell]);
+      return GDK_EVENT_STOP;
+    case GDK_KEY_F2:
+      self->selected = cell;
+      choose_color (self, TRUE, cell);
+      return GDK_EVENT_STOP;
+    default:
+      return GDK_EVENT_PROPAGATE;
+    }
+  self->selected = row * PALETTE_COLUMNS + col;
+  gtk_widget_queue_draw (self->palette_area);
+  return GDK_EVENT_STOP;
+}
+
+static void
+on_palette_focus (GtkEventControllerFocus *controller, EaselColorBox *self)
+{
+  if (gtk_event_controller_focus_contains_focus (controller) && self->selected < 0)
+    self->selected = 0;
+  gtk_widget_queue_draw (self->palette_area);
+}
+
 static void
 on_swap_clicked (GtkButton *button, EaselColorBox *self)
 {
@@ -236,7 +345,7 @@ easel_color_box_init (EaselColorBox *self)
 {
   self->foreground = EASEL_RGB (0, 0, 0);
   self->background = EASEL_RGB (255, 255, 255);
-  memcpy (self->colors, palette, sizeof palette);
+  load_palette (self);
   self->selected = -1;
 
   gtk_orientable_set_orientation (GTK_ORIENTABLE (self), GTK_ORIENTATION_HORIZONTAL);
@@ -260,13 +369,25 @@ easel_color_box_init (EaselColorBox *self)
   g_signal_connect (swap, "clicked", G_CALLBACK (on_swap_clicked), self);
   gtk_box_append (GTK_BOX (self), swap);
 
+
   self->palette_area = make_drawing_area (PALETTE_COLUMNS * STEP - GAP, PALETTE_ROWS * STEP - GAP,
                                           draw_palette, self);
-  gtk_widget_set_tooltip_text (self->palette_area, "Left-click: foreground. Right-click: background. Double-click: edit this color.");
+  gtk_widget_set_tooltip_text (self->palette_area, "Left-click: foreground. Right-click: background. Double-click: edit this color. Keyboard: Tab to focus, arrows, Enter / Shift+Enter, F2.");
   GtkGesture *palette_click = gtk_gesture_click_new ();
   gtk_gesture_single_set_button (GTK_GESTURE_SINGLE (palette_click), 0);
   g_signal_connect (palette_click, "pressed", G_CALLBACK (on_palette_pressed), self);
   gtk_widget_add_controller (self->palette_area, GTK_EVENT_CONTROLLER (palette_click));
+  if (easel_settings () != NULL)
+    g_signal_connect_object (easel_settings (), "changed::palette", G_CALLBACK (on_palette_setting_changed), self, 0);
+
+  gtk_widget_set_focusable (self->palette_area, TRUE);
+  GtkEventController *keys = gtk_event_controller_key_new ();
+  g_signal_connect (keys, "key-pressed", G_CALLBACK (on_palette_key), self);
+  gtk_widget_add_controller (self->palette_area, keys);
+  GtkEventController *focus = gtk_event_controller_focus_new ();
+  g_signal_connect (focus, "enter", G_CALLBACK (on_palette_focus), self);
+  g_signal_connect (focus, "leave", G_CALLBACK (on_palette_focus), self);
+  gtk_widget_add_controller (self->palette_area, focus);
   gtk_box_append (GTK_BOX (self), self->palette_area);
 }
 

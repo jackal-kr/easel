@@ -28,9 +28,13 @@ void easel_canvas_set_fill_style (EaselCanvas *self, EaselFillStyle style);
 
 void easel_canvas_set_zoom (EaselCanvas *self, int zoom, int ix, int iy);
 int  easel_canvas_get_zoom (EaselCanvas *self);
+void easel_canvas_zoom_step (EaselCanvas *self, int direction, int ix, int iy);
+gint64 easel_canvas_get_paint_time (EaselCanvas *self); /* microseconds */
 void easel_canvas_set_show_grid (EaselCanvas *self, gboolean show); /* drawn at 4x and above */
 void easel_canvas_set_zoom_level (EaselCanvas *self, int level); /* what a Magnifier click applies */
 
+void     easel_canvas_mark_saved (EaselCanvas *self);
+gboolean easel_canvas_is_saved (EaselCanvas *self);
 gboolean easel_canvas_can_undo (EaselCanvas *self);
 gboolean easel_canvas_can_redo (EaselCanvas *self);
 gboolean easel_canvas_undo (EaselCanvas *self);
@@ -67,6 +71,7 @@ gboolean easel_canvas_resize (EaselCanvas *self, int width, int height);
 typedef enum { EASEL_FLIP_H, EASEL_FLIP_V, EASEL_ROTATE_90, EASEL_ROTATE_180, EASEL_ROTATE_270 } EaselTurn;
 void     easel_canvas_turn (EaselCanvas *self, EaselTurn turn);
 void     easel_canvas_invert (EaselCanvas *self);
+void     easel_canvas_black_and_white (EaselCanvas *self);
 void     easel_canvas_stretch_skew (EaselCanvas *self, int stretch_h, int stretch_v, double skew_h, double skew_v);
 
 /* Replaces the picture; takes ownership, clears undo history. */

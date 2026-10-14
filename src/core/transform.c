@@ -129,3 +129,16 @@ easel_invert (uint32_t *pixels, size_t count)
       pixels[i] = (a << 24) | ((r & 0xFF) << 16) | ((g & 0xFF) << 8) | (b & 0xFF);
     }
 }
+
+void
+easel_black_and_white (uint32_t *pixels, size_t count)
+{
+  for (size_t i = 0; i < count; i++)
+    {
+      uint32_t c = pixels[i], a = c >> 24;
+      uint32_t r = (c >> 16) & 0xFF, g = (c >> 8) & 0xFF, b = c & 0xFF;
+      uint32_t lum = (299 * r + 587 * g + 114 * b) / 1000; /* premultiplied: compare with a/2 */
+
+      pixels[i] = lum * 2 >= a ? (a << 24) | (a << 16) | (a << 8) | a : (a << 24);
+    }
+}
