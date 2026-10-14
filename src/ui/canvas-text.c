@@ -21,8 +21,8 @@ canvas_text_sel_range (EaselCanvas *self, int *a, int *b)
 
 /* Tells the toolbox and the Edit menu about the caret and selection, so the
  * Bold/Italic buttons and Cut/Copy can enable or disable themselves. */
-static void
-text_emit_state (EaselCanvas *self)
+static guint
+text_current_flags (EaselCanvas *self)
 {
   guint flags = self->text_typing;
   int a, b;
@@ -33,7 +33,13 @@ text_emit_state (EaselCanvas *self)
       for (int i = a; i < b; i++)
         flags &= g_array_index (self->text_attr, TextAttr, i).flags;
     }
-  g_signal_emit (self, canvas_signals[SIGNAL_TEXT_STATE], 0, flags);
+  return flags;
+}
+
+static void
+text_emit_state (EaselCanvas *self)
+{
+  g_signal_emit (self, canvas_signals[SIGNAL_TEXT_STATE], 0, text_current_flags (self));
   g_signal_emit (self, canvas_signals[SIGNAL_SELECTION_CHANGED], 0);
 }
 
@@ -41,7 +47,7 @@ static void
 text_buf_insert (EaselCanvas *self, int pos, const char *str)
 {
   int len = (int) strlen (str);
-  TextAttr at = { (guint8) self->text_typing, self->foreground | 0xFF000000u };
+  TextAttr at = { (guint8) self->text_typing, self->foreground | 0xFF000000u, self->text_typing_family, self->text_typing_size };
 
   g_string_insert (self->text_buf, pos, str);
   for (int i = 0; i < len; i++)
@@ -107,14 +113,18 @@ canvas_text_render (EaselCanvas *self)
         while (j < n)
           {
             TextAttr b = g_array_index (self->text_attr, TextAttr, j);
-            if (b.flags != a.flags || b.color != a.color)
+            if (b.flags != a.flags || b.color != a.color || b.family != a.family || b.size != a.size)
               break;
             j++;
           }
-        PangoAttribute *at[5];
+        PangoAttribute *at[7];
         int k = 0;
         at[k++] = pango_attr_foreground_new (((a.color >> 16) & 0xFF) * 257, ((a.color >> 8) & 0xFF) * 257,
                                              (a.color & 0xFF) * 257);
+        if (a.family != NULL)
+          at[k++] = pango_attr_family_new (a.family);
+        if (a.size > 0)
+          at[k++] = pango_attr_size_new (a.size * PANGO_SCALE);
         if (a.flags & EASEL_TEXT_BOLD)
           at[k++] = pango_attr_weight_new (PANGO_WEIGHT_BOLD);
         if (a.flags & EASEL_TEXT_ITALIC)
@@ -294,7 +304,11 @@ canvas_text_move_cursor (EaselCanvas *self, int index, gboolean extend)
   if (!extend && self->text_attr->len > 0)
     {
       guint at = self->text_cursor > 0 ? (guint) self->text_cursor - 1 : 0;
-      self->text_typing = g_array_index (self->text_attr, TextAttr, at).flags;
+      TextAttr prev = g_array_index (self->text_attr, TextAttr, at);
+
+      self->text_typing = prev.flags;
+      self->text_typing_family = prev.family;
+      self->text_typing_size = prev.size;
     }
   canvas_text_caret_restart (self);
   text_emit_state (self);
@@ -570,6 +584,8 @@ canvas_text_begin_drag (EaselCanvas *self, int x, int y)
     self->text_buf = g_string_new (NULL);
   if (self->text_attr == NULL)
     self->text_attr = g_array_new (FALSE, FALSE, sizeof (TextAttr));
+  self->text_typing_family = NULL;
+  self->text_typing_size = 0;
   self->text_creating = TRUE;
   self->text_rect = (EaselRect) { CLAMP (x, 0, self->doc->width - 1), CLAMP (y, 0, self->doc->height - 1), 1, 1 };
   gtk_widget_queue_draw (GTK_WIDGET (self));
@@ -714,4 +730,92 @@ easel_canvas_set_font (EaselCanvas *self, const char *description)
   g_free (self->font);
   self->font = g_strdup (description);
   canvas_text_render (self);
+}
+
+/* ---- Font for the selected text ---------------------------------------- */
+
+/* Gives the selected characters their own family and size, or sets them for
+ * the text typed next when nothing is selected. `font` is a Pango description. */
+void
+easel_canvas_text_set_font (EaselCanvas *self, const char *font)
+{
+  g_return_if_fail (EASEL_IS_CANVAS (self));
+  if (!self->text_active)
+    return;
+
+  PangoFontDescription *desc = pango_font_description_from_string (font);
+  const char *family = pango_font_description_get_family (desc);
+  const char *interned = family != NULL ? g_intern_string (family) : NULL;
+  guint16 size = (guint16) CLAMP (pango_font_description_get_size (desc) / PANGO_SCALE, 0, 1000);
+  int a, b;
+
+  if (canvas_text_sel_range (self, &a, &b))
+    {
+      for (int i = a; i < b; i++)
+        {
+          TextAttr *at = &g_array_index (self->text_attr, TextAttr, i);
+          at->family = interned;
+          at->size = size;
+        }
+      canvas_text_render (self);
+    }
+  else
+    {
+      self->text_typing_family = interned;
+      self->text_typing_size = size;
+    }
+  pango_font_description_free (desc);
+}
+
+/* The font at the start of the selection (or what is typed next), with the
+ * box font filling in whatever was not set. Free the result with g_free(). */
+char *
+easel_canvas_text_get_font (EaselCanvas *self, guint *style_flags, uint32_t *argb)
+{
+  g_return_val_if_fail (EASEL_IS_CANVAS (self), NULL);
+
+  const char *family = self->text_typing_family;
+  guint size = self->text_typing_size;
+  uint32_t color = self->foreground;
+  int a, b;
+
+  if (self->text_active && canvas_text_sel_range (self, &a, &b))
+    {
+      TextAttr first = g_array_index (self->text_attr, TextAttr, a);
+      family = first.family;
+      size = first.size;
+      color = first.color;
+    }
+
+  PangoFontDescription *desc = pango_font_description_from_string (self->font);
+
+  if (family != NULL)
+    pango_font_description_set_family (desc, family);
+  if (size > 0)
+    pango_font_description_set_size (desc, (int) size * PANGO_SCALE);
+  char *result = pango_font_description_to_string (desc);
+  pango_font_description_free (desc);
+  if (style_flags != NULL)
+    *style_flags = self->text_active ? text_current_flags (self) : 0;
+  if (argb != NULL)
+    *argb = color | 0xFF000000u;
+  return result;
+}
+
+/* Colours the selected text, or all of it when nothing is selected. */
+void
+easel_canvas_text_set_color (EaselCanvas *self, uint32_t argb)
+{
+  g_return_if_fail (EASEL_IS_CANVAS (self));
+  canvas_text_apply_color (self, argb);
+}
+
+/* TRUE while some characters of the text box are selected. */
+gboolean
+easel_canvas_text_has_selection (EaselCanvas *self)
+{
+  int a, b;
+
+  g_return_val_if_fail (EASEL_IS_CANVAS (self), FALSE);
+  return self->text_active && canvas_text_sel_range (self, &a, &b);
 }

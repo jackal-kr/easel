@@ -13,7 +13,7 @@ prompts, undo across everything, paste of oversize images, selections on the far
 hunted down and fixed. Use it for real: quick sketches, screenshot markup, pixel art, resizing and cropping, or
 just drawing a sun in the corner of everything. ☀️
 
-Available in English, Polish and Ukrainian, with screen-reader labels. Packages: `.deb` and Flatpak
+Available in English, Czech, German, Italian, Spanish, Portuguese, Polish, Russian and Ukrainian, with screen-reader labels. Packages: `.deb` and Flatpak
 (see the [releases](https://github.com/jackal-kr/easel/releases)).
 
 <details><summary>Dark mode too 🌙</summary>

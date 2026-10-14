@@ -42,7 +42,7 @@ A GNOME app is a normal C program that sits on a tall stack of libraries. Knowin
 | Cairo | A 2D drawing library on the CPU | Cursors, tool previews, thumbnail, resizing pasted images |
 | Pango | Text layout and fonts | The Text tool's layout and rendering |
 | gdk-pixbuf | Loads and saves image files | PNG, JPEG, BMP, TIFF, WebP, GIF import |
-| gettext | Translation lookup | The `_("text")` calls; Polish and Ukrainian catalogs |
+| gettext | Translation lookup | The `_("text")` calls; Czech, German, Italian, Spanish, Portuguese, Polish, Russian and Ukrainian catalogs |
 
 The build tools matter just as much as the libraries:
 
@@ -213,7 +213,7 @@ The image file loader. `fileio.c` loads any supported format into a `GdkPixbuf`,
 
 ### gettext
 
-`_("Text")` looks the string up in a `.mo` catalog for the user's language and returns the English text when none exists. `N_("Text")` only marks a string for extraction without translating it (used in static tables). The `po/` directory holds the template (`easel.pot`) and the Polish and Ukrainian translations.
+`_("Text")` looks the string up in a `.mo` catalog for the user's language and returns the English text when none exists. `N_("Text")` only marks a string for extraction without translating it (used in static tables). The `po/` directory holds the template (`easel.pot`) and the translations (Czech, German, Italian, Spanish, Portuguese, Polish, Russian and Ukrainian).
 
 ## 6. Code tour, part 1: `src/core/`
 
@@ -384,7 +384,7 @@ The root `meson.build` states the dependencies (GTK 4.14, libadwaita 1.8, gdk-pi
 
 ### Translations
 
-`po/` holds `easel.pot` (the template of every translatable string), `pl.po` and `uk.po`. `POTFILES.in` lists the source files to scan. After adding or changing a `_("...")` string run `ninja -C build easel-update-po`, translate the new entries, and run `tools/check-i18n.sh`. The app picks the language from the environment through `setlocale` and `bindtextdomain` in `main()`.
+`po/` holds `easel.pot` (the template of every translatable string), `pl.po`, `ru.po` and `uk.po`. `POTFILES.in` lists the source files to scan. After adding or changing a `_("...")` string run `ninja -C build easel-update-po`, translate the new entries, and run `tools/check-i18n.sh`. The app picks the language from the environment through `setlocale` and `bindtextdomain` in `main()`.
 
 ### Accessibility
 

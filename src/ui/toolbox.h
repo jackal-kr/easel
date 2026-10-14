@@ -25,6 +25,7 @@ int            easel_toolbox_get_line_width (EaselToolbox *self);
 EaselFillStyle easel_toolbox_get_fill_style (EaselToolbox *self);
 const char    *easel_toolbox_get_font (EaselToolbox *self); /* Pango description */
 void           easel_toolbox_set_text_style (EaselToolbox *self, guint flags); /* EASEL_TEXT_* */
+void           easel_toolbox_set_foreground (EaselToolbox *self, uint32_t argb); /* start colour of the font picker */
 gboolean       easel_toolbox_get_text_opaque (EaselToolbox *self);
 gboolean       easel_toolbox_get_eraser_opaque (EaselToolbox *self); /* Eraser paints the background (else transparency) */
 gboolean       easel_toolbox_get_text_smooth (EaselToolbox *self);

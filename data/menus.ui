@@ -66,6 +66,9 @@
     <section>
       <item><attribute name="label" translatable="yes">Select All</attribute><attribute name="action">win.text-select-all</attribute></item>
     </section>
+    <section>
+      <item><attribute name="label" translatable="yes">Font for Selection…</attribute><attribute name="action">win.text-font</attribute></item>
+    </section>
   </menu>
 
   <menu id="view_menu">

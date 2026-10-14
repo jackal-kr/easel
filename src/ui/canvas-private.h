@@ -140,6 +140,8 @@ struct _EaselCanvas
   int          text_anchor;   /* other end of the text selection, -1 none */
   GArray      *text_attr;     /* one TextAttr per byte of text_buf */
   guint        text_typing;   /* style flags for text typed from now on */
+  const char  *text_typing_family; /* font for text typed from now on (NULL: box font) */
+  guint16      text_typing_size;
   char        *font;
   EaselClip   *text_clip;     /* rendered text, ready to be put on the picture */
   GdkTexture  *text_texture;
@@ -170,7 +172,9 @@ struct _EaselCanvas
   uint32_t spray_rng;
 };
 
-typedef struct { guint8 flags; uint32_t color; } TextAttr;
+/* Style of one byte of text. `family` (interned, so it can be compared by
+ * pointer and never freed) and `size` (points) are NULL / 0 for "the box font". */
+typedef struct { guint8 flags; uint32_t color; const char *family; guint16 size; } TextAttr;
 
 enum { SIGNAL_POINTER_MOVED, SIGNAL_COLOR_PICKED, SIGNAL_HISTORY_CHANGED, SIGNAL_RESIZE_PREVIEW, SIGNAL_ZOOM_CHANGED, SIGNAL_SELECTION_CHANGED, SIGNAL_TEXT_STATE, N_SIGNALS };
 extern guint canvas_signals[N_SIGNALS];

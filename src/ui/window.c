@@ -8,6 +8,7 @@
 #include "ui/colorbox.h"
 #include "ui/config.h"
 #include "ui/dialogs.h"
+#include "ui/fontdialog.h"
 #include "ui/print.h"
 #include "ui/fileio.h"
 #include "ui/settings.h"
@@ -58,8 +59,15 @@ on_pointer_moved (EaselCanvas *canvas, int x, int y, EaselWindow *self)
 }
 
 static void
+on_text_color_picked (EaselToolbox *toolbox, guint argb, EaselWindow *self)
+{
+  easel_canvas_text_set_color (self->canvas, argb);
+}
+
+static void
 on_colors_changed (EaselColorBox *box, EaselWindow *self)
 {
+  easel_toolbox_set_foreground (self->toolbox, easel_color_box_get_foreground (box));
   easel_canvas_set_foreground (self->canvas, easel_color_box_get_foreground (box));
   easel_canvas_set_background (self->canvas, easel_color_box_get_background (box));
 }
@@ -826,6 +834,41 @@ action_text_edit (GSimpleAction *action, GVariant *parameter, gpointer user_data
     easel_canvas_text_select_all (canvas);
 }
 
+/* "Font for Selection...": the picker applies to the selected text only (or to
+ * what is typed next when nothing is selected), not to the whole box. */
+static void
+on_selection_font_picked (const char *font, guint flags, uint32_t argb, gboolean color_changed, gpointer data)
+{
+  EaselWindow *self = data;
+  static const guint all[4] = { EASEL_TEXT_BOLD, EASEL_TEXT_ITALIC, EASEL_TEXT_UNDERLINE, EASEL_TEXT_STRIKE };
+
+  easel_canvas_text_set_font (self->canvas, font);
+  if (color_changed)
+    easel_canvas_text_set_color (self->canvas, argb);
+  for (int i = 0; i < 4; i++)
+    easel_canvas_text_apply_style (self->canvas, all[i], (flags & all[i]) != 0);
+}
+
+static gboolean
+on_font_requested (EaselToolbox *toolbox, EaselWindow *self)
+{
+  if (!easel_canvas_text_has_selection (self->canvas))
+    return FALSE;
+  gtk_widget_activate_action (GTK_WIDGET (self), "win.text-font", NULL);
+  return TRUE;
+}
+
+static void
+action_text_font (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+  EaselWindow *self = user_data;
+  guint flags = 0;
+  uint32_t argb = 0;
+  g_autofree char *font = easel_canvas_text_get_font (self->canvas, &flags, &argb);
+
+  easel_font_dialog_present (GTK_WIDGET (self), font, flags, argb, on_selection_font_picked, self);
+}
+
 /* ---- Image and file actions that open a dialog ------------------------ */
 
 static void
@@ -975,6 +1018,7 @@ static const GActionEntry window_actions[] = {
   { "rotate-270", action_turn },
   { "text-cut", action_text_edit },
   { "text-copy", action_text_edit },
+  { "text-font", action_text_font },
   { "text-paste", action_text_edit },
   { "text-delete", action_text_edit },
   { "text-select-all", action_text_edit },
@@ -1295,6 +1339,8 @@ easel_window_init (EaselWindow *self)
   g_signal_connect (self->canvas, "selection-changed", G_CALLBACK (on_selection_changed), self);
   g_signal_connect (self->canvas, "text-state", G_CALLBACK (on_text_state), self);
   g_signal_connect (self->toolbox, "text-style-toggled", G_CALLBACK (on_text_style_toggled), self);
+  g_signal_connect (self->toolbox, "font-requested", G_CALLBACK (on_font_requested), self);
+  g_signal_connect (self->toolbox, "text-color-picked", G_CALLBACK (on_text_color_picked), self);
   on_selection_changed (self->canvas, self);
   {
     g_autoptr (GtkBuilder) menus = gtk_builder_new_from_resource ("/io/github/jackal_kr/Easel/menus.ui");

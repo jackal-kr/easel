@@ -1,4 +1,5 @@
 #include "ui/toolbox.h"
+#include "ui/fontdialog.h"
 #include <glib/gi18n.h>
 
 #include "ui/config.h"
@@ -61,14 +62,15 @@ struct _EaselToolbox
   char           *font;         /* Pango description for the Text tool */
   GtkWidget      *font_button;
   gboolean        opaque, text_opaque, eraser_opaque;
-  GtkWidget      *style_buttons[4];
-  gboolean        syncing_style, text_smooth;
+  uint32_t        foreground;   /* colour the font picker starts with */
+  guint           text_flags;   /* EASEL_TEXT_* at the caret or selection, as the canvas reported */
+  gboolean        text_smooth;
   int             gradient_style; /* EaselGradientStyle */
 };
 
 G_DEFINE_FINAL_TYPE (EaselToolbox, easel_toolbox, GTK_TYPE_WIDGET)
 
-enum { SIGNAL_TOOL_CHANGED, SIGNAL_OPTIONS_CHANGED, SIGNAL_TEXT_STYLE, N_SIGNALS };
+enum { SIGNAL_TOOL_CHANGED, SIGNAL_OPTIONS_CHANGED, SIGNAL_TEXT_STYLE, SIGNAL_TEXT_COLOR, SIGNAL_FONT_REQUEST, N_SIGNALS };
 static guint signals[N_SIGNALS];
 
 static const char *
@@ -483,124 +485,53 @@ build_select_options (EaselToolbox *self)
   return build_opaque_options (self, OPTION_OPAQUE, NULL, 0);
 }
 
+static const guint style_flags[4] = { EASEL_TEXT_BOLD, EASEL_TEXT_ITALIC, EASEL_TEXT_UNDERLINE, EASEL_TEXT_STRIKE };
+
+/* The user pressed Select in the font picker: take the font, and tell the
+ * canvas about every character style that changed. */
 static void
-on_font_chosen (GObject *source, GAsyncResult *result, gpointer data)
+on_font_picked (const char *font, guint flags, uint32_t argb, gboolean color_changed, gpointer data)
 {
   EaselToolbox *self = data;
-  g_autoptr (GError) error = NULL;
-  PangoFontDescription *desc = gtk_font_dialog_choose_font_finish (GTK_FONT_DIALOG (source), result, &error);
 
-  if (desc != NULL)
-    {
-      g_free (self->font);
-      self->font = pango_font_description_to_string (desc);
-      gtk_widget_set_tooltip_text (self->font_button, self->font);
-      pango_font_description_free (desc);
-      g_signal_emit (self, signals[SIGNAL_OPTIONS_CHANGED], 0);
-    }
-  g_object_unref (self);
-}
-
-/* The font dialog fills its list a batch at a time. If it is told the current
- * font up front, GTK selects it before its row exists and, for some fonts
- * (seen with Arial and Andale Mono inside Flatpak), leaves the list blank. So
- * the dialog opens without a font and the current one is set once the list has
- * had time to load. */
-static const guint font_tries[] = { 50, 200, 500, 1000, 2000 }; /* ms after opening */
-
-static gboolean
-select_current_font (gpointer data)
-{
-  const char *font = data;
-  GListModel *windows = gtk_window_get_toplevels ();
-
-  /* GtkFontDialog gives no access to its chooser, so the (deprecated)
-   * GtkFontChooser interface of its window is the only way to set the font. */
-  G_GNUC_BEGIN_IGNORE_DEPRECATIONS
-  for (guint i = 0; i < g_list_model_get_n_items (windows); i++)
-    {
-      g_autoptr (GtkWindow) window = g_list_model_get_item (windows, i);
-
-      if (GTK_IS_FONT_CHOOSER (window))
-        {
-          PangoFontDescription *current = pango_font_description_from_string (font);
-          PangoFontDescription *shown = gtk_font_chooser_get_font_desc (GTK_FONT_CHOOSER (window));
-
-          /* Try again later if the row was not there yet. */
-          if (shown == NULL || g_strcmp0 (pango_font_description_get_family (shown),
-                                          pango_font_description_get_family (current)) != 0)
-            gtk_font_chooser_set_font_desc (GTK_FONT_CHOOSER (window), current);
-          pango_font_description_free (current);
-        }
-    }
-  G_GNUC_END_IGNORE_DEPRECATIONS
-  return G_SOURCE_REMOVE;
+  g_free (self->font);
+  self->font = g_strdup (font);
+  gtk_widget_set_tooltip_text (self->font_button, self->font);
+  g_signal_emit (self, signals[SIGNAL_OPTIONS_CHANGED], 0);
+  for (int i = 0; i < 4; i++)
+    if ((flags ^ self->text_flags) & style_flags[i])
+      g_signal_emit (self, signals[SIGNAL_TEXT_STYLE], 0, style_flags[i], (flags & style_flags[i]) != 0);
+  self->text_flags = flags;
+  if (color_changed)
+    g_signal_emit (self, signals[SIGNAL_TEXT_COLOR], 0, argb);
 }
 
 static void
 on_font_button_clicked (GtkButton *button, EaselToolbox *self)
 {
-  GtkFontDialog *dialog = gtk_font_dialog_new ();
-  GtkWindow *parent = GTK_WINDOW (gtk_widget_get_root (GTK_WIDGET (self)));
-  /* Only inside Flatpak was the list seen going blank, so everywhere else the
-   * current font is simply passed in and shows at once. */
-  gboolean in_flatpak = g_file_test ("/.flatpak-info", G_FILE_TEST_EXISTS);
-  PangoFontDescription *current = in_flatpak ? NULL : pango_font_description_from_string (self->font);
+  gboolean handled = FALSE;
 
-  gtk_font_dialog_set_title (dialog, _("Font"));
-  gtk_font_dialog_choose_font (dialog, parent, current, NULL, on_font_chosen, g_object_ref (self));
-  if (in_flatpak)
-    {
-      /* The first try is almost always enough; the later ones cover a slow
-       * machine (a try does nothing once the right font is showing). */
-      char *font = g_strdup (self->font);
-      for (guint i = 0; i < G_N_ELEMENTS (font_tries); i++)
-        g_timeout_add (font_tries[i], select_current_font, font);
-      g_timeout_add_once (font_tries[G_N_ELEMENTS (font_tries) - 1] + 1000, (GSourceOnceFunc) g_free, font);
-    }
-  g_clear_pointer (&current, pango_font_description_free);
-  g_object_unref (dialog);
+  /* With characters selected in a text box the window takes over, so the
+   * choice applies to that part only and not to the whole box. */
+  g_signal_emit (self, signals[SIGNAL_FONT_REQUEST], 0, &handled);
+  if (!handled)
+    easel_font_dialog_present (GTK_WIDGET (self), self->font, self->text_flags, self->foreground, on_font_picked, self);
 }
 
-static const guint style_flags[4] = { EASEL_TEXT_BOLD, EASEL_TEXT_ITALIC, EASEL_TEXT_UNDERLINE, EASEL_TEXT_STRIKE };
-
-static void
-on_style_toggled (GtkToggleButton *button, EaselToolbox *self)
+void
+easel_toolbox_set_foreground (EaselToolbox *self, uint32_t argb)
 {
-  if (self->syncing_style)
-    return;
-  for (int i = 0; i < 4; i++)
-    if (GTK_WIDGET (button) == self->style_buttons[i])
-      g_signal_emit (self, signals[SIGNAL_TEXT_STYLE], 0, style_flags[i], gtk_toggle_button_get_active (button));
+  g_return_if_fail (EASEL_IS_TOOLBOX (self));
+  self->foreground = argb;
 }
 
-/* Shows which character styles apply at the caret or to the selection. */
+/* Remembers which character styles apply at the caret or to the selection,
+ * so the font picker can show them. */
 void
 easel_toolbox_set_text_style (EaselToolbox *self, guint flags)
 {
   g_return_if_fail (EASEL_IS_TOOLBOX (self));
-  self->syncing_style = TRUE;
-  for (int i = 0; i < 4; i++)
-    if (self->style_buttons[i] != NULL)
-      gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (self->style_buttons[i]), (flags & style_flags[i]) != 0);
-  self->syncing_style = FALSE;
-}
-
-static GtkWidget *
-make_style_button (EaselToolbox *self, int i, const char *icon, const char *tip)
-{
-  GtkWidget *b = gtk_toggle_button_new ();
-  GtkWidget *image = gtk_image_new_from_icon_name (icon);
-
-  gtk_image_set_pixel_size (GTK_IMAGE (image), 16);
-  gtk_widget_set_size_request (image, 24, 24);
-  gtk_button_set_child (GTK_BUTTON (b), image);
-  gtk_widget_add_css_class (b, "flat");
-  gtk_widget_set_tooltip_text (b, tip);
-  gtk_accessible_update_property (GTK_ACCESSIBLE (b), GTK_ACCESSIBLE_PROPERTY_LABEL, tip, -1);
-  self->style_buttons[i] = b;
-  g_signal_connect (b, "toggled", G_CALLBACK (on_style_toggled), self);
-  return b;
+  self->text_flags = flags;
 }
 
 static void
@@ -616,29 +547,19 @@ build_text_options (EaselToolbox *self)
   GtkWidget *grid = build_opaque_options (self, OPTION_TEXT_OPAQUE, NULL, 0);
   GtkWidget *rule = gtk_separator_new (GTK_ORIENTATION_HORIZONTAL);
 
-  gtk_widget_set_margin_top (rule, 4);
-  gtk_widget_set_margin_bottom (rule, 4);
+  gtk_widget_set_margin_top (rule, 6);
+  gtk_widget_set_margin_bottom (rule, 6);
   gtk_grid_attach (GTK_GRID (grid), rule, 0, 2, 2, 1);
-
-  gtk_grid_attach (GTK_GRID (grid), make_style_button (self, 0, "format-text-bold-symbolic", _("Bold")), 0, 3, 1, 1);
-  gtk_grid_attach (GTK_GRID (grid), make_style_button (self, 1, "format-text-italic-symbolic", _("Italic")), 1, 3, 1, 1);
-  gtk_grid_attach (GTK_GRID (grid), make_style_button (self, 2, "format-text-underline-symbolic", _("Underline")), 0, 4, 1, 1);
-  gtk_grid_attach (GTK_GRID (grid), make_style_button (self, 3, "format-text-strikethrough-symbolic", _("Strikethrough")), 1, 4, 1, 1);
-
-  rule = gtk_separator_new (GTK_ORIENTATION_HORIZONTAL);
-  gtk_widget_set_margin_top (rule, 4);
-  gtk_widget_set_margin_bottom (rule, 4);
-  gtk_grid_attach (GTK_GRID (grid), rule, 0, 5, 2, 1);
 
   self->font_button = gtk_button_new_with_label (_("Font…"));
   gtk_widget_set_tooltip_text (self->font_button, self->font);
   g_signal_connect (self->font_button, "clicked", G_CALLBACK (on_font_button_clicked), self);
-  gtk_grid_attach (GTK_GRID (grid), self->font_button, 0, 6, 2, 1);
+  gtk_grid_attach (GTK_GRID (grid), self->font_button, 0, 3, 2, 1);
 
   GtkWidget *smooth = gtk_toggle_button_new_with_label (_("Smooth"));
   gtk_widget_set_tooltip_text (smooth, _("Smooth text edges (anti-aliasing)"));
   g_signal_connect (smooth, "toggled", G_CALLBACK (on_smooth_toggled), self);
-  gtk_grid_attach (GTK_GRID (grid), smooth, 0, 7, 2, 1);
+  gtk_grid_attach (GTK_GRID (grid), smooth, 0, 4, 2, 1);
   return grid;
 }
 
@@ -853,6 +774,12 @@ easel_toolbox_class_init (EaselToolboxClass *klass)
   signals[SIGNAL_TEXT_STYLE] =
     g_signal_new ("text-style-toggled", G_TYPE_FROM_CLASS (klass), G_SIGNAL_RUN_LAST,
                   0, NULL, NULL, NULL, G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_BOOLEAN);
+  signals[SIGNAL_FONT_REQUEST] =
+    g_signal_new ("font-requested", G_TYPE_FROM_CLASS (klass), G_SIGNAL_RUN_LAST, 0,
+                  g_signal_accumulator_true_handled, NULL, NULL, G_TYPE_BOOLEAN, 0);
+  signals[SIGNAL_TEXT_COLOR] =
+    g_signal_new ("text-color-picked", G_TYPE_FROM_CLASS (klass), G_SIGNAL_RUN_LAST,
+                  0, NULL, NULL, NULL, G_TYPE_NONE, 1, G_TYPE_UINT);
   signals[SIGNAL_OPTIONS_CHANGED] =
     g_signal_new ("options-changed", G_TYPE_FROM_CLASS (klass), G_SIGNAL_RUN_LAST,
                   0, NULL, NULL, NULL, G_TYPE_NONE, 0);

@@ -1,0 +1,1274 @@
+# Translations for easel package.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the easel package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: easel\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-14 21:51+0200\n"
+"PO-Revision-Date: 2026-10-14 22:01+0200\n"
+"Last-Translator: JOD (Oleksiy Degtyar)\n"
+"Language-Team: German\n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: data/io.github.jackal_kr.Easel.desktop.in:3
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:4
+msgid "Easel"
+msgstr "Easel"
+
+#: data/io.github.jackal_kr.Easel.desktop.in:4
+msgid "Paint Program"
+msgstr "Zeichenprogramm"
+
+#: data/io.github.jackal_kr.Easel.desktop.in:5
+msgid "Draw and edit pictures, in the spirit of classic Paint"
+msgstr "Bilder zeichnen und bearbeiten, im Geiste des klassischen Paint"
+
+#: data/io.github.jackal_kr.Easel.desktop.in:12
+msgid "paint;draw;picture;image;bitmap;mspaint;"
+msgstr "zeichnen;malen;Bild;Grafik;Bitmap;mspaint;paint;"
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:5
+msgid "A simple paint program in the spirit of classic Paint"
+msgstr "Ein einfaches Zeichenprogramm im Geiste des klassischen Paint"
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:9
+msgid "JOD (Oleksiy Degtyar)"
+msgstr "JOD (Oleksiy Degtyar)"
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:12
+msgid ""
+"Easel is a native GNOME paint program with the functionality and workflow of "
+"the old Microsoft Paint of Windows XP, built with GTK 4 and libadwaita."
+msgstr "Easel ist ein natives GNOME-Zeichenprogramm mit dem Funktionsumfang und Arbeitsablauf des alten Microsoft Paint von Windows XP, gebaut mit GTK 4 und libadwaita."
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:17
+msgid ""
+"All the classic tools: pencil, brush, airbrush, eraser, fill, text, line, "
+"curve, shapes and selections"
+msgstr "Alle klassischen Werkzeuge: Stift, Pinsel, Sprühdose, Radierer, Füllen, Text, Linie, Kurve, Formen und Auswahlen"
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:18
+msgid "Unlimited-step undo and redo, zoom, pixel grid and thumbnail"
+msgstr "Unbegrenztes Rückgängig und Wiederholen, Zoom, Pixelraster und Miniaturansicht"
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:19
+msgid "Open and save PNG, JPEG, BMP, TIFF and WebP"
+msgstr "PNG, JPEG, BMP, TIFF und WebP öffnen und speichern"
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:20
+msgid "Light and dark style, keyboard shortcuts, Preferences"
+msgstr "Helles und dunkles Design, Tastenkürzel, Einstellungen"
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:25
+msgid "Drawing in the light style"
+msgstr "Zeichnen im hellen Design"
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:29
+msgid "The dark style"
+msgstr "Das dunkle Design"
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:50
+msgid "The Font dialog shows the current font almost at once in the Flatpak."
+msgstr "Der Schriftdialog zeigt die aktuelle Schrift im Flatpak fast sofort an."
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:55
+msgid ""
+"The Font dialog now shows its font list and highlights the current font."
+msgstr "Der Schriftdialog zeigt jetzt seine Schriftliste und hebt die aktuelle Schrift hervor."
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:60
+msgid ""
+"Gradients fade to transparent, so a second gradient lays over the first."
+msgstr "Verläufe blenden zu Transparent aus, sodass ein zweiter Verlauf über dem ersten liegt."
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:65
+msgid ""
+"Help opens in the web browser. Faster resize, paste and image transforms."
+msgstr "Die Hilfe öffnet sich im Webbrowser. Schnelleres Ändern der Größe, Einfügen und Bildtransformationen."
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:70
+msgid ""
+"Right-click outside a selection with Select or Free-Form Select now offers "
+"Paste and the other canvas actions."
+msgstr "Ein Rechtsklick außerhalb einer Auswahl mit „Auswählen“ oder „Freiform-Auswahl“ bietet jetzt „Einfügen“ und die anderen Aktionen der Zeichenfläche an."
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:75
+msgid ""
+"Fit to Window zoom, a configurable grid (cell size and axonometric grid), "
+"and Stretch and Skew by percent or exact pixels."
+msgstr "Zoom „An Fenster anpassen“, ein einstellbares Raster (Zellengröße und axonometrisches Raster) sowie Strecken und Neigen in Prozent oder exakten Pixeln."
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:80
+msgid "Adds store screenshots."
+msgstr "Fügt Screenshots für den Store hinzu."
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:85
+msgid ""
+"First stable release: translations (Polish, Ukrainian), screen-reader "
+"labels, a right-click menu in Pan mode, and a choice between fitting a "
+"pasted picture to the canvas or resizing the canvas."
+msgstr "Erste stabile Version: Übersetzungen (Polnisch, Ukrainisch), Beschriftungen für Screenreader, ein Rechtsklickmenü im Verschiebemodus und die Wahl, ein eingefügtes Bild an die Zeichenfläche anzupassen oder die Zeichenfläche zu vergrößern."
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:90
+msgid "First public version."
+msgstr "Erste öffentliche Version."
+
+#: data/menus.ui:7 src/main.c:65
+msgid "Flip/Rotate…"
+msgstr "Spiegeln/Drehen…"
+
+#: data/menus.ui:8
+msgid "Stretch/Skew…"
+msgstr "Strecken/Neigen…"
+
+#: data/menus.ui:9 data/menus.ui:39 src/main.c:65
+msgid "Invert Colors"
+msgstr "Farben umkehren"
+
+#: data/menus.ui:10 src/main.c:65
+msgid "Attributes…"
+msgstr "Attribute…"
+
+#: data/menus.ui:13 data/menus.ui:55 src/main.c:66
+msgid "Clear Image"
+msgstr "Bild löschen"
+
+#: data/menus.ui:14
+msgid "Draw Opaque"
+msgstr "Deckend zeichnen"
+
+#: data/menus.ui:21 data/menus.ui:61 data/menus.ui:105 src/main.c:59
+msgid "Cut"
+msgstr "Ausschneiden"
+
+#: data/menus.ui:22 data/menus.ui:62 data/menus.ui:106 src/main.c:59
+msgid "Copy"
+msgstr "Kopieren"
+
+#: data/menus.ui:23 data/menus.ui:45 data/menus.ui:63 data/menus.ui:107
+#: src/main.c:59
+msgid "Paste"
+msgstr "Einfügen"
+
+#: data/menus.ui:26 data/menus.ui:108 src/main.c:60
+msgid "Clear Selection"
+msgstr "Auswahl löschen"
+
+#: data/menus.ui:27 data/menus.ui:47 data/menus.ui:67 data/menus.ui:109
+#: src/main.c:59
+msgid "Select All"
+msgstr "Alles auswählen"
+
+#: data/menus.ui:28 data/menus.ui:112
+msgid "Copy To…"
+msgstr "Kopieren nach…"
+
+#: data/menus.ui:31
+msgid "Flip Horizontal"
+msgstr "Horizontal spiegeln"
+
+#: data/menus.ui:32
+msgid "Flip Vertical"
+msgstr "Vertikal spiegeln"
+
+#: data/menus.ui:34
+msgid "Rotate"
+msgstr "Drehen"
+
+#: data/menus.ui:35
+msgid "90° Right"
+msgstr "90° rechts"
+
+#: data/menus.ui:36
+msgid "180°"
+msgstr "180°"
+
+#: data/menus.ui:37
+msgid "90° Left"
+msgstr "90° links"
+
+#: data/menus.ui:46 data/menus.ui:113
+msgid "Paste From…"
+msgstr "Einfügen aus…"
+
+#: data/menus.ui:50
+msgid "Zoom In"
+msgstr "Vergrößern"
+
+#: data/menus.ui:51
+msgid "Zoom Out"
+msgstr "Verkleinern"
+
+#: data/menus.ui:52 data/menus.ui:79 src/main.c:62
+msgid "Normal Size"
+msgstr "Normalgröße"
+
+#: data/menus.ui:64
+msgid "Delete"
+msgstr "Löschen"
+
+#: data/menus.ui:70
+msgid "Font for Selection…"
+msgstr "Schrift für Auswahl…"
+
+#: data/menus.ui:80 src/main.c:62
+msgid "Fit to Window"
+msgstr "An Fenster anpassen"
+
+#: data/menus.ui:81
+msgid "Custom Zoom…"
+msgstr "Eigener Zoom…"
+
+#: data/menus.ui:84 src/main.c:63
+msgid "Grid…"
+msgstr "Raster…"
+
+#: data/menus.ui:85
+msgid "Show Thumbnail"
+msgstr "Miniaturansicht anzeigen"
+
+#: data/menus.ui:88
+msgid "Tool Box"
+msgstr "Werkzeugleiste"
+
+#: data/menus.ui:89
+msgid "Color Box"
+msgstr "Farbleiste"
+
+#: data/menus.ui:90
+msgid "Status Bar"
+msgstr "Statusleiste"
+
+#: data/menus.ui:91
+msgid "Frame Time"
+msgstr "Bildzeit"
+
+#: data/menus.ui:97 src/main.c:55
+msgid "New"
+msgstr "Neu"
+
+#: data/menus.ui:98 src/main.c:55
+msgid "Save As…"
+msgstr "Speichern unter…"
+
+#: data/menus.ui:99 src/main.c:56
+msgid "Print…"
+msgstr "Drucken…"
+
+#: data/menus.ui:103 src/main.c:71
+msgid "Edit"
+msgstr "Bearbeiten"
+
+#: data/menus.ui:116 src/ui/preferences.c:292 src/ui/preferences.c:295
+msgid "Preferences"
+msgstr "Einstellungen"
+
+#: data/menus.ui:117 src/main.c:68
+msgid "Keyboard Shortcuts"
+msgstr "Tastenkürzel"
+
+#: data/menus.ui:118
+msgid "Help"
+msgstr "Hilfe"
+
+#: data/menus.ui:119
+msgid "About Easel"
+msgstr "Über Easel"
+
+#: src/main.c:20
+msgid "Microsoft Paint in Windows XP, the original that inspired Easel"
+msgstr "Microsoft Paint in Windows XP, das Original, das Easel inspiriert hat"
+
+#: src/main.c:30
+msgid ""
+"A simple paint program in the spirit of classic Microsoft Paint, built for "
+"GNOME."
+msgstr "Ein einfaches Zeichenprogramm im Geiste des klassischen Microsoft Paint, gebaut für GNOME."
+
+#: src/main.c:33
+msgid "Inspired by"
+msgstr "Inspiriert von"
+
+#: src/main.c:55
+msgid "Open…"
+msgstr "Öffnen…"
+
+#: src/main.c:55
+msgid "Save"
+msgstr "Speichern"
+
+#: src/main.c:56
+msgid "Quit"
+msgstr "Beenden"
+
+#: src/main.c:58 src/ui/preferences.c:240
+msgid "Undo"
+msgstr "Rückgängig"
+
+#: src/main.c:58
+msgid "Redo"
+msgstr "Wiederholen"
+
+#: src/main.c:58
+msgid "Redo (alternative)"
+msgstr "Wiederholen (alternativ)"
+
+#: src/main.c:62
+msgid "Zoom with the wheel"
+msgstr "Mit dem Mausrad zoomen"
+
+#: src/main.c:66
+msgid "Swap Foreground/Background"
+msgstr "Vorder- und Hintergrundfarbe tauschen"
+
+#: src/main.c:68
+msgid "Cancel the current drawing or selection"
+msgstr "Aktuelle Zeichnung oder Auswahl abbrechen"
+
+#: src/main.c:70
+msgid "File"
+msgstr "Datei"
+
+#: src/main.c:72 src/ui/window.c:1286
+msgid "View"
+msgstr "Ansicht"
+
+#: src/main.c:73
+msgid "Image and Colors"
+msgstr "Bild und Farben"
+
+#: src/main.c:74
+msgid "General"
+msgstr "Allgemein"
+
+#: src/main.c:100
+msgid "Help Not Found"
+msgstr "Hilfe nicht gefunden"
+
+#: src/main.c:100
+msgid "The help file is not installed."
+msgstr "Die Hilfedatei ist nicht installiert."
+
+#: src/ui/colorbox.c:36
+msgid "Black"
+msgstr "Schwarz"
+
+#: src/ui/colorbox.c:36
+msgid "Dark Gray"
+msgstr "Dunkelgrau"
+
+#: src/ui/colorbox.c:36
+msgid "Dark Red"
+msgstr "Dunkelrot"
+
+#: src/ui/colorbox.c:36
+msgid "Olive"
+msgstr "Oliv"
+
+#: src/ui/colorbox.c:36
+msgid "Dark Green"
+msgstr "Dunkelgrün"
+
+#: src/ui/colorbox.c:36
+msgid "Teal"
+msgstr "Blaugrün"
+
+#: src/ui/colorbox.c:36
+msgid "Dark Blue"
+msgstr "Dunkelblau"
+
+#: src/ui/colorbox.c:37
+msgid "Purple"
+msgstr "Violett"
+
+#: src/ui/colorbox.c:37
+msgid "Dark Khaki"
+msgstr "Dunkles Khaki"
+
+#: src/ui/colorbox.c:37
+msgid "Dark Teal"
+msgstr "Dunkles Blaugrün"
+
+#: src/ui/colorbox.c:37
+msgid "Azure"
+msgstr "Azur"
+
+#: src/ui/colorbox.c:37
+msgid "Navy Blue"
+msgstr "Marineblau"
+
+#: src/ui/colorbox.c:37
+msgid "Violet"
+msgstr "Veilchenblau"
+
+#: src/ui/colorbox.c:37
+msgid "Brown"
+msgstr "Braun"
+
+#: src/ui/colorbox.c:38
+msgid "White"
+msgstr "Weiß"
+
+#: src/ui/colorbox.c:38
+msgid "Light Gray"
+msgstr "Hellgrau"
+
+#: src/ui/colorbox.c:38
+msgid "Red"
+msgstr "Rot"
+
+#: src/ui/colorbox.c:38
+msgid "Yellow"
+msgstr "Gelb"
+
+#: src/ui/colorbox.c:38
+msgid "Lime"
+msgstr "Limette"
+
+#: src/ui/colorbox.c:38
+msgid "Cyan"
+msgstr "Cyan"
+
+#: src/ui/colorbox.c:38
+msgid "Blue"
+msgstr "Blau"
+
+#: src/ui/colorbox.c:38
+msgid "Magenta"
+msgstr "Magenta"
+
+#: src/ui/colorbox.c:39
+msgid "Light Yellow"
+msgstr "Hellgelb"
+
+#: src/ui/colorbox.c:39
+msgid "Spring Green"
+msgstr "Frühlingsgrün"
+
+#: src/ui/colorbox.c:39
+msgid "Light Cyan"
+msgstr "Hellcyan"
+
+#: src/ui/colorbox.c:39
+msgid "Periwinkle"
+msgstr "Vergissmeinnicht"
+
+#: src/ui/colorbox.c:39
+msgid "Rose"
+msgstr "Rosa"
+
+#: src/ui/colorbox.c:39
+msgid "Orange"
+msgstr "Orange"
+
+#: src/ui/colorbox.c:64
+#, c-format
+msgid "%s (#%06X)"
+msgstr "%s (#%06X)"
+
+#: src/ui/colorbox.c:96
+#, c-format
+msgid "Foreground: %s. Background: %s."
+msgstr "Vordergrund: %s. Hintergrund: %s."
+
+#: src/ui/colorbox.c:99
+#, c-format
+msgid "Color %d of %d: %s. Foreground: %s. Background: %s."
+msgstr "Farbe %d von %d: %s. Vordergrund: %s. Hintergrund: %s."
+
+#: src/ui/colorbox.c:103
+msgid "Foreground and background colors"
+msgstr "Vorder- und Hintergrundfarbe"
+
+#: src/ui/colorbox.c:106
+msgid "Color palette"
+msgstr "Farbpalette"
+
+#: src/ui/colorbox.c:269
+msgid "Edit Color"
+msgstr "Farbe bearbeiten"
+
+#: src/ui/colorbox.c:269
+msgid "Foreground Color"
+msgstr "Vordergrundfarbe"
+
+#: src/ui/colorbox.c:269
+msgid "Background Color"
+msgstr "Hintergrundfarbe"
+
+#: src/ui/colorbox.c:328 src/ui/colorbox.c:363
+#, c-format
+msgid "Foreground color: %s"
+msgstr "Vordergrundfarbe: %s"
+
+#: src/ui/colorbox.c:333 src/ui/colorbox.c:362
+#, c-format
+msgid "Background color: %s"
+msgstr "Hintergrundfarbe: %s"
+
+#: src/ui/colorbox.c:389
+#, c-format
+msgid "Color %d of %d: %s"
+msgstr "Farbe %d von %d: %s"
+
+#: src/ui/colorbox.c:446
+msgid "Foreground and background colors. Click a square to choose a color."
+msgstr "Vorder- und Hintergrundfarbe. Klicken Sie auf ein Quadrat, um eine Farbe zu wählen."
+
+#: src/ui/colorbox.c:455
+msgid "Swap foreground and background (Ctrl+Shift+X)"
+msgstr "Vorder- und Hintergrundfarbe tauschen (Strg+Umschalt+X)"
+
+#: src/ui/colorbox.c:457
+msgid "Swap foreground and background"
+msgstr "Vorder- und Hintergrundfarbe tauschen"
+
+#: src/ui/colorbox.c:464
+msgid ""
+"Left-click: foreground. Right-click: background. Double-click: edit this "
+"color. Keyboard: Tab to focus, arrows, Enter / Shift+Enter, F2."
+msgstr "Linksklick: Vordergrund. Rechtsklick: Hintergrund. Doppelklick: diese Farbe bearbeiten. Tastatur: Tab zum Fokussieren, Pfeiltasten, Eingabe / Umschalt+Eingabe, F2."
+
+#: src/ui/dialogs.c:13 src/ui/fontdialog.c:236 src/ui/window.c:379
+#: src/ui/window.c:752
+msgid "_Cancel"
+msgstr "_Abbrechen"
+
+#: src/ui/dialogs.c:13
+msgid "_OK"
+msgstr "_OK"
+
+#: src/ui/dialogs.c:92
+msgid "Attributes"
+msgstr "Attribute"
+
+#: src/ui/dialogs.c:101 src/ui/dialogs.c:442 src/ui/dialogs.c:447
+#: src/ui/preferences.c:197
+msgid "Width"
+msgstr "Breite"
+
+#: src/ui/dialogs.c:102 src/ui/dialogs.c:443 src/ui/preferences.c:198
+msgid "Height"
+msgstr "Höhe"
+
+#: src/ui/dialogs.c:105 src/ui/dialogs.c:369
+msgid "Pixels"
+msgstr "Pixel"
+
+#: src/ui/dialogs.c:105
+msgid "Inches"
+msgstr "Zoll"
+
+#: src/ui/dialogs.c:105
+msgid "Centimeters"
+msgstr "Zentimeter"
+
+#: src/ui/dialogs.c:106
+msgid "Units"
+msgstr "Einheiten"
+
+#: src/ui/dialogs.c:114
+msgid "Colors"
+msgstr "Farben"
+
+#: src/ui/dialogs.c:114
+msgid "Black and white"
+msgstr "Schwarzweiß"
+
+#: src/ui/dialogs.c:115
+msgid "Color mode"
+msgstr "Farbmodus"
+
+#: src/ui/dialogs.c:122
+msgid "_Default Size"
+msgstr "_Standardgröße"
+
+#: src/ui/dialogs.c:129
+msgid ""
+"New area is filled with the background color; a smaller size crops the "
+"picture. Black and white converts the picture and cannot be reverted except "
+"with Undo."
+msgstr "Der neue Bereich wird mit der Hintergrundfarbe gefüllt; eine kleinere Größe beschneidet das Bild. Schwarzweiß wandelt das Bild um und lässt sich nur mit „Rückgängig“ zurücknehmen."
+
+#: src/ui/dialogs.c:154
+msgid "Custom Zoom"
+msgstr "Eigener Zoom"
+
+#: src/ui/dialogs.c:163
+msgid "Zoom to"
+msgstr "Zoom auf"
+
+#: src/ui/dialogs.c:198
+msgid "Flip horizontal"
+msgstr "Horizontal spiegeln"
+
+#: src/ui/dialogs.c:198
+msgid "Flip vertical"
+msgstr "Vertikal spiegeln"
+
+#: src/ui/dialogs.c:198
+msgid "Rotate 90° clockwise"
+msgstr "Um 90° im Uhrzeigersinn drehen"
+
+#: src/ui/dialogs.c:198
+msgid "Rotate 180°"
+msgstr "Um 180° drehen"
+
+#: src/ui/dialogs.c:198
+msgid "Rotate 270° clockwise"
+msgstr "Um 270° im Uhrzeigersinn drehen"
+
+#: src/ui/dialogs.c:202
+msgid "Flip and Rotate"
+msgstr "Spiegeln und Drehen"
+
+#: src/ui/dialogs.c:368
+msgid "Stretch and Skew"
+msgstr "Strecken und Neigen"
+
+#: src/ui/dialogs.c:369
+msgid "Percent"
+msgstr "Prozent"
+
+#: src/ui/dialogs.c:374
+msgid "Stretch"
+msgstr "Strecken"
+
+#: src/ui/dialogs.c:375
+msgid "Skew"
+msgstr "Neigen"
+
+#: src/ui/dialogs.c:380
+msgid "Stretch by"
+msgstr "Strecken um"
+
+#: src/ui/dialogs.c:384 src/ui/dialogs.c:393
+msgid "Horizontally"
+msgstr "Horizontal"
+
+#: src/ui/dialogs.c:385 src/ui/dialogs.c:394
+msgid "Vertically"
+msgstr "Vertikal"
+
+#: src/ui/dialogs.c:387
+msgid "Keep aspect ratio"
+msgstr "Seitenverhältnis beibehalten"
+
+#: src/ui/dialogs.c:431
+msgid "Grid"
+msgstr "Raster"
+
+#: src/ui/dialogs.c:440
+msgid "Show grid"
+msgstr "Raster anzeigen"
+
+#: src/ui/dialogs.c:445
+msgid "Show axonometric grid"
+msgstr "Axonometrisches Raster anzeigen"
+
+#: src/ui/dialogs.c:461
+msgid ""
+"Lines are drawn only when cells are at least 4 screen pixels wide, so zoom "
+"in to see a fine grid."
+msgstr "Linien werden nur gezeichnet, wenn die Zellen mindestens 4 Bildschirmpixel breit sind. Zoomen Sie hinein, um ein feines Raster zu sehen."
+
+#: src/ui/fileio.c:58
+#, c-format
+msgid "The picture is too large (%d × %d)"
+msgstr "Das Bild ist zu groß (%d × %d)"
+
+#: src/ui/fileio.c:93
+#, c-format
+msgid "Not enough memory to save the picture"
+msgstr "Nicht genug Speicher, um das Bild zu speichern"
+
+#: src/ui/preferences.c:162
+msgid "Appearance"
+msgstr "Erscheinungsbild"
+
+#: src/ui/preferences.c:163
+msgid "Style"
+msgstr "Design"
+
+#: src/ui/preferences.c:164
+msgid "Follow system"
+msgstr "System folgen"
+
+#: src/ui/preferences.c:164
+msgid "Light"
+msgstr "Hell"
+
+#: src/ui/preferences.c:164
+msgid "Dark"
+msgstr "Dunkel"
+
+#: src/ui/preferences.c:167
+msgid "Color scheme"
+msgstr "Farbschema"
+
+#: src/ui/preferences.c:172
+msgid "Workspace color"
+msgstr "Arbeitsbereichsfarbe"
+
+#: src/ui/preferences.c:173
+msgid "The area around the picture. Reset follows the theme."
+msgstr "Der Bereich um das Bild. „Zurücksetzen“ folgt dem Design."
+
+#: src/ui/preferences.c:176
+msgid "Use the theme color"
+msgstr "Designfarbe verwenden"
+
+#: src/ui/preferences.c:182
+msgid "Panels"
+msgstr "Leisten"
+
+#: src/ui/preferences.c:182
+msgid "Which parts of the window are shown. Also changed from the View menu."
+msgstr "Welche Teile des Fensters angezeigt werden. Auch über das Menü „Ansicht“ änderbar."
+
+#: src/ui/preferences.c:183
+msgid "Tool box"
+msgstr "Werkzeugleiste"
+
+#: src/ui/preferences.c:184
+msgid "Color box"
+msgstr "Farbleiste"
+
+#: src/ui/preferences.c:185
+msgid "Status bar"
+msgstr "Statusleiste"
+
+#: src/ui/preferences.c:186
+msgid "Frame time"
+msgstr "Bildzeit"
+
+#: src/ui/preferences.c:186
+msgid "Shown in the status bar"
+msgstr "In der Statusleiste angezeigt"
+
+#: src/ui/preferences.c:193
+msgid "New Picture"
+msgstr "Neues Bild"
+
+#: src/ui/preferences.c:194
+msgid "Default picture"
+msgstr "Standardbild"
+
+#: src/ui/preferences.c:194
+msgid "Used when Easel starts and for File → New."
+msgstr "Wird beim Start von Easel und für Datei → Neu verwendet."
+
+#: src/ui/preferences.c:201
+msgid "Background color"
+msgstr "Hintergrundfarbe"
+
+#: src/ui/preferences.c:220
+msgid "Drawing"
+msgstr "Zeichnen"
+
+#: src/ui/preferences.c:221
+msgid "Tool defaults"
+msgstr "Werkzeugvorgaben"
+
+#: src/ui/preferences.c:221 src/ui/preferences.c:240 src/ui/preferences.c:243
+msgid "Applied the next time Easel starts."
+msgstr "Gilt beim nächsten Start von Easel."
+
+#: src/ui/preferences.c:223
+msgid "Line width"
+msgstr "Linienbreite"
+
+#: src/ui/preferences.c:223
+msgid "Line, Curve and shape tools"
+msgstr "Linien-, Kurven- und Formwerkzeuge"
+
+#: src/ui/preferences.c:234
+msgid "Magnifier click"
+msgstr "Lupenklick"
+
+#: src/ui/preferences.c:241
+msgid "Undo memory"
+msgstr "Speicher für Rückgängig"
+
+#: src/ui/preferences.c:241
+msgid "Megabytes of history kept; older steps are forgotten first"
+msgstr "Megabyte an Verlauf, der behalten wird; ältere Schritte werden zuerst vergessen"
+
+#: src/ui/preferences.c:243 src/ui/tool.c:41
+msgid "Text"
+msgstr "Text"
+
+#: src/ui/preferences.c:254 src/ui/fontdialog.c:251
+msgid "Font"
+msgstr "Schrift"
+
+#: src/ui/preferences.c:257
+msgid "Opaque background"
+msgstr "Deckender Hintergrund"
+
+#: src/ui/preferences.c:257
+msgid "Otherwise the picture shows through the text"
+msgstr "Sonst scheint das Bild durch den Text"
+
+#: src/ui/preferences.c:258
+msgid "Smooth edges"
+msgstr "Glatte Kanten"
+
+#: src/ui/preferences.c:258
+msgid "Antialiased text instead of hard pixels"
+msgstr "Geglätteter Text statt harter Pixel"
+
+#: src/ui/preferences.c:271 src/ui/preferences.c:272
+msgid "Palette"
+msgstr "Palette"
+
+#: src/ui/preferences.c:273
+msgid "Colors you change with Edit Colors are kept between runs."
+msgstr "Farben, die Sie mit „Farben bearbeiten“ ändern, bleiben zwischen den Starts erhalten."
+
+#: src/ui/preferences.c:275
+msgid "Reset"
+msgstr "Zurücksetzen"
+
+#: src/ui/preferences.c:277
+msgid "Classic palette"
+msgstr "Klassische Palette"
+
+#: src/ui/preferences.c:278
+msgid "Go back to the original 28 colors"
+msgstr "Zu den ursprünglichen 28 Farben zurückkehren"
+
+#: src/ui/preferences.c:296
+msgid "The settings schema is not installed, so preferences cannot be saved."
+msgstr "Das Einstellungsschema ist nicht installiert, daher können die Einstellungen nicht gespeichert werden."
+
+#. "done" releases op.
+#: src/ui/print.c:63
+msgid "Could not print the picture"
+msgstr "Das Bild konnte nicht gedruckt werden"
+
+#: src/ui/tool.c:8
+msgid "Gradient"
+msgstr "Verlauf"
+
+#: src/ui/tool.c:9
+msgid ""
+"Fills with a blend from the foreground to the background color. Drag to set "
+"direction and length."
+msgstr "Füllt mit einem Übergang von der Vordergrund- zur Hintergrundfarbe. Ziehen, um Richtung und Länge festzulegen."
+
+#: src/ui/tool.c:11
+msgid "Pan"
+msgstr "Verschieben"
+
+#: src/ui/tool.c:12
+msgid "Click and drag to navigate the image."
+msgstr "Klicken und ziehen, um im Bild zu navigieren."
+
+#: src/ui/tool.c:14
+msgid "Free-Form Select"
+msgstr "Freiform-Auswahl"
+
+#: src/ui/tool.c:15
+msgid "Selects a free-form part of the picture to move, copy, or edit."
+msgstr "Wählt einen frei geformten Teil des Bildes zum Verschieben, Kopieren oder Bearbeiten aus."
+
+#: src/ui/tool.c:17 src/ui/fontdialog.c:237
+msgid "Select"
+msgstr "Auswählen"
+
+#: src/ui/tool.c:18
+msgid "Selects a rectangular part of the picture to move, copy, or edit."
+msgstr "Wählt einen rechteckigen Teil des Bildes zum Verschieben, Kopieren oder Bearbeiten aus."
+
+#: src/ui/tool.c:20
+msgid "Eraser"
+msgstr "Radierer"
+
+#: src/ui/tool.c:21
+msgid ""
+"Erases a portion of the picture. Right button: replaces the foreground color "
+"with the background color."
+msgstr "Löscht einen Teil des Bildes. Rechte Taste: ersetzt die Vordergrundfarbe durch die Hintergrundfarbe."
+
+#: src/ui/tool.c:23
+msgid "Fill With Color"
+msgstr "Mit Farbe füllen"
+
+#: src/ui/tool.c:24
+msgid ""
+"Fills an area with the foreground color (left button) or the background "
+"color (right button)."
+msgstr "Füllt einen Bereich mit der Vordergrundfarbe (linke Taste) oder der Hintergrundfarbe (rechte Taste)."
+
+#: src/ui/tool.c:26
+msgid "Pick Color"
+msgstr "Farbe aufnehmen"
+
+#: src/ui/tool.c:27
+msgid ""
+"Picks up a color from the picture for drawing. Left button: foreground. "
+"Right button: background."
+msgstr "Nimmt eine Farbe aus dem Bild zum Zeichnen auf. Linke Taste: Vordergrund. Rechte Taste: Hintergrund."
+
+#: src/ui/tool.c:29
+msgid "Magnifier"
+msgstr "Lupe"
+
+#: src/ui/tool.c:30
+msgid "Changes the magnification."
+msgstr "Ändert die Vergrößerung."
+
+#: src/ui/tool.c:32
+msgid "Pencil"
+msgstr "Stift"
+
+#: src/ui/tool.c:33
+msgid ""
+"Draws a free-form line. Left button: foreground color. Right button: "
+"background color."
+msgstr "Zeichnet eine freie Linie. Linke Taste: Vordergrundfarbe. Rechte Taste: Hintergrundfarbe."
+
+#: src/ui/tool.c:35
+msgid "Brush"
+msgstr "Pinsel"
+
+#: src/ui/tool.c:36
+msgid "Draws using a brush with the selected shape and size."
+msgstr "Zeichnet mit einem Pinsel in der gewählten Form und Größe."
+
+#: src/ui/tool.c:38
+msgid "Airbrush"
+msgstr "Sprühdose"
+
+#: src/ui/tool.c:39
+msgid "Draws using an airbrush of the selected size."
+msgstr "Zeichnet mit einer Sprühdose in der gewählten Größe."
+
+#: src/ui/tool.c:42
+msgid "Inserts text into the picture."
+msgstr "Fügt Text in das Bild ein."
+
+#: src/ui/tool.c:44
+msgid "Line"
+msgstr "Linie"
+
+#: src/ui/tool.c:45
+msgid "Draws a straight line with the selected line width."
+msgstr "Zeichnet eine gerade Linie in der gewählten Linienbreite."
+
+#: src/ui/tool.c:47
+msgid "Curve"
+msgstr "Kurve"
+
+#: src/ui/tool.c:48
+msgid "Draws a curved line with the selected line width."
+msgstr "Zeichnet eine gekrümmte Linie in der gewählten Linienbreite."
+
+#: src/ui/tool.c:50
+msgid "Rectangle"
+msgstr "Rechteck"
+
+#: src/ui/tool.c:51
+msgid "Draws a rectangle with the selected fill style."
+msgstr "Zeichnet ein Rechteck mit dem gewählten Füllstil."
+
+#: src/ui/tool.c:53
+msgid "Polygon"
+msgstr "Vieleck"
+
+#: src/ui/tool.c:54
+msgid "Draws a polygon with the selected fill style."
+msgstr "Zeichnet ein Vieleck mit dem gewählten Füllstil."
+
+#: src/ui/tool.c:56
+msgid "Ellipse"
+msgstr "Ellipse"
+
+#: src/ui/tool.c:57
+msgid "Draws an ellipse with the selected fill style."
+msgstr "Zeichnet eine Ellipse mit dem gewählten Füllstil."
+
+#: src/ui/tool.c:59
+msgid "Rounded Rectangle"
+msgstr "Abgerundetes Rechteck"
+
+#: src/ui/tool.c:60
+msgid "Draws a rounded rectangle with the selected fill style."
+msgstr "Zeichnet ein abgerundetes Rechteck mit dem gewählten Füllstil."
+
+#: src/ui/fontdialog.c:82
+msgid ""
+"The sysadmin quickly sudoed the gnomes before they compiled the last of the "
+"coffee. Nobody blamed the cat, because the cat had already pushed to "
+"production on a Friday. The penguins, meanwhile, held a very serious meeting "
+"about kernel panics and herring, and declared it a feature."
+msgstr "Der Sysadmin hat die Gnome blitzschnell per sudo angewiesen, bevor sie den letzten Rest Kaffee kompilieren konnten. Niemand gab der Katze die Schuld, denn die Katze hatte an einem Freitag längst in die Produktion gepusht. Die Pinguine hielten derweil eine sehr ernste Sitzung über Kernel-Panics und Heringe ab und erklärten alles zum Feature."
+
+#: src/ui/fontdialog.c:242
+msgid "Size"
+msgstr "Größe"
+
+#: src/ui/fontdialog.c:243
+msgid "Bold"
+msgstr "Fett"
+
+#: src/ui/fontdialog.c:243
+msgid "Italic"
+msgstr "Kursiv"
+
+#: src/ui/fontdialog.c:243
+msgid "Underline"
+msgstr "Unterstrichen"
+
+#: src/ui/fontdialog.c:243
+msgid "Strikethrough"
+msgstr "Durchgestrichen"
+
+#: src/ui/fontdialog.c:269
+msgid "Search font name"
+msgstr "Schriftname suchen"
+
+#: src/ui/fontdialog.c:287 src/ui/fontdialog.c:290 src/ui/fontdialog.c:291
+msgid "Text Color"
+msgstr "Textfarbe"
+
+#: src/ui/toolbox.c:17
+msgid "Round"
+msgstr "Rund"
+
+#: src/ui/toolbox.c:18
+msgid "Square"
+msgstr "Quadratisch"
+
+#: src/ui/toolbox.c:19
+msgid "Forward diagonal"
+msgstr "Diagonal vorwärts"
+
+#: src/ui/toolbox.c:20
+msgid "Backward diagonal"
+msgstr "Diagonal rückwärts"
+
+#: src/ui/toolbox.c:32
+msgid "Outline"
+msgstr "Umriss"
+
+#: src/ui/toolbox.c:33
+msgid "Outline and fill"
+msgstr "Umriss und Füllung"
+
+#: src/ui/toolbox.c:34
+msgid "Fill, no outline"
+msgstr "Füllung, kein Umriss"
+
+#: src/ui/toolbox.c:349
+#, c-format
+msgid "%d×"
+msgstr "%d×"
+
+#: src/ui/toolbox.c:352
+#, c-format
+msgid "%s, %d px"
+msgstr "%s, %d px"
+
+#: src/ui/toolbox.c:353
+#, c-format
+msgid "%d px"
+msgstr "%d px"
+
+#: src/ui/toolbox.c:459
+msgid "Transparent: hide background color"
+msgstr "Transparent: Hintergrundfarbe ausblenden"
+
+#: src/ui/toolbox.c:459
+msgid "Opaque: keep the selection's background"
+msgstr "Deckend: Hintergrund der Auswahl beibehalten"
+
+#: src/ui/toolbox.c:460
+msgid "Transparent: erase to transparency"
+msgstr "Transparent: zu Transparenz löschen"
+
+#: src/ui/toolbox.c:460
+msgid "Opaque: erase to the background color"
+msgstr "Deckend: mit der Hintergrundfarbe löschen"
+
+#: src/ui/toolbox.c:548
+msgid "Font…"
+msgstr "Schrift…"
+
+#: src/ui/toolbox.c:553
+msgid "Smooth"
+msgstr "Glätten"
+
+#: src/ui/toolbox.c:554
+msgid "Smooth text edges (anti-aliasing)"
+msgstr "Textkanten glätten (Anti-Aliasing)"
+
+#: src/ui/toolbox.c:576
+msgid "Linear"
+msgstr "Linear"
+
+#: src/ui/toolbox.c:576
+msgid "Radial"
+msgstr "Radial"
+
+#: src/ui/toolbox.c:576
+msgid "Reflected"
+msgstr "Gespiegelt"
+
+#: src/ui/window.c:99
+#, c-format
+msgid "%d × %d pixels, zoom %d%%, tool: %s"
+msgstr "%d × %d Pixel, Zoom %d%%, Werkzeug: %s"
+
+#: src/ui/window.c:103
+msgid "Picture"
+msgstr "Bild"
+
+#: src/ui/window.c:115
+#, c-format
+msgid "Tool: %s"
+msgstr "Werkzeug: %s"
+
+#: src/ui/window.c:172 src/ui/window.c:374
+msgid "Untitled"
+msgstr "Unbenannt"
+
+#: src/ui/window.c:189 src/ui/window.c:520 src/ui/window.c:1171
+#, c-format
+msgid "%d × %d px"
+msgstr "%d × %d px"
+
+#: src/ui/window.c:249
+msgid "Pictures"
+msgstr "Bilder"
+
+#: src/ui/window.c:289
+msgid "Could not save the picture"
+msgstr "Das Bild konnte nicht gespeichert werden"
+
+#: src/ui/window.c:328
+msgid "Save As"
+msgstr "Speichern unter"
+
+#: src/ui/window.c:375
+#, c-format
+msgid "Save changes to “%s” before closing?"
+msgstr "Änderungen an „%s“ vor dem Schließen speichern?"
+
+#: src/ui/window.c:376
+msgid "Save Changes?"
+msgstr "Änderungen speichern?"
+
+#: src/ui/window.c:379
+msgid "_Discard"
+msgstr "_Verwerfen"
+
+#: src/ui/window.c:379
+msgid "_Save"
+msgstr "_Speichern"
+
+#: src/ui/window.c:425
+msgid "Open"
+msgstr "Öffnen"
+
+#: src/ui/window.c:438 src/ui/window.c:649
+msgid "Could not open the picture"
+msgstr "Das Bild konnte nicht geöffnet werden"
+
+#: src/ui/window.c:617
+msgid "Could not save the selection"
+msgstr "Die Auswahl konnte nicht gespeichert werden"
+
+#: src/ui/window.c:631
+msgid "Copy To"
+msgstr "Kopieren nach"
+
+#: src/ui/window.c:672
+msgid "Paste From"
+msgstr "Einfügen aus"
+
+#: src/ui/window.c:745
+#, c-format
+msgid "The picture is %d × %d pixels; the canvas is %d × %d."
+msgstr "Das Bild ist %d × %d Pixel groß; die Zeichenfläche %d × %d."
+
+#: src/ui/window.c:748
+msgid "Pasted picture is larger than the canvas"
+msgstr "Das eingefügte Bild ist größer als die Zeichenfläche"
+
+#: src/ui/window.c:753
+msgid "Fit Picture to Canvas"
+msgstr "Bild an Zeichenfläche anpassen"
+
+#: src/ui/window.c:753
+msgid "Resize Canvas to Picture"
+msgstr "Zeichenfläche an Bild anpassen"
+
+#: src/ui/window.c:973
+msgid "Thumbnail"
+msgstr "Miniaturansicht"
+
+#: src/ui/window.c:1052
+#, c-format
+msgid "Paint %.2f ms · %.0f fps"
+msgstr "Zeichnen %.2f ms · %.0f fps"
+
+#: src/ui/window.c:1081 src/ui/window.c:1083
+msgid "Zoom out"
+msgstr "Verkleinern"
+
+#: src/ui/window.c:1082 src/ui/window.c:1084
+msgid "Zoom in"
+msgstr "Vergrößern"
+
+#: src/ui/window.c:1109 src/ui/window.c:1110
+msgid "Main Menu"
+msgstr "Hauptmenü"
+
+#: src/ui/window.c:1167 src/ui/window.c:1168
+msgid "Pointer position"
+msgstr "Zeigerposition"
+
+#: src/ui/window.c:1176 src/ui/window.c:1177
+msgid "Zoom"
+msgstr "Zoom"
+
+#: src/ui/window.c:1183 src/ui/window.c:1184
+msgid "Image size"
+msgstr "Bildgröße"
+
+#: src/ui/window.c:1191 src/ui/window.c:1192
+msgid "Time to paint the last frame, and frames per second while drawing"
+msgstr "Zeit zum Zeichnen des letzten Bildes und Bilder pro Sekunde beim Zeichnen"
+
+#: src/ui/window.c:1287
+msgid "Image"
+msgstr "Bild"
+
+#: src/ui/window.c:1288
+msgid "New (Ctrl+N)"
+msgstr "Neu (Strg+N)"
+
+#: src/ui/window.c:1289
+msgid "Open (Ctrl+O)"
+msgstr "Öffnen (Strg+O)"
+
+#: src/ui/window.c:1290
+msgid "Save (Ctrl+S)"
+msgstr "Speichern (Strg+S)"
+
+#: src/ui/window.c:1293
+msgid "Undo (Ctrl+Z)"
+msgstr "Rückgängig (Strg+Z)"
+
+#: src/ui/window.c:1294
+msgid "Redo (Ctrl+Y)"
+msgstr "Wiederholen (Strg+Y)"

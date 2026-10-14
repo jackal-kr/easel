@@ -1,0 +1,1274 @@
+# Translations for easel package.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the easel package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: easel\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-14 21:51+0200\n"
+"PO-Revision-Date: 2026-10-14 22:01+0200\n"
+"Last-Translator: JOD (Oleksiy Degtyar)\n"
+"Language-Team: Czech\n"
+"Language: cs\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
+
+#: data/io.github.jackal_kr.Easel.desktop.in:3
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:4
+msgid "Easel"
+msgstr "Easel"
+
+#: data/io.github.jackal_kr.Easel.desktop.in:4
+msgid "Paint Program"
+msgstr "Kreslicí program"
+
+#: data/io.github.jackal_kr.Easel.desktop.in:5
+msgid "Draw and edit pictures, in the spirit of classic Paint"
+msgstr "Kreslení a úpravy obrázků v duchu klasického Painu"
+
+#: data/io.github.jackal_kr.Easel.desktop.in:12
+msgid "paint;draw;picture;image;bitmap;mspaint;"
+msgstr "kreslení;kreslit;obrázek;obraz;bitmapa;mspaint;paint;"
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:5
+msgid "A simple paint program in the spirit of classic Paint"
+msgstr "Jednoduchý kreslicí program v duchu klasického Painu"
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:9
+msgid "JOD (Oleksiy Degtyar)"
+msgstr "JOD (Oleksiy Degtyar)"
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:12
+msgid ""
+"Easel is a native GNOME paint program with the functionality and workflow of "
+"the old Microsoft Paint of Windows XP, built with GTK 4 and libadwaita."
+msgstr "Easel je nativní kreslicí program pro GNOME s funkcemi a způsobem práce starého Microsoft Paintu z Windows XP, vytvořený pomocí GTK 4 a libadwaita."
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:17
+msgid ""
+"All the classic tools: pencil, brush, airbrush, eraser, fill, text, line, "
+"curve, shapes and selections"
+msgstr "Všechny klasické nástroje: tužka, štětec, sprej, guma, výplň, text, čára, křivka, tvary a výběry"
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:18
+msgid "Unlimited-step undo and redo, zoom, pixel grid and thumbnail"
+msgstr "Neomezené zpět a znovu, lupa, mřížka pixelů a náhled"
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:19
+msgid "Open and save PNG, JPEG, BMP, TIFF and WebP"
+msgstr "Otevírání a ukládání PNG, JPEG, BMP, TIFF a WebP"
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:20
+msgid "Light and dark style, keyboard shortcuts, Preferences"
+msgstr "Světlý a tmavý styl, klávesové zkratky, předvolby"
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:25
+msgid "Drawing in the light style"
+msgstr "Kreslení ve světlém stylu"
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:29
+msgid "The dark style"
+msgstr "Tmavý styl"
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:50
+msgid "The Font dialog shows the current font almost at once in the Flatpak."
+msgstr "Dialog písma ve Flatpaku zobrazí aktuální písmo téměř okamžitě."
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:55
+msgid ""
+"The Font dialog now shows its font list and highlights the current font."
+msgstr "Dialog písma nyní zobrazuje seznam písem a zvýrazňuje aktuální písmo."
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:60
+msgid ""
+"Gradients fade to transparent, so a second gradient lays over the first."
+msgstr "Přechody mizí do průhlednosti, takže druhý přechod leží nad prvním."
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:65
+msgid ""
+"Help opens in the web browser. Faster resize, paste and image transforms."
+msgstr "Nápověda se otevírá ve webovém prohlížeči. Rychlejší změna velikosti, vkládání a transformace obrázku."
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:70
+msgid ""
+"Right-click outside a selection with Select or Free-Form Select now offers "
+"Paste and the other canvas actions."
+msgstr "Kliknutí pravým tlačítkem mimo výběr s nástrojem Výběr nebo Výběr od ruky nyní nabízí Vložit a další akce plátna."
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:75
+msgid ""
+"Fit to Window zoom, a configurable grid (cell size and axonometric grid), "
+"and Stretch and Skew by percent or exact pixels."
+msgstr "Lupa Přizpůsobit oknu, nastavitelná mřížka (velikost buňky a axonometrická mřížka) a roztažení a zkosení v procentech nebo přesných pixelech."
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:80
+msgid "Adds store screenshots."
+msgstr "Přidává snímky obrazovky pro obchod."
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:85
+msgid ""
+"First stable release: translations (Polish, Ukrainian), screen-reader "
+"labels, a right-click menu in Pan mode, and a choice between fitting a "
+"pasted picture to the canvas or resizing the canvas."
+msgstr "První stabilní vydání: překlady (polština, ukrajinština), popisky pro čtečky obrazovky, kontextová nabídka v režimu posunu a volba mezi přizpůsobením vloženého obrázku plátnu nebo změnou velikosti plátna."
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:90
+msgid "First public version."
+msgstr "První veřejná verze."
+
+#: data/menus.ui:7 src/main.c:65
+msgid "Flip/Rotate…"
+msgstr "Převrátit/otočit…"
+
+#: data/menus.ui:8
+msgid "Stretch/Skew…"
+msgstr "Roztáhnout/zkosit…"
+
+#: data/menus.ui:9 data/menus.ui:39 src/main.c:65
+msgid "Invert Colors"
+msgstr "Invertovat barvy"
+
+#: data/menus.ui:10 src/main.c:65
+msgid "Attributes…"
+msgstr "Atributy…"
+
+#: data/menus.ui:13 data/menus.ui:55 src/main.c:66
+msgid "Clear Image"
+msgstr "Vymazat obrázek"
+
+#: data/menus.ui:14
+msgid "Draw Opaque"
+msgstr "Neprůhlavé kreslení"
+
+#: data/menus.ui:21 data/menus.ui:61 data/menus.ui:105 src/main.c:59
+msgid "Cut"
+msgstr "Vyjmout"
+
+#: data/menus.ui:22 data/menus.ui:62 data/menus.ui:106 src/main.c:59
+msgid "Copy"
+msgstr "Kopírovat"
+
+#: data/menus.ui:23 data/menus.ui:45 data/menus.ui:63 data/menus.ui:107
+#: src/main.c:59
+msgid "Paste"
+msgstr "Vložit"
+
+#: data/menus.ui:26 data/menus.ui:108 src/main.c:60
+msgid "Clear Selection"
+msgstr "Vymazat výběr"
+
+#: data/menus.ui:27 data/menus.ui:47 data/menus.ui:67 data/menus.ui:109
+#: src/main.c:59
+msgid "Select All"
+msgstr "Vybrat vše"
+
+#: data/menus.ui:28 data/menus.ui:112
+msgid "Copy To…"
+msgstr "Kopírovat do…"
+
+#: data/menus.ui:31
+msgid "Flip Horizontal"
+msgstr "Převrátit vodorovně"
+
+#: data/menus.ui:32
+msgid "Flip Vertical"
+msgstr "Převrátit svisle"
+
+#: data/menus.ui:34
+msgid "Rotate"
+msgstr "Otočit"
+
+#: data/menus.ui:35
+msgid "90° Right"
+msgstr "O 90° doprava"
+
+#: data/menus.ui:36
+msgid "180°"
+msgstr "180°"
+
+#: data/menus.ui:37
+msgid "90° Left"
+msgstr "O 90° doleva"
+
+#: data/menus.ui:46 data/menus.ui:113
+msgid "Paste From…"
+msgstr "Vložit ze…"
+
+#: data/menus.ui:50
+msgid "Zoom In"
+msgstr "Přiblížit"
+
+#: data/menus.ui:51
+msgid "Zoom Out"
+msgstr "Oddálit"
+
+#: data/menus.ui:52 data/menus.ui:79 src/main.c:62
+msgid "Normal Size"
+msgstr "Normální velikost"
+
+#: data/menus.ui:64
+msgid "Delete"
+msgstr "Odstranit"
+
+#: data/menus.ui:70
+msgid "Font for Selection…"
+msgstr "Písmo pro výběr…"
+
+#: data/menus.ui:80 src/main.c:62
+msgid "Fit to Window"
+msgstr "Přizpůsobit oknu"
+
+#: data/menus.ui:81
+msgid "Custom Zoom…"
+msgstr "Vlastní lupa…"
+
+#: data/menus.ui:84 src/main.c:63
+msgid "Grid…"
+msgstr "Mřížka…"
+
+#: data/menus.ui:85
+msgid "Show Thumbnail"
+msgstr "Zobrazit náhled"
+
+#: data/menus.ui:88
+msgid "Tool Box"
+msgstr "Panel nástrojů"
+
+#: data/menus.ui:89
+msgid "Color Box"
+msgstr "Panel barev"
+
+#: data/menus.ui:90
+msgid "Status Bar"
+msgstr "Stavový řádek"
+
+#: data/menus.ui:91
+msgid "Frame Time"
+msgstr "Čas snímku"
+
+#: data/menus.ui:97 src/main.c:55
+msgid "New"
+msgstr "Nový"
+
+#: data/menus.ui:98 src/main.c:55
+msgid "Save As…"
+msgstr "Uložit jako…"
+
+#: data/menus.ui:99 src/main.c:56
+msgid "Print…"
+msgstr "Tisk…"
+
+#: data/menus.ui:103 src/main.c:71
+msgid "Edit"
+msgstr "Úpravy"
+
+#: data/menus.ui:116 src/ui/preferences.c:292 src/ui/preferences.c:295
+msgid "Preferences"
+msgstr "Předvolby"
+
+#: data/menus.ui:117 src/main.c:68
+msgid "Keyboard Shortcuts"
+msgstr "Klávesové zkratky"
+
+#: data/menus.ui:118
+msgid "Help"
+msgstr "Nápověda"
+
+#: data/menus.ui:119
+msgid "About Easel"
+msgstr "O aplikaci Easel"
+
+#: src/main.c:20
+msgid "Microsoft Paint in Windows XP, the original that inspired Easel"
+msgstr "Microsoft Paint ve Windows XP, originál, který inspiroval Easel"
+
+#: src/main.c:30
+msgid ""
+"A simple paint program in the spirit of classic Microsoft Paint, built for "
+"GNOME."
+msgstr "Jednoduchý kreslicí program v duchu klasického Microsoft Paintu, vytvořený pro GNOME."
+
+#: src/main.c:33
+msgid "Inspired by"
+msgstr "Inspirováno"
+
+#: src/main.c:55
+msgid "Open…"
+msgstr "Otevřít…"
+
+#: src/main.c:55
+msgid "Save"
+msgstr "Uložit"
+
+#: src/main.c:56
+msgid "Quit"
+msgstr "Ukončit"
+
+#: src/main.c:58 src/ui/preferences.c:240
+msgid "Undo"
+msgstr "Zpět"
+
+#: src/main.c:58
+msgid "Redo"
+msgstr "Znovu"
+
+#: src/main.c:58
+msgid "Redo (alternative)"
+msgstr "Znovu (alternativa)"
+
+#: src/main.c:62
+msgid "Zoom with the wheel"
+msgstr "Lupa kolečkem myši"
+
+#: src/main.c:66
+msgid "Swap Foreground/Background"
+msgstr "Prohodit barvu popředí a pozadí"
+
+#: src/main.c:68
+msgid "Cancel the current drawing or selection"
+msgstr "Zrušit aktuální kreslení nebo výběr"
+
+#: src/main.c:70
+msgid "File"
+msgstr "Soubor"
+
+#: src/main.c:72 src/ui/window.c:1286
+msgid "View"
+msgstr "Zobrazení"
+
+#: src/main.c:73
+msgid "Image and Colors"
+msgstr "Obrázek a barvy"
+
+#: src/main.c:74
+msgid "General"
+msgstr "Obecné"
+
+#: src/main.c:100
+msgid "Help Not Found"
+msgstr "Nápověda nenalezena"
+
+#: src/main.c:100
+msgid "The help file is not installed."
+msgstr "Soubor nápovědy není nainstalován."
+
+#: src/ui/colorbox.c:36
+msgid "Black"
+msgstr "Černá"
+
+#: src/ui/colorbox.c:36
+msgid "Dark Gray"
+msgstr "Tmavě šedá"
+
+#: src/ui/colorbox.c:36
+msgid "Dark Red"
+msgstr "Tmavě červená"
+
+#: src/ui/colorbox.c:36
+msgid "Olive"
+msgstr "Olivová"
+
+#: src/ui/colorbox.c:36
+msgid "Dark Green"
+msgstr "Tmavě zelená"
+
+#: src/ui/colorbox.c:36
+msgid "Teal"
+msgstr "Modrozelená"
+
+#: src/ui/colorbox.c:36
+msgid "Dark Blue"
+msgstr "Tmavě modrá"
+
+#: src/ui/colorbox.c:37
+msgid "Purple"
+msgstr "Fialová"
+
+#: src/ui/colorbox.c:37
+msgid "Dark Khaki"
+msgstr "Tmavé khaki"
+
+#: src/ui/colorbox.c:37
+msgid "Dark Teal"
+msgstr "Tmavá modrozelená"
+
+#: src/ui/colorbox.c:37
+msgid "Azure"
+msgstr "Azurová"
+
+#: src/ui/colorbox.c:37
+msgid "Navy Blue"
+msgstr "Námořnická modř"
+
+#: src/ui/colorbox.c:37
+msgid "Violet"
+msgstr "Violet"
+
+#: src/ui/colorbox.c:37
+msgid "Brown"
+msgstr "Hnědá"
+
+#: src/ui/colorbox.c:38
+msgid "White"
+msgstr "Bílá"
+
+#: src/ui/colorbox.c:38
+msgid "Light Gray"
+msgstr "Světle šedá"
+
+#: src/ui/colorbox.c:38
+msgid "Red"
+msgstr "Červená"
+
+#: src/ui/colorbox.c:38
+msgid "Yellow"
+msgstr "Žlutá"
+
+#: src/ui/colorbox.c:38
+msgid "Lime"
+msgstr "Limetková"
+
+#: src/ui/colorbox.c:38
+msgid "Cyan"
+msgstr "Tyrkysová"
+
+#: src/ui/colorbox.c:38
+msgid "Blue"
+msgstr "Modrá"
+
+#: src/ui/colorbox.c:38
+msgid "Magenta"
+msgstr "Purpurová"
+
+#: src/ui/colorbox.c:39
+msgid "Light Yellow"
+msgstr "Světle žlutá"
+
+#: src/ui/colorbox.c:39
+msgid "Spring Green"
+msgstr "Jarní zelená"
+
+#: src/ui/colorbox.c:39
+msgid "Light Cyan"
+msgstr "Světle tyrkysová"
+
+#: src/ui/colorbox.c:39
+msgid "Periwinkle"
+msgstr "Pervinka"
+
+#: src/ui/colorbox.c:39
+msgid "Rose"
+msgstr "Růžová"
+
+#: src/ui/colorbox.c:39
+msgid "Orange"
+msgstr "Oranžová"
+
+#: src/ui/colorbox.c:64
+#, c-format
+msgid "%s (#%06X)"
+msgstr "%s (#%06X)"
+
+#: src/ui/colorbox.c:96
+#, c-format
+msgid "Foreground: %s. Background: %s."
+msgstr "Popředí: %s. Pozadí: %s."
+
+#: src/ui/colorbox.c:99
+#, c-format
+msgid "Color %d of %d: %s. Foreground: %s. Background: %s."
+msgstr "Barva %d z %d: %s. Popředí: %s. Pozadí: %s."
+
+#: src/ui/colorbox.c:103
+msgid "Foreground and background colors"
+msgstr "Barva popředí a pozadí"
+
+#: src/ui/colorbox.c:106
+msgid "Color palette"
+msgstr "Paleta barev"
+
+#: src/ui/colorbox.c:269
+msgid "Edit Color"
+msgstr "Upravit barvu"
+
+#: src/ui/colorbox.c:269
+msgid "Foreground Color"
+msgstr "Barva popředí"
+
+#: src/ui/colorbox.c:269
+msgid "Background Color"
+msgstr "Barva pozadí"
+
+#: src/ui/colorbox.c:328 src/ui/colorbox.c:363
+#, c-format
+msgid "Foreground color: %s"
+msgstr "Barva popředí: %s"
+
+#: src/ui/colorbox.c:333 src/ui/colorbox.c:362
+#, c-format
+msgid "Background color: %s"
+msgstr "Barva pozadí: %s"
+
+#: src/ui/colorbox.c:389
+#, c-format
+msgid "Color %d of %d: %s"
+msgstr "Barva %d z %d: %s"
+
+#: src/ui/colorbox.c:446
+msgid "Foreground and background colors. Click a square to choose a color."
+msgstr "Barva popředí a pozadí. Kliknutím na čtverec vyberete barvu."
+
+#: src/ui/colorbox.c:455
+msgid "Swap foreground and background (Ctrl+Shift+X)"
+msgstr "Prohodit popředí a pozadí (Ctrl+Shift+X)"
+
+#: src/ui/colorbox.c:457
+msgid "Swap foreground and background"
+msgstr "Prohodit popředí a pozadí"
+
+#: src/ui/colorbox.c:464
+msgid ""
+"Left-click: foreground. Right-click: background. Double-click: edit this "
+"color. Keyboard: Tab to focus, arrows, Enter / Shift+Enter, F2."
+msgstr "Levé tlačítko: popředí. Pravé tlačítko: pozadí. Dvojklik: upravit tuto barvu. Klávesnice: Tab pro zaměření, šipky, Enter / Shift+Enter, F2."
+
+#: src/ui/dialogs.c:13 src/ui/fontdialog.c:236 src/ui/window.c:379
+#: src/ui/window.c:752
+msgid "_Cancel"
+msgstr "_Zrušit"
+
+#: src/ui/dialogs.c:13
+msgid "_OK"
+msgstr "_OK"
+
+#: src/ui/dialogs.c:92
+msgid "Attributes"
+msgstr "Atributy"
+
+#: src/ui/dialogs.c:101 src/ui/dialogs.c:442 src/ui/dialogs.c:447
+#: src/ui/preferences.c:197
+msgid "Width"
+msgstr "Šířka"
+
+#: src/ui/dialogs.c:102 src/ui/dialogs.c:443 src/ui/preferences.c:198
+msgid "Height"
+msgstr "Výška"
+
+#: src/ui/dialogs.c:105 src/ui/dialogs.c:369
+msgid "Pixels"
+msgstr "Pixely"
+
+#: src/ui/dialogs.c:105
+msgid "Inches"
+msgstr "Palce"
+
+#: src/ui/dialogs.c:105
+msgid "Centimeters"
+msgstr "Centimetry"
+
+#: src/ui/dialogs.c:106
+msgid "Units"
+msgstr "Jednotky"
+
+#: src/ui/dialogs.c:114
+msgid "Colors"
+msgstr "Barvy"
+
+#: src/ui/dialogs.c:114
+msgid "Black and white"
+msgstr "Černobílé"
+
+#: src/ui/dialogs.c:115
+msgid "Color mode"
+msgstr "Barevný režim"
+
+#: src/ui/dialogs.c:122
+msgid "_Default Size"
+msgstr "_Výchozí velikost"
+
+#: src/ui/dialogs.c:129
+msgid ""
+"New area is filled with the background color; a smaller size crops the "
+"picture. Black and white converts the picture and cannot be reverted except "
+"with Undo."
+msgstr "Nová oblast se vyplní barvou pozadí; menší velikost obrázek ořízne. Černobílý režim obrázek převede a vrátit jej lze jen příkazem Zpět."
+
+#: src/ui/dialogs.c:154
+msgid "Custom Zoom"
+msgstr "Vlastní lupa"
+
+#: src/ui/dialogs.c:163
+msgid "Zoom to"
+msgstr "Lupa na"
+
+#: src/ui/dialogs.c:198
+msgid "Flip horizontal"
+msgstr "Převrátit vodorovně"
+
+#: src/ui/dialogs.c:198
+msgid "Flip vertical"
+msgstr "Převrátit svisle"
+
+#: src/ui/dialogs.c:198
+msgid "Rotate 90° clockwise"
+msgstr "Otočit o 90° po směru hodinových ručiček"
+
+#: src/ui/dialogs.c:198
+msgid "Rotate 180°"
+msgstr "Otočit o 180°"
+
+#: src/ui/dialogs.c:198
+msgid "Rotate 270° clockwise"
+msgstr "Otočit o 270° po směru hodinových ručiček"
+
+#: src/ui/dialogs.c:202
+msgid "Flip and Rotate"
+msgstr "Převrácení a otočení"
+
+#: src/ui/dialogs.c:368
+msgid "Stretch and Skew"
+msgstr "Roztažení a zkosení"
+
+#: src/ui/dialogs.c:369
+msgid "Percent"
+msgstr "Procenta"
+
+#: src/ui/dialogs.c:374
+msgid "Stretch"
+msgstr "Roztažení"
+
+#: src/ui/dialogs.c:375
+msgid "Skew"
+msgstr "Zkosení"
+
+#: src/ui/dialogs.c:380
+msgid "Stretch by"
+msgstr "Roztáhnout o"
+
+#: src/ui/dialogs.c:384 src/ui/dialogs.c:393
+msgid "Horizontally"
+msgstr "Vodorovně"
+
+#: src/ui/dialogs.c:385 src/ui/dialogs.c:394
+msgid "Vertically"
+msgstr "Svisle"
+
+#: src/ui/dialogs.c:387
+msgid "Keep aspect ratio"
+msgstr "Zachovat poměr stran"
+
+#: src/ui/dialogs.c:431
+msgid "Grid"
+msgstr "Mřížka"
+
+#: src/ui/dialogs.c:440
+msgid "Show grid"
+msgstr "Zobrazit mřížku"
+
+#: src/ui/dialogs.c:445
+msgid "Show axonometric grid"
+msgstr "Zobrazit axonometrickou mřížku"
+
+#: src/ui/dialogs.c:461
+msgid ""
+"Lines are drawn only when cells are at least 4 screen pixels wide, so zoom "
+"in to see a fine grid."
+msgstr "Čáry se kreslí, jen když jsou buňky široké alespoň 4 pixely obrazovky, takže pro jemnou mřížku obrázek přibližte."
+
+#: src/ui/fileio.c:58
+#, c-format
+msgid "The picture is too large (%d × %d)"
+msgstr "Obrázek je příliš velký (%d × %d)"
+
+#: src/ui/fileio.c:93
+#, c-format
+msgid "Not enough memory to save the picture"
+msgstr "Není dost paměti pro uložení obrázku"
+
+#: src/ui/preferences.c:162
+msgid "Appearance"
+msgstr "Vzhled"
+
+#: src/ui/preferences.c:163
+msgid "Style"
+msgstr "Styl"
+
+#: src/ui/preferences.c:164
+msgid "Follow system"
+msgstr "Podle systému"
+
+#: src/ui/preferences.c:164
+msgid "Light"
+msgstr "Světlý"
+
+#: src/ui/preferences.c:164
+msgid "Dark"
+msgstr "Tmavý"
+
+#: src/ui/preferences.c:167
+msgid "Color scheme"
+msgstr "Barevné schéma"
+
+#: src/ui/preferences.c:172
+msgid "Workspace color"
+msgstr "Barva pracovní plochy"
+
+#: src/ui/preferences.c:173
+msgid "The area around the picture. Reset follows the theme."
+msgstr "Oblast kolem obrázku. Obnovení následuje motiv."
+
+#: src/ui/preferences.c:176
+msgid "Use the theme color"
+msgstr "Použít barvu motivu"
+
+#: src/ui/preferences.c:182
+msgid "Panels"
+msgstr "Panely"
+
+#: src/ui/preferences.c:182
+msgid "Which parts of the window are shown. Also changed from the View menu."
+msgstr "Které části okna jsou zobrazeny. Lze změnit i v nabídce Zobrazení."
+
+#: src/ui/preferences.c:183
+msgid "Tool box"
+msgstr "Panel nástrojů"
+
+#: src/ui/preferences.c:184
+msgid "Color box"
+msgstr "Panel barev"
+
+#: src/ui/preferences.c:185
+msgid "Status bar"
+msgstr "Stavový řádek"
+
+#: src/ui/preferences.c:186
+msgid "Frame time"
+msgstr "Čas snímku"
+
+#: src/ui/preferences.c:186
+msgid "Shown in the status bar"
+msgstr "Zobrazeno ve stavovém řádku"
+
+#: src/ui/preferences.c:193
+msgid "New Picture"
+msgstr "Nový obrázek"
+
+#: src/ui/preferences.c:194
+msgid "Default picture"
+msgstr "Výchozí obrázek"
+
+#: src/ui/preferences.c:194
+msgid "Used when Easel starts and for File → New."
+msgstr "Používá se při spuštění Easelu a pro Soubor → Nový."
+
+#: src/ui/preferences.c:201
+msgid "Background color"
+msgstr "Barva pozadí"
+
+#: src/ui/preferences.c:220
+msgid "Drawing"
+msgstr "Kreslení"
+
+#: src/ui/preferences.c:221
+msgid "Tool defaults"
+msgstr "Výchozí nastavení nástrojů"
+
+#: src/ui/preferences.c:221 src/ui/preferences.c:240 src/ui/preferences.c:243
+msgid "Applied the next time Easel starts."
+msgstr "Použije se při příštím spuštění Easelu."
+
+#: src/ui/preferences.c:223
+msgid "Line width"
+msgstr "Šířka čáry"
+
+#: src/ui/preferences.c:223
+msgid "Line, Curve and shape tools"
+msgstr "Nástroje Čára, Křivka a tvary"
+
+#: src/ui/preferences.c:234
+msgid "Magnifier click"
+msgstr "Kliknutí lupy"
+
+#: src/ui/preferences.c:241
+msgid "Undo memory"
+msgstr "Paměť pro Zpět"
+
+#: src/ui/preferences.c:241
+msgid "Megabytes of history kept; older steps are forgotten first"
+msgstr "Megabajty uchovávané historie; starší kroky se zapomínají jako první"
+
+#: src/ui/preferences.c:243 src/ui/tool.c:41
+msgid "Text"
+msgstr "Text"
+
+#: src/ui/preferences.c:254 src/ui/fontdialog.c:251
+msgid "Font"
+msgstr "Písmo"
+
+#: src/ui/preferences.c:257
+msgid "Opaque background"
+msgstr "Neprůhledné pozadí"
+
+#: src/ui/preferences.c:257
+msgid "Otherwise the picture shows through the text"
+msgstr "Jinak obrázek prosvítá textem"
+
+#: src/ui/preferences.c:258
+msgid "Smooth edges"
+msgstr "Vyhlazené okraje"
+
+#: src/ui/preferences.c:258
+msgid "Antialiased text instead of hard pixels"
+msgstr "Vyhlazený text místo hrubých pixelů"
+
+#: src/ui/preferences.c:271 src/ui/preferences.c:272
+msgid "Palette"
+msgstr "Paleta"
+
+#: src/ui/preferences.c:273
+msgid "Colors you change with Edit Colors are kept between runs."
+msgstr "Barvy změněné pomocí Upravit barvy se uchovávají mezi spuštěními."
+
+#: src/ui/preferences.c:275
+msgid "Reset"
+msgstr "Obnovit"
+
+#: src/ui/preferences.c:277
+msgid "Classic palette"
+msgstr "Klasická paleta"
+
+#: src/ui/preferences.c:278
+msgid "Go back to the original 28 colors"
+msgstr "Návrat k původním 28 barvám"
+
+#: src/ui/preferences.c:296
+msgid "The settings schema is not installed, so preferences cannot be saved."
+msgstr "Schéma nastavení není nainstalováno, takže předvolby nelze uložit."
+
+#. "done" releases op.
+#: src/ui/print.c:63
+msgid "Could not print the picture"
+msgstr "Obrázek se nepodařilo vytisknout"
+
+#: src/ui/tool.c:8
+msgid "Gradient"
+msgstr "Přechod"
+
+#: src/ui/tool.c:9
+msgid ""
+"Fills with a blend from the foreground to the background color. Drag to set "
+"direction and length."
+msgstr "Vyplní plynulým přechodem z barvy popředí do barvy pozadí. Tažením nastavíte směr a délku."
+
+#: src/ui/tool.c:11
+msgid "Pan"
+msgstr "Posun"
+
+#: src/ui/tool.c:12
+msgid "Click and drag to navigate the image."
+msgstr "Kliknutím a tažením se pohybujete po obrázku."
+
+#: src/ui/tool.c:14
+msgid "Free-Form Select"
+msgstr "Výběr od ruky"
+
+#: src/ui/tool.c:15
+msgid "Selects a free-form part of the picture to move, copy, or edit."
+msgstr "Vybere libovolně tvarovanou část obrázku pro přesunutí, kopírování nebo úpravu."
+
+#: src/ui/tool.c:17 src/ui/fontdialog.c:237
+msgid "Select"
+msgstr "Výběr"
+
+#: src/ui/tool.c:18
+msgid "Selects a rectangular part of the picture to move, copy, or edit."
+msgstr "Vybere obdélníkovou část obrázku pro přesunutí, kopírování nebo úpravu."
+
+#: src/ui/tool.c:20
+msgid "Eraser"
+msgstr "Guma"
+
+#: src/ui/tool.c:21
+msgid ""
+"Erases a portion of the picture. Right button: replaces the foreground color "
+"with the background color."
+msgstr "Vymaže část obrázku. Pravé tlačítko: nahradí barvu popředí barvou pozadí."
+
+#: src/ui/tool.c:23
+msgid "Fill With Color"
+msgstr "Vyplnit barvou"
+
+#: src/ui/tool.c:24
+msgid ""
+"Fills an area with the foreground color (left button) or the background "
+"color (right button)."
+msgstr "Vyplní oblast barvou popředí (levé tlačítko) nebo barvou pozadí (pravé tlačítko)."
+
+#: src/ui/tool.c:26
+msgid "Pick Color"
+msgstr "Výběr barvy"
+
+#: src/ui/tool.c:27
+msgid ""
+"Picks up a color from the picture for drawing. Left button: foreground. "
+"Right button: background."
+msgstr "Převezme barvu z obrázku pro kreslení. Levé tlačítko: popředí. Pravé tlačítko: pozadí."
+
+#: src/ui/tool.c:29
+msgid "Magnifier"
+msgstr "Lupa"
+
+#: src/ui/tool.c:30
+msgid "Changes the magnification."
+msgstr "Mění zvětšení."
+
+#: src/ui/tool.c:32
+msgid "Pencil"
+msgstr "Tužka"
+
+#: src/ui/tool.c:33
+msgid ""
+"Draws a free-form line. Left button: foreground color. Right button: "
+"background color."
+msgstr "Kreslí libovolnou čáru. Levé tlačítko: barva popředí. Pravé tlačítko: barva pozadí."
+
+#: src/ui/tool.c:35
+msgid "Brush"
+msgstr "Štětec"
+
+#: src/ui/tool.c:36
+msgid "Draws using a brush with the selected shape and size."
+msgstr "Kreslí štětcem zvoleného tvaru a velikosti."
+
+#: src/ui/tool.c:38
+msgid "Airbrush"
+msgstr "Sprej"
+
+#: src/ui/tool.c:39
+msgid "Draws using an airbrush of the selected size."
+msgstr "Kreslí sprejem zvolené velikosti."
+
+#: src/ui/tool.c:42
+msgid "Inserts text into the picture."
+msgstr "Vloží do obrázku text."
+
+#: src/ui/tool.c:44
+msgid "Line"
+msgstr "Čára"
+
+#: src/ui/tool.c:45
+msgid "Draws a straight line with the selected line width."
+msgstr "Nakreslí přímou čáru zvolené šířky."
+
+#: src/ui/tool.c:47
+msgid "Curve"
+msgstr "Křivka"
+
+#: src/ui/tool.c:48
+msgid "Draws a curved line with the selected line width."
+msgstr "Nakreslí křivou čáru zvolené šířky."
+
+#: src/ui/tool.c:50
+msgid "Rectangle"
+msgstr "Obdélník"
+
+#: src/ui/tool.c:51
+msgid "Draws a rectangle with the selected fill style."
+msgstr "Nakreslí obdélník se zvoleným stylem výplně."
+
+#: src/ui/tool.c:53
+msgid "Polygon"
+msgstr "Mnohoúhelník"
+
+#: src/ui/tool.c:54
+msgid "Draws a polygon with the selected fill style."
+msgstr "Nakreslí mnohoúhelník se zvoleným stylem výplně."
+
+#: src/ui/tool.c:56
+msgid "Ellipse"
+msgstr "Elipsa"
+
+#: src/ui/tool.c:57
+msgid "Draws an ellipse with the selected fill style."
+msgstr "Nakreslí elipsu se zvoleným stylem výplně."
+
+#: src/ui/tool.c:59
+msgid "Rounded Rectangle"
+msgstr "Zaoblený obdélník"
+
+#: src/ui/tool.c:60
+msgid "Draws a rounded rectangle with the selected fill style."
+msgstr "Nakreslí zaoblený obdélník se zvoleným stylem výplně."
+
+#: src/ui/fontdialog.c:82
+msgid ""
+"The sysadmin quickly sudoed the gnomes before they compiled the last of the "
+"coffee. Nobody blamed the cat, because the cat had already pushed to "
+"production on a Friday. The penguins, meanwhile, held a very serious meeting "
+"about kernel panics and herring, and declared it a feature."
+msgstr "Správce systému rychle sudoval gnómy, než stihli zkompilovat poslední zbytek kávy. Nikdo neobviňoval kočku, protože kočka už v pátek odeslala změny do produkce. Tučňáci mezitím uspořádali velmi vážnou poradu o kernel panics a sledích a prohlásili to za funkci."
+
+#: src/ui/fontdialog.c:242
+msgid "Size"
+msgstr "Velikost"
+
+#: src/ui/fontdialog.c:243
+msgid "Bold"
+msgstr "Tučné"
+
+#: src/ui/fontdialog.c:243
+msgid "Italic"
+msgstr "Kurzíva"
+
+#: src/ui/fontdialog.c:243
+msgid "Underline"
+msgstr "Podtržené"
+
+#: src/ui/fontdialog.c:243
+msgid "Strikethrough"
+msgstr "Přeškrtnuté"
+
+#: src/ui/fontdialog.c:269
+msgid "Search font name"
+msgstr "Hledat název písma"
+
+#: src/ui/fontdialog.c:287 src/ui/fontdialog.c:290 src/ui/fontdialog.c:291
+msgid "Text Color"
+msgstr "Barva textu"
+
+#: src/ui/toolbox.c:17
+msgid "Round"
+msgstr "Kulatý"
+
+#: src/ui/toolbox.c:18
+msgid "Square"
+msgstr "Čtvercový"
+
+#: src/ui/toolbox.c:19
+msgid "Forward diagonal"
+msgstr "Úhlopříčka dopředu"
+
+#: src/ui/toolbox.c:20
+msgid "Backward diagonal"
+msgstr "Úhlopříčka dozadu"
+
+#: src/ui/toolbox.c:32
+msgid "Outline"
+msgstr "Obrys"
+
+#: src/ui/toolbox.c:33
+msgid "Outline and fill"
+msgstr "Obrys a výplň"
+
+#: src/ui/toolbox.c:34
+msgid "Fill, no outline"
+msgstr "Výplň bez obrysu"
+
+#: src/ui/toolbox.c:349
+#, c-format
+msgid "%d×"
+msgstr "%d×"
+
+#: src/ui/toolbox.c:352
+#, c-format
+msgid "%s, %d px"
+msgstr "%s, %d px"
+
+#: src/ui/toolbox.c:353
+#, c-format
+msgid "%d px"
+msgstr "%d px"
+
+#: src/ui/toolbox.c:459
+msgid "Transparent: hide background color"
+msgstr "Průhledné: skrýt barvu pozadí"
+
+#: src/ui/toolbox.c:459
+msgid "Opaque: keep the selection's background"
+msgstr "Neprůhledné: zachovat pozadí výběru"
+
+#: src/ui/toolbox.c:460
+msgid "Transparent: erase to transparency"
+msgstr "Průhledné: mazat do průhlednosti"
+
+#: src/ui/toolbox.c:460
+msgid "Opaque: erase to the background color"
+msgstr "Neprůhledné: mazat barvou pozadí"
+
+#: src/ui/toolbox.c:548
+msgid "Font…"
+msgstr "Písmo…"
+
+#: src/ui/toolbox.c:553
+msgid "Smooth"
+msgstr "Vyhlazení"
+
+#: src/ui/toolbox.c:554
+msgid "Smooth text edges (anti-aliasing)"
+msgstr "Vyhladit okraje textu (anti-aliasing)"
+
+#: src/ui/toolbox.c:576
+msgid "Linear"
+msgstr "Lineární"
+
+#: src/ui/toolbox.c:576
+msgid "Radial"
+msgstr "Kruhový"
+
+#: src/ui/toolbox.c:576
+msgid "Reflected"
+msgstr "Zrcadlený"
+
+#: src/ui/window.c:99
+#, c-format
+msgid "%d × %d pixels, zoom %d%%, tool: %s"
+msgstr "%d × %d pixelů, lupa %d%%, nástroj: %s"
+
+#: src/ui/window.c:103
+msgid "Picture"
+msgstr "Obrázek"
+
+#: src/ui/window.c:115
+#, c-format
+msgid "Tool: %s"
+msgstr "Nástroj: %s"
+
+#: src/ui/window.c:172 src/ui/window.c:374
+msgid "Untitled"
+msgstr "Bez názvu"
+
+#: src/ui/window.c:189 src/ui/window.c:520 src/ui/window.c:1171
+#, c-format
+msgid "%d × %d px"
+msgstr "%d × %d px"
+
+#: src/ui/window.c:249
+msgid "Pictures"
+msgstr "Obrázky"
+
+#: src/ui/window.c:289
+msgid "Could not save the picture"
+msgstr "Obrázek se nepodařilo uložit"
+
+#: src/ui/window.c:328
+msgid "Save As"
+msgstr "Uložit jako"
+
+#: src/ui/window.c:375
+#, c-format
+msgid "Save changes to “%s” before closing?"
+msgstr "Uložit změny v souboru „%s“ před zavřením?"
+
+#: src/ui/window.c:376
+msgid "Save Changes?"
+msgstr "Uložit změny?"
+
+#: src/ui/window.c:379
+msgid "_Discard"
+msgstr "_Zahodit"
+
+#: src/ui/window.c:379
+msgid "_Save"
+msgstr "_Uložit"
+
+#: src/ui/window.c:425
+msgid "Open"
+msgstr "Otevřít"
+
+#: src/ui/window.c:438 src/ui/window.c:649
+msgid "Could not open the picture"
+msgstr "Obrázek se nepodařilo otevřít"
+
+#: src/ui/window.c:617
+msgid "Could not save the selection"
+msgstr "Výběr se nepodařilo uložit"
+
+#: src/ui/window.c:631
+msgid "Copy To"
+msgstr "Kopírovat do"
+
+#: src/ui/window.c:672
+msgid "Paste From"
+msgstr "Vložit ze"
+
+#: src/ui/window.c:745
+#, c-format
+msgid "The picture is %d × %d pixels; the canvas is %d × %d."
+msgstr "Obrázek má %d × %d pixelů; plátno má %d × %d."
+
+#: src/ui/window.c:748
+msgid "Pasted picture is larger than the canvas"
+msgstr "Vložený obrázek je větší než plátno"
+
+#: src/ui/window.c:753
+msgid "Fit Picture to Canvas"
+msgstr "Přizpůsobit obrázek plátnu"
+
+#: src/ui/window.c:753
+msgid "Resize Canvas to Picture"
+msgstr "Změnit velikost plátna podle obrázku"
+
+#: src/ui/window.c:973
+msgid "Thumbnail"
+msgstr "Náhled"
+
+#: src/ui/window.c:1052
+#, c-format
+msgid "Paint %.2f ms · %.0f fps"
+msgstr "Vykreslení %.2f ms · %.0f fps"
+
+#: src/ui/window.c:1081 src/ui/window.c:1083
+msgid "Zoom out"
+msgstr "Oddálit"
+
+#: src/ui/window.c:1082 src/ui/window.c:1084
+msgid "Zoom in"
+msgstr "Přiblížit"
+
+#: src/ui/window.c:1109 src/ui/window.c:1110
+msgid "Main Menu"
+msgstr "Hlavní nabídka"
+
+#: src/ui/window.c:1167 src/ui/window.c:1168
+msgid "Pointer position"
+msgstr "Poloha ukazatele"
+
+#: src/ui/window.c:1176 src/ui/window.c:1177
+msgid "Zoom"
+msgstr "Lupa"
+
+#: src/ui/window.c:1183 src/ui/window.c:1184
+msgid "Image size"
+msgstr "Velikost obrázku"
+
+#: src/ui/window.c:1191 src/ui/window.c:1192
+msgid "Time to paint the last frame, and frames per second while drawing"
+msgstr "Doba vykreslení posledního snímku a snímky za sekundu při kreslení"
+
+#: src/ui/window.c:1287
+msgid "Image"
+msgstr "Obrázek"
+
+#: src/ui/window.c:1288
+msgid "New (Ctrl+N)"
+msgstr "Nový (Ctrl+N)"
+
+#: src/ui/window.c:1289
+msgid "Open (Ctrl+O)"
+msgstr "Otevřít (Ctrl+O)"
+
+#: src/ui/window.c:1290
+msgid "Save (Ctrl+S)"
+msgstr "Uložit (Ctrl+S)"
+
+#: src/ui/window.c:1293
+msgid "Undo (Ctrl+Z)"
+msgstr "Zpět (Ctrl+Z)"
+
+#: src/ui/window.c:1294
+msgid "Redo (Ctrl+Y)"
+msgstr "Znovu (Ctrl+Y)"

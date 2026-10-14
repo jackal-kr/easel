@@ -2,6 +2,11 @@
 
 All notable user-facing changes to Easel. Newest first. Built from the git history; versions follow the tags.
 
+## Unreleased
+- New Font dialog with a font list, a live preview, size, text color and Bold/Italic/Underline/Strikethrough in one place.
+- Font, size, color and styles can differ within one text box: select part of the text and use Font… or right-click → Font for Selection….
+- New languages: Czech, German, Italian, Spanish, Portuguese and Russian.
+
 ## 1.1.5
 - The Font dialog shows the current font almost at once in the Flatpak (selected as soon as the list loads; other installs pass it in directly).
 

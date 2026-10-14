@@ -55,6 +55,10 @@ void     easel_canvas_flush (EaselCanvas *self); /* put a floating selection dow
 void     easel_canvas_select_all (EaselCanvas *self);
 EaselClip *easel_canvas_get_selection (EaselCanvas *self); /* a copy; caller frees */
 void     easel_canvas_set_font (EaselCanvas *self, const char *description);
+void     easel_canvas_text_set_font (EaselCanvas *self, const char *font);
+char    *easel_canvas_text_get_font (EaselCanvas *self, guint *style_flags, uint32_t *argb);
+gboolean easel_canvas_text_has_selection (EaselCanvas *self);
+void     easel_canvas_text_set_color (EaselCanvas *self, uint32_t argb);
 void     easel_canvas_set_text_opaque (EaselCanvas *self, gboolean opaque);
 void     easel_canvas_set_text_smooth (EaselCanvas *self, gboolean smooth);
 void     easel_canvas_set_gradient_style (EaselCanvas *self, int style); /* EaselGradientStyle */
