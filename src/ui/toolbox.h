@@ -21,6 +21,10 @@ const char *easel_toolbox_get_tool_hint (EaselToolbox *self);
 int             easel_toolbox_get_tool_size (EaselToolbox *self);
 EaselBrushShape easel_toolbox_get_brush_shape (EaselToolbox *self);
 
+/* Shared by Line and the shape tools (as in classic Paint). */
+int            easel_toolbox_get_line_width (EaselToolbox *self);
+EaselFillStyle easel_toolbox_get_fill_style (EaselToolbox *self);
+
 void easel_toolbox_select_tool (EaselToolbox *self, EaselTool tool);
 /* Used by Pick Color, which hands control back to the tool used before it. */
 void easel_toolbox_select_previous_tool (EaselToolbox *self);

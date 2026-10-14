@@ -22,6 +22,8 @@ void easel_canvas_set_background (EaselCanvas *self, uint32_t argb);
 void easel_canvas_set_tool (EaselCanvas *self, EaselTool tool);
 void easel_canvas_set_tool_size (EaselCanvas *self, int size);
 void easel_canvas_set_brush_shape (EaselCanvas *self, EaselBrushShape shape);
+void easel_canvas_set_line_width (EaselCanvas *self, int width);
+void easel_canvas_set_fill_style (EaselCanvas *self, EaselFillStyle style);
 
 /* Call after changing the document from outside the canvas. */
 void easel_canvas_invalidate (EaselCanvas *self);

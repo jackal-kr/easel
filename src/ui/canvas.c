@@ -1,6 +1,7 @@
 #include "ui/canvas.h"
 
 #include <math.h>
+#include <string.h>
 
 #include "ui/cursors.h"
 
@@ -19,6 +20,8 @@ struct _EaselCanvas
   EaselTool       tool;
   int             tool_size;
   EaselBrushShape brush_shape;
+  int             line_width;
+  EaselFillStyle  fill_style;
 
   /* Gesture in progress. */
   gboolean drawing;
@@ -27,6 +30,9 @@ struct _EaselCanvas
   uint32_t picked;       /* Pick Color: colour under the pointer */
   double   start_x, start_y; /* widget coordinates where the drag began */
   int      last_x, last_y;   /* last image pixel handled */
+  int      start_ix, start_iy; /* image pixel where the drag began */
+  uint32_t *backup;          /* pixels before a shape drag: lets the live preview be redrawn */
+  EaselRect shape_prev;      /* area the previewed shape currently covers */
 
   int hover_x, hover_y; /* pointer in image pixels, -1 when outside */
 };
@@ -272,6 +278,107 @@ apply_stroke (EaselCanvas *self, int x0, int y0, int x1, int y1)
     }
 }
 
+static gboolean
+is_shape_tool (EaselTool tool)
+{
+  return tool == EASEL_TOOL_LINE || tool == EASEL_TOOL_RECTANGLE
+         || tool == EASEL_TOOL_ELLIPSE || tool == EASEL_TOOL_ROUNDED_RECTANGLE;
+}
+
+/* Puts back the pixels the previewed shape covered. */
+static void
+restore_shape_area (EaselCanvas *self)
+{
+  EaselRect r = self->shape_prev;
+
+  for (int y = r.y; y < r.y + r.height; y++)
+    memcpy (&self->doc->pixels[(size_t) y * self->doc->width + r.x],
+            &self->backup[(size_t) y * self->doc->width + r.x], (size_t) r.width * 4);
+}
+
+/* Redraws the live shape from the drag start to image pixel (x, y). With
+ * Shift held lines snap to 45 degree steps and boxes become squares/circles. */
+static void
+update_shape (EaselCanvas *self, int x, int y, gboolean constrain)
+{
+  int sx = self->start_ix, sy = self->start_iy;
+  int dx = x - sx, dy = y - sy;
+  int ax = abs (dx), ay = abs (dy);
+
+  if (constrain)
+    {
+      if (self->tool == EASEL_TOOL_LINE)
+        {
+          if (ay * 2 < ax)
+            dy = 0;
+          else if (ax * 2 < ay)
+            dx = 0;
+          else
+            {
+              int m = MAX (ax, ay);
+              dx = dx < 0 ? -m : m;
+              dy = dy < 0 ? -m : m;
+            }
+        }
+      else
+        {
+          int m = MAX (ax, ay);
+          dx = dx < 0 ? -m : m;
+          dy = dy < 0 ? -m : m;
+        }
+      x = sx + dx;
+      y = sy + dy;
+    }
+
+  /* Left button: border in foreground, fill in background. Right: swapped. */
+  uint32_t outline = self->stroke_color;
+  uint32_t fill = self->button == GDK_BUTTON_PRIMARY ? self->background : self->foreground;
+  EaselRect now;
+
+  restore_shape_area (self);
+  switch (self->tool)
+    {
+    case EASEL_TOOL_LINE:
+      now = easel_raster_line (self->doc, sx, sy, x, y, self->line_width, outline);
+      break;
+    case EASEL_TOOL_RECTANGLE:
+      now = easel_raster_shape (self->doc, EASEL_SHAPE_RECT, sx, sy, x, y, self->line_width,
+                                self->fill_style, outline, fill);
+      break;
+    case EASEL_TOOL_ROUNDED_RECTANGLE:
+      now = easel_raster_shape (self->doc, EASEL_SHAPE_ROUNDED_RECT, sx, sy, x, y, self->line_width,
+                                self->fill_style, outline, fill);
+      break;
+    default:
+      now = easel_raster_shape (self->doc, EASEL_SHAPE_ELLIPSE, sx, sy, x, y, self->line_width,
+                                self->fill_style, outline, fill);
+      break;
+    }
+
+  mark_dirty (self, easel_rect_union (self->shape_prev, now));
+  self->shape_prev = now;
+}
+
+static void
+end_shape_drag (EaselCanvas *self, gboolean keep)
+{
+  if (!keep)
+    {
+      restore_shape_area (self);
+      mark_dirty (self, self->shape_prev);
+    }
+  self->shape_prev = (EaselRect) { 0, 0, 0, 0 };
+  g_clear_pointer (&self->backup, g_free);
+}
+
+static gboolean
+shift_held (GtkGestureDrag *gesture)
+{
+  GdkModifierType state =
+    gtk_event_controller_get_current_event_state (GTK_EVENT_CONTROLLER (gesture));
+  return (state & GDK_SHIFT_MASK) != 0;
+}
+
 static void
 on_drag_begin (GtkGestureDrag *gesture, double x, double y, EaselCanvas *self)
 {
@@ -289,6 +396,8 @@ on_drag_begin (GtkGestureDrag *gesture, double x, double y, EaselCanvas *self)
   self->start_x = x;
   self->start_y = y;
   to_image (self, x, y, &self->last_x, &self->last_y);
+  self->start_ix = self->last_x;
+  self->start_iy = self->last_y;
 
   switch (self->tool)
     {
@@ -300,6 +409,17 @@ on_drag_begin (GtkGestureDrag *gesture, double x, double y, EaselCanvas *self)
     case EASEL_TOOL_PICK_COLOR:
       self->picked = sample (self, self->last_x, self->last_y);
       self->drawing = TRUE; /* resolved on release */
+      break;
+
+    case EASEL_TOOL_LINE:
+    case EASEL_TOOL_RECTANGLE:
+    case EASEL_TOOL_ELLIPSE:
+    case EASEL_TOOL_ROUNDED_RECTANGLE:
+      self->drawing = TRUE;
+      g_free (self->backup);
+      self->backup = g_memdup2 (self->doc->pixels,
+                                (gsize) self->doc->width * self->doc->height * 4);
+      self->shape_prev = (EaselRect) { 0, 0, 0, 0 };
       break;
 
     case EASEL_TOOL_PENCIL:
@@ -329,6 +449,8 @@ on_drag_update (GtkGestureDrag *gesture, double offset_x, double offset_y, Easel
 
   if (self->tool == EASEL_TOOL_PICK_COLOR)
     self->picked = sample (self, x, y);
+  else if (is_shape_tool (self->tool))
+    update_shape (self, x, y, shift_held (gesture));
   else
     /* Join consecutive samples with a line so fast strokes have no gaps. */
     mark_dirty (self, apply_stroke (self, self->last_x, self->last_y, x, y));
@@ -344,6 +466,21 @@ on_drag_end (GtkGestureDrag *gesture, double offset_x, double offset_y, EaselCan
     return;
   self->drawing = FALSE;
   gtk_widget_queue_draw (GTK_WIDGET (self)); /* hover preview comes back */
+
+  if (is_shape_tool (self->tool))
+    {
+      int x, y;
+      to_image (self, self->start_x + offset_x, self->start_y + offset_y, &x, &y);
+      /* A plain click (no movement) draws nothing. */
+      if (x == self->start_ix && y == self->start_iy)
+        end_shape_drag (self, FALSE);
+      else
+        {
+          update_shape (self, x, y, shift_held (gesture));
+          end_shape_drag (self, TRUE);
+        }
+      return;
+    }
 
   if (self->tool == EASEL_TOOL_PICK_COLOR)
     {
@@ -385,6 +522,7 @@ easel_canvas_dispose (GObject *object)
   EaselCanvas *self = EASEL_CANVAS (object);
   g_clear_object (&self->texture);
   g_clear_pointer (&self->dirty, cairo_region_destroy);
+  g_clear_pointer (&self->backup, g_free);
   G_OBJECT_CLASS (easel_canvas_parent_class)->dispose (object);
 }
 
@@ -425,6 +563,8 @@ easel_canvas_init (EaselCanvas *self)
   self->tool = EASEL_TOOL_PENCIL;
   self->tool_size = 1;
   self->brush_shape = EASEL_BRUSH_CIRCLE;
+  self->line_width = 1;
+  self->fill_style = EASEL_FILL_OUTLINE;
   self->hover_x = self->hover_y = -1;
 
   gtk_widget_add_css_class (GTK_WIDGET (self), "easel-canvas");
@@ -505,4 +645,18 @@ easel_canvas_invalidate (EaselCanvas *self)
 {
   g_return_if_fail (EASEL_IS_CANVAS (self));
   mark_all_dirty (self);
+}
+
+void
+easel_canvas_set_line_width (EaselCanvas *self, int width)
+{
+  g_return_if_fail (EASEL_IS_CANVAS (self));
+  self->line_width = CLAMP (width, 1, EASEL_MAX_BRUSH);
+}
+
+void
+easel_canvas_set_fill_style (EaselCanvas *self, EaselFillStyle style)
+{
+  g_return_if_fail (EASEL_IS_CANVAS (self));
+  self->fill_style = style;
 }

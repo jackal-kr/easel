@@ -52,3 +52,27 @@ EaselRect easel_raster_erase_stroke (EaselDocument *doc, int x0, int y0, int x1,
 /* 4-connected flood fill of the exact colour found at (x, y). Does nothing if
  * the point is outside the image or already has `color`. */
 EaselRect easel_raster_flood_fill (EaselDocument *doc, int x, int y, uint32_t color);
+
+/* Straight line `width` pixels thick (round pen), both ends included. */
+EaselRect easel_raster_line (EaselDocument *doc, int x0, int y0, int x1, int y1,
+                             int width, uint32_t color);
+
+typedef enum
+{
+  EASEL_SHAPE_RECT,
+  EASEL_SHAPE_ROUNDED_RECT, /* corner radius min(8, half the shorter side) */
+  EASEL_SHAPE_ELLIPSE,
+} EaselShape;
+
+typedef enum
+{
+  EASEL_FILL_OUTLINE,          /* border only */
+  EASEL_FILL_OUTLINE_AND_FILL, /* border in outline_color, inside in fill_color */
+  EASEL_FILL_SOLID,            /* no border; the whole shape in outline_color */
+} EaselFillStyle;
+
+/* Shape inscribed in the box spanned by the two corners (inclusive, any
+ * order). The border grows inward and is `line_width` pixels thick. */
+EaselRect easel_raster_shape (EaselDocument *doc, EaselShape shape,
+                              int x0, int y0, int x1, int y1, int line_width,
+                              EaselFillStyle style, uint32_t outline_color, uint32_t fill_color);

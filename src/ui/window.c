@@ -50,6 +50,8 @@ sync_canvas_tool (EaselWindow *self)
   easel_canvas_set_tool (self->canvas, easel_toolbox_get_tool (self->toolbox));
   easel_canvas_set_tool_size (self->canvas, easel_toolbox_get_tool_size (self->toolbox));
   easel_canvas_set_brush_shape (self->canvas, easel_toolbox_get_brush_shape (self->toolbox));
+  easel_canvas_set_line_width (self->canvas, easel_toolbox_get_line_width (self->toolbox));
+  easel_canvas_set_fill_style (self->canvas, easel_toolbox_get_fill_style (self->toolbox));
 }
 
 static void

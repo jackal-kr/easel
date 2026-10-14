@@ -256,6 +256,72 @@ test_flood_fill (void)
   easel_document_free (doc);
 }
 
+static void
+test_shapes (void)
+{
+  EaselDocument *doc = easel_document_new (40, 40, WHITE);
+
+  /* Outlined rectangle 10x6 at (5,5): border 2*10 + 2*4 = 28 pixels. */
+  easel_raster_shape (doc, EASEL_SHAPE_RECT, 5, 5, 14, 10, 1, EASEL_FILL_OUTLINE, BLACK, RED);
+  CHECK (count_not (doc, WHITE) == 28);
+  CHECK (easel_document_get_pixel (doc, 7, 7) == WHITE);
+
+  /* Corners may come in any order. */
+  easel_document_fill (doc, WHITE);
+  easel_raster_shape (doc, EASEL_SHAPE_RECT, 14, 10, 5, 5, 1, EASEL_FILL_OUTLINE, BLACK, RED);
+  CHECK (count_not (doc, WHITE) == 28);
+
+  /* Outline + fill: inside is the fill colour, border the outline colour. */
+  easel_document_fill (doc, WHITE);
+  easel_raster_shape (doc, EASEL_SHAPE_RECT, 5, 5, 14, 10, 1, EASEL_FILL_OUTLINE_AND_FILL, BLACK, RED);
+  CHECK (easel_document_get_pixel (doc, 7, 7) == RED);
+  CHECK (easel_document_get_pixel (doc, 5, 5) == BLACK);
+  CHECK (count_not (doc, WHITE) == 60);
+
+  /* Solid: no border, all one colour. */
+  easel_document_fill (doc, WHITE);
+  easel_raster_shape (doc, EASEL_SHAPE_RECT, 5, 5, 14, 10, 1, EASEL_FILL_SOLID, BLACK, RED);
+  CHECK (count_not (doc, WHITE) == 60);
+  CHECK (easel_document_get_pixel (doc, 7, 7) == BLACK);
+
+  /* A border wider than half the box fills it completely. */
+  easel_document_fill (doc, WHITE);
+  easel_raster_shape (doc, EASEL_SHAPE_RECT, 5, 5, 9, 9, 3, EASEL_FILL_OUTLINE, BLACK, RED);
+  CHECK (count_not (doc, WHITE) == 25);
+
+  /* Rounded corners drop the corner pixel; the middle of each side stays. */
+  easel_document_fill (doc, WHITE);
+  easel_raster_shape (doc, EASEL_SHAPE_ROUNDED_RECT, 5, 5, 24, 24, 1, EASEL_FILL_SOLID, BLACK, RED);
+  CHECK (easel_document_get_pixel (doc, 5, 5) == WHITE);
+  CHECK (easel_document_get_pixel (doc, 15, 5) == BLACK);
+  CHECK (easel_document_get_pixel (doc, 5, 15) == BLACK);
+
+  /* Ellipse: symmetric, centre inside, bounding-box corners outside. */
+  easel_document_fill (doc, WHITE);
+  easel_raster_shape (doc, EASEL_SHAPE_ELLIPSE, 4, 4, 23, 15, 1, EASEL_FILL_SOLID, BLACK, RED);
+  CHECK (easel_document_get_pixel (doc, 13, 9) == BLACK);
+  CHECK (easel_document_get_pixel (doc, 4, 4) == WHITE);
+  for (int y = 4; y <= 15; y++)
+    for (int x = 4; x <= 23; x++)
+      CHECK (easel_document_get_pixel (doc, x, y) == easel_document_get_pixel (doc, 27 - x, y));
+
+  /* Clipping: a shape mostly off-image must not crash and reports its clip. */
+  EaselRect r = easel_raster_shape (doc, EASEL_SHAPE_ELLIPSE, -30, -30, 10, 10, 2,
+                                    EASEL_FILL_OUTLINE, BLACK, RED);
+  CHECK (r.x == 0 && r.y == 0 && r.width == 11 && r.height == 11);
+  r = easel_raster_shape (doc, EASEL_SHAPE_RECT, 100, 100, 120, 120, 1, EASEL_FILL_SOLID, BLACK, RED);
+  CHECK (r.width == 0);
+
+  /* Wide line. */
+  easel_document_fill (doc, WHITE);
+  easel_raster_line (doc, 5, 20, 30, 20, 3, BLACK);
+  CHECK (easel_document_get_pixel (doc, 15, 19) == BLACK);
+  CHECK (easel_document_get_pixel (doc, 15, 21) == BLACK);
+  CHECK (easel_document_get_pixel (doc, 15, 22) == WHITE);
+
+  easel_document_free (doc);
+}
+
 int
 main (void)
 {
@@ -265,6 +331,7 @@ main (void)
   test_lines ();
   test_eraser ();
   test_flood_fill ();
+  test_shapes ();
 
   if (failures != 0)
     {

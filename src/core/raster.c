@@ -2,6 +2,13 @@
 
 #include <stdlib.h>
 
+#ifndef MIN
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#endif
+#ifndef MAX
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#endif
+
 static int
 clamp_size (int size)
 {
@@ -245,4 +252,85 @@ done:
   if (max_x < 0)
     return none;
   return (EaselRect) { min_x, min_y, max_x - min_x + 1, max_y - min_y + 1 };
+}
+
+EaselRect
+easel_raster_line (EaselDocument *doc, int x0, int y0, int x1, int y1, int width, uint32_t color)
+{
+  EaselBrush brush = { EASEL_BRUSH_CIRCLE, width, color };
+  return easel_raster_stroke (doc, x0, y0, x1, y1, &brush);
+}
+
+/* Is the pixel (x, y) inside the shape filling box (bx, by, bw, bh)? Done in
+ * doubled coordinates so pixel centres are exact integers. */
+static bool
+shape_contains (EaselShape shape, int bx, int by, int bw, int bh, int r, int x, int y)
+{
+  if (x < bx || y < by || x >= bx + bw || y >= by + bh)
+    return false;
+
+  if (shape == EASEL_SHAPE_ELLIPSE)
+    {
+      int64_t dx = 2 * (int64_t) x + 1 - (2 * (int64_t) bx + bw);
+      int64_t dy = 2 * (int64_t) y + 1 - (2 * (int64_t) by + bh);
+      return dx * dx * bh * bh + dy * dy * (int64_t) bw * bw <= (int64_t) bw * bw * bh * bh;
+    }
+
+  if (r <= 0)
+    return true;
+
+  int64_t px = 2 * (int64_t) x + 1, py = 2 * (int64_t) y + 1;
+  int64_t lx = 2 * (int64_t) (bx + r), rx = 2 * (int64_t) (bx + bw - r);
+  int64_t ty = 2 * (int64_t) (by + r), bt = 2 * (int64_t) (by + bh - r);
+  int64_t dx = px < lx ? lx - px : (px > rx ? px - rx : 0);
+  int64_t dy = py < ty ? ty - py : (py > bt ? py - bt : 0);
+  return dx * dx + dy * dy <= 4 * (int64_t) r * r;
+}
+
+EaselRect
+easel_raster_shape (EaselDocument *doc, EaselShape shape, int x0, int y0, int x1, int y1,
+                    int line_width, EaselFillStyle style, uint32_t outline_color, uint32_t fill_color)
+{
+  EaselRect none = { 0, 0, 0, 0 };
+  int bx = MIN (x0, x1), by = MIN (y0, y1);
+  int bw = abs (x1 - x0) + 1, bh = abs (y1 - y0) + 1;
+  int w = line_width < 1 ? 1 : (line_width > EASEL_MAX_BRUSH ? EASEL_MAX_BRUSH : line_width);
+  int r = 0;
+
+  if (shape == EASEL_SHAPE_ROUNDED_RECT)
+    r = MIN (8, MIN (bw, bh) / 2);
+
+  /* Interior (where the border stops). Empty when the border swallows it. */
+  int ix = bx + w, iy = by + w, iw = bw - 2 * w, ih = bh - 2 * w;
+  int ir = r > w ? r - w : 0;
+  bool has_inner = iw > 0 && ih > 0;
+
+  /* Clip the loop to the image. */
+  int left = MAX (bx, 0), top = MAX (by, 0);
+  int right = MIN ((int64_t) bx + bw, doc->width), bottom = MIN ((int64_t) by + bh, doc->height);
+  if (left >= right || top >= bottom)
+    return none;
+
+  for (int y = top; y < bottom; y++)
+    for (int x = left; x < right; x++)
+      {
+        if (!shape_contains (shape, bx, by, bw, bh, r, x, y))
+          continue;
+
+        bool inner = has_inner && shape_contains (shape, ix, iy, iw, ih, ir, x, y);
+        uint32_t color;
+
+        if (style == EASEL_FILL_SOLID)
+          color = outline_color;
+        else if (!inner)
+          color = outline_color;
+        else if (style == EASEL_FILL_OUTLINE_AND_FILL)
+          color = fill_color;
+        else
+          continue;
+
+        doc->pixels[(size_t) y * doc->width + x] = color;
+      }
+
+  return (EaselRect) { left, top, right - left, bottom - top };
 }

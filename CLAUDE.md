@@ -61,5 +61,5 @@ accessibility (palette is a single drawing area, needs keyboard access), icons, 
 - UI: per-tool cursors (src/ui/cursors.c, classic-Paint layout, own art), hover footprint preview for
   pencil/brush, toolbox switches 2<->3 columns by window height (own layout in EaselToolbox; options
   stack is width-homogeneous so the toolbox never changes width).
-- Next: slice 2 (Line, Rectangle, Rounded Rectangle, Ellipse with live preview, Shift = perfect shape),
-  slice 3 (Polygon, Curve, Airbrush, Magnifier).
+- Slice 2 done: Line, Rectangle, Rounded Rectangle, Ellipse (live preview via pixel backup, Shift constrain, shared line width + fill style).
+- Next: slice 3 (Polygon, Curve, Airbrush, Magnifier).
