@@ -60,6 +60,14 @@ on_startup (GApplication *app)
   gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.show-grid", grid_accels);
   gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.zoom-large", large_accels);
   gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.zoom-normal", normal_accels);
+  const char *cut_accels[] = { "<Primary>x", NULL };
+  const char *copy_accels[] = { "<Primary>c", NULL };
+  const char *paste_accels[] = { "<Primary>v", NULL };
+  const char *all_accels[] = { "<Primary>a", NULL };
+  gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.cut", cut_accels);
+  gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.copy", copy_accels);
+  gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.paste", paste_accels);
+  gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.select-all", all_accels);
   const char *undo_accels[] = { "<Primary>z", NULL };
   const char *redo_accels[] = { "<Primary>y", "<Primary><Shift>z", NULL };
   gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.undo", undo_accels);

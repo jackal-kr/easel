@@ -3,6 +3,7 @@
 #include <math.h>
 #include <string.h>
 
+#include "core/clip.h"
 #include "core/history.h"
 #include "ui/cursors.h"
 
@@ -55,6 +56,19 @@ struct _EaselCanvas
   int      resize_handle;   /* handle being dragged, 0 when not resizing */
   int      resize_w, resize_h;
 
+  /* Selection. The picture is only touched when the selection is first
+   * moved ("lifted": its pixels go to sel_clip and a background-coloured
+   * hole is left) and when it is committed (the clip is drawn back down). */
+  gboolean    sel_active;
+  EaselRect   sel_rect;      /* current position and size, image pixels */
+  EaselClip  *sel_clip;      /* lifted contents, NULL until the first move */
+  uint32_t   *sel_base;      /* picture before the lift, for undo */
+  EaselRect   sel_edit;      /* area touched by the lift */
+  GdkTexture *sel_texture;   /* sel_clip as shown on screen */
+  gboolean    sel_creating, sel_moving;
+  int         sel_grab_x, sel_grab_y;
+  gboolean    sel_opaque;    /* Draw Opaque: background-coloured pixels are kept */
+
   /* Undo */
   EaselHistory *history;
   EaselRect     edit_rect;  /* pixels touched by the edit in progress */
@@ -74,7 +88,7 @@ struct _EaselCanvas
 
 G_DEFINE_FINAL_TYPE (EaselCanvas, easel_canvas, GTK_TYPE_WIDGET)
 
-enum { SIGNAL_POINTER_MOVED, SIGNAL_COLOR_PICKED, SIGNAL_HISTORY_CHANGED, SIGNAL_RESIZE_PREVIEW, SIGNAL_ZOOM_CHANGED, N_SIGNALS };
+enum { SIGNAL_POINTER_MOVED, SIGNAL_COLOR_PICKED, SIGNAL_HISTORY_CHANGED, SIGNAL_RESIZE_PREVIEW, SIGNAL_ZOOM_CHANGED, SIGNAL_SELECTION_CHANGED, N_SIGNALS };
 static guint signals[N_SIGNALS];
 
 /* One image pixel is one *device* pixel at zoom 1, even on HiDPI screens,
@@ -332,6 +346,42 @@ draw_grid (EaselCanvas *self, GtkSnapshot *snapshot, const graphene_rect_t *boun
   gtk_snapshot_append_repeating_linear_gradient (snapshot, bounds, &o, &down, stops, 4);
 }
 
+/* Floating contents plus a dashed outline (white under black, so it shows on
+ * any colour). */
+static void
+draw_selection (EaselCanvas *self, GtkSnapshot *snapshot, double s)
+{
+  if (!self->sel_active && !self->sel_creating)
+    return;
+
+  EaselRect r = self->sel_rect;
+
+  if (self->sel_texture != NULL)
+    {
+      graphene_rect_t at = GRAPHENE_RECT_INIT ((float) (r.x * s), (float) (r.y * s),
+                                               (float) (r.width * s), (float) (r.height * s));
+      gtk_snapshot_append_scaled_texture (snapshot, self->sel_texture, GSK_SCALING_FILTER_NEAREST, &at);
+    }
+
+  graphene_rect_t box = GRAPHENE_RECT_INIT ((float) (r.x * s) + 0.5f, (float) (r.y * s) + 0.5f,
+                                            (float) (r.width * s) - 1, (float) (r.height * s) - 1);
+  GskPathBuilder *builder = gsk_path_builder_new ();
+  gsk_path_builder_add_rect (builder, &box);
+  GskPath *path = gsk_path_builder_free_to_path (builder);
+
+  const GdkRGBA white = { 1, 1, 1, 1 }, black = { 0, 0, 0, 1 };
+  GskStroke *solid = gsk_stroke_new (1.0f);
+  GskStroke *dashed = gsk_stroke_new (1.0f);
+  const float dashes[] = { 4, 4 };
+
+  gsk_stroke_set_dash (dashed, dashes, 2);
+  gtk_snapshot_append_stroke (snapshot, path, solid, &white);
+  gtk_snapshot_append_stroke (snapshot, path, dashed, &black);
+  gsk_stroke_free (solid);
+  gsk_stroke_free (dashed);
+  gsk_path_unref (path);
+}
+
 static void
 easel_canvas_snapshot (GtkWidget *widget, GtkSnapshot *snapshot)
 {
@@ -343,6 +393,19 @@ easel_canvas_snapshot (GtkWidget *widget, GtkSnapshot *snapshot)
   graphene_rect_t bounds = GRAPHENE_RECT_INIT (0, 0,
                                                (float) (self->doc->width * s),
                                                (float) (self->doc->height * s));
+  /* Transparent pixels show a checkerboard behind them. */
+  {
+    graphene_rect_t tile = GRAPHENE_RECT_INIT (0, 0, 16, 16);
+    graphene_rect_t a = GRAPHENE_RECT_INIT (0, 0, 8, 8), b = GRAPHENE_RECT_INIT (8, 8, 8, 8);
+    const GdkRGBA light = { 1, 1, 1, 1 }, dark = { 0.82f, 0.82f, 0.82f, 1 };
+
+    gtk_snapshot_push_repeat (snapshot, &bounds, &tile);
+    gtk_snapshot_append_color (snapshot, &light, &tile);
+    gtk_snapshot_append_color (snapshot, &dark, &a);
+    gtk_snapshot_append_color (snapshot, &dark, &b);
+    gtk_snapshot_pop (snapshot);
+  }
+
   /* A hairline edge plus a soft shadow, hugging the picture itself (the
    * widget is a little larger to leave room for the resize handles). */
   {
@@ -362,6 +425,7 @@ easel_canvas_snapshot (GtkWidget *widget, GtkSnapshot *snapshot)
   draw_brush_preview (self, snapshot, s);
   draw_eraser_outline (self, snapshot, s);
   draw_grid (self, snapshot, &bounds, s);
+  draw_selection (self, snapshot, s);
   gtk_snapshot_pop (snapshot);
 
   draw_handles (self, snapshot);
@@ -373,7 +437,14 @@ sample (EaselCanvas *self, int x, int y)
   /* Picking outside the image yields white, as classic Paint does. */
   if (x < 0 || y < 0 || x >= self->doc->width || y >= self->doc->height)
     return EASEL_RGB (255, 255, 255);
-  return easel_document_get_pixel (self->doc, x, y);
+  uint32_t c = easel_document_get_pixel (self->doc, x, y);
+  if ((c >> 24) != 0xFF) /* see-through pixel: pick what is seen over white */
+    {
+      uint32_t miss = 255 - (c >> 24);
+      return EASEL_RGB (MIN (((c >> 16) & 0xFF) + miss, 255u), MIN (((c >> 8) & 0xFF) + miss, 255u),
+                        MIN ((c & 0xFF) + miss, 255u));
+    }
+  return c;
 }
 
 /* Applies the freehand tool (pencil, brush or eraser) along a segment. A
@@ -512,6 +583,144 @@ spray_tick (gpointer data)
   mark_dirty (self, easel_raster_spray (self->doc, self->last_x, self->last_y, d,
                                         self->stroke_color, MAX (2, d * d / 8), &self->spray_rng));
   return G_SOURCE_CONTINUE;
+}
+
+/* ---- Selection ------------------------------------------------------- */
+
+static GdkTexture *
+texture_from_clip (const EaselClip *clip, gboolean opaque, uint32_t key, int checker)
+{
+  gsize n = (gsize) clip->width * clip->height;
+  g_autofree uint32_t *argb = g_new (uint32_t, n);
+
+  for (gsize i = 0; i < n; i++)
+    {
+      gboolean outside = clip->mask != NULL && !clip->mask[i];
+      gboolean see_through = !opaque && clip->pixels[i] == key;
+
+      if (outside)
+        argb[i] = 0;
+      else if (see_through)
+        {
+          /* Show transparency as a faint checkerboard, as image editors do. */
+          int x = (int) (i % (gsize) clip->width), y = (int) (i / (gsize) clip->width);
+          argb[i] = checker > 0 && ((x / checker + y / checker) & 1) ? 0x66464646u : 0;
+        }
+      else
+        argb[i] = clip->pixels[i];
+    }
+
+  g_autoptr (GBytes) bytes = g_bytes_new (argb, n * 4);
+#if G_BYTE_ORDER == G_LITTLE_ENDIAN
+  GdkMemoryFormat format = GDK_MEMORY_B8G8R8A8_PREMULTIPLIED;
+#else
+  GdkMemoryFormat format = GDK_MEMORY_A8R8G8B8_PREMULTIPLIED;
+#endif
+  return gdk_memory_texture_new (clip->width, clip->height, format, bytes, (gsize) clip->width * 4);
+}
+
+static void
+sel_refresh_texture (EaselCanvas *self)
+{
+  g_clear_object (&self->sel_texture);
+  if (self->sel_clip != NULL)
+    self->sel_texture = texture_from_clip (self->sel_clip, self->sel_opaque, self->background,
+                                           MAX (1, 8 / self->zoom));
+  gtk_widget_queue_draw (GTK_WIDGET (self));
+}
+
+static void
+sel_notify (EaselCanvas *self)
+{
+  g_signal_emit (self, signals[SIGNAL_SELECTION_CHANGED], 0);
+}
+
+/* What cutting or lifting leaves behind: the background colour in Opaque
+ * mode, true transparency (shown as a checkerboard) in Transparent mode. */
+static uint32_t
+hole_color (EaselCanvas *self)
+{
+  return self->sel_opaque ? self->background : 0;
+}
+
+/* First move of a selection: take its pixels off the picture. With `copy`
+ * the original stays (Ctrl-drag stamps a copy). */
+static void
+sel_lift (EaselCanvas *self, gboolean copy)
+{
+  if (self->sel_clip != NULL || !self->sel_active)
+    return;
+
+  self->sel_clip = easel_clip_copy_from (self->doc, self->sel_rect, NULL);
+  if (self->sel_clip == NULL)
+    return;
+  g_free (self->sel_base);
+  self->sel_base = g_memdup2 (self->doc->pixels, (gsize) self->doc->width * self->doc->height * 4);
+  self->sel_edit = (EaselRect) { 0, 0, 0, 0 };
+  if (!copy)
+    {
+      self->sel_edit = easel_clip_erase (self->doc, self->sel_rect, NULL, hole_color (self));
+      mark_dirty (self, self->sel_edit);
+    }
+  sel_refresh_texture (self);
+}
+
+static void
+sel_discard (EaselCanvas *self)
+{
+  g_clear_pointer (&self->sel_clip, easel_clip_free);
+  g_clear_pointer (&self->sel_base, g_free);
+  g_clear_object (&self->sel_texture);
+  self->sel_active = self->sel_creating = self->sel_moving = FALSE;
+  self->sel_edit = (EaselRect) { 0, 0, 0, 0 };
+  gtk_widget_queue_draw (GTK_WIDGET (self));
+}
+
+/* Puts a floating selection down (one undo step covering the lift and the
+ * landing) and drops the selection. */
+static void
+sel_commit (EaselCanvas *self)
+{
+  if (!self->sel_active && !self->sel_creating)
+    return;
+
+  if (self->sel_clip != NULL)
+    {
+      EaselRect landed = easel_clip_blit (self->doc, self->sel_clip, self->sel_rect.x, self->sel_rect.y,
+                                          !self->sel_opaque, self->background);
+      self->edit_rect = easel_rect_union (self->sel_edit, landed);
+      mark_dirty (self, landed);
+      push_undo (self, self->sel_base);
+    }
+  sel_discard (self);
+  sel_notify (self);
+}
+
+/* Drag corners to an image-clamped rectangle. */
+static EaselRect
+sel_rect_between (EaselCanvas *self, int x0, int y0, int x1, int y1)
+{
+  int left = CLAMP (MIN (x0, x1), 0, self->doc->width - 1);
+  int top = CLAMP (MIN (y0, y1), 0, self->doc->height - 1);
+  int right = CLAMP (MAX (x0, x1), 0, self->doc->width - 1);
+  int bottom = CLAMP (MAX (y0, y1), 0, self->doc->height - 1);
+
+  return (EaselRect) { left, top, right - left + 1, bottom - top + 1 };
+}
+
+static gboolean
+sel_contains (EaselCanvas *self, int x, int y)
+{
+  return self->sel_active && x >= self->sel_rect.x && y >= self->sel_rect.y
+         && x < self->sel_rect.x + self->sel_rect.width && y < self->sel_rect.y + self->sel_rect.height;
+}
+
+static gboolean
+ctrl_held (GtkGestureDrag *gesture)
+{
+  GdkModifierType state =
+    gtk_event_controller_get_current_event_state (GTK_EVENT_CONTROLLER (gesture));
+  return (state & GDK_CONTROL_MASK) != 0;
 }
 
 static gboolean
@@ -659,6 +868,24 @@ on_drag_begin (GtkGestureDrag *gesture, double x, double y, EaselCanvas *self)
 
   switch (self->tool)
     {
+    case EASEL_TOOL_SELECT:
+      self->drawing = TRUE;
+      if (sel_contains (self, self->last_x, self->last_y))
+        {
+          sel_lift (self, ctrl_held (gesture));
+          self->sel_moving = TRUE;
+          self->sel_grab_x = self->last_x - self->sel_rect.x;
+          self->sel_grab_y = self->last_y - self->sel_rect.y;
+        }
+      else
+        {
+          sel_commit (self);
+          self->sel_creating = TRUE;
+          self->sel_rect = sel_rect_between (self, self->last_x, self->last_y, self->last_x, self->last_y);
+        }
+      gtk_widget_queue_draw (GTK_WIDGET (self));
+      break;
+
     case EASEL_TOOL_MAGNIFIER:
       easel_canvas_set_zoom (self, self->zoom == 1 ? self->zoom_level : 1,
                              self->last_x, self->last_y);
@@ -826,6 +1053,17 @@ on_drag_update (GtkGestureDrag *gesture, double offset_x, double offset_y, Easel
       self->seq_moved = TRUE;
       seq_render (self, FALSE, FALSE, 0, 0);
     }
+  else if (self->tool == EASEL_TOOL_SELECT)
+    {
+      if (self->sel_moving)
+        {
+          self->sel_rect.x = x - self->sel_grab_x;
+          self->sel_rect.y = y - self->sel_grab_y;
+        }
+      else if (self->sel_creating)
+        self->sel_rect = sel_rect_between (self, self->start_ix, self->start_iy, x, y);
+      gtk_widget_queue_draw (GTK_WIDGET (self));
+    }
   else if (self->tool == EASEL_TOOL_AIRBRUSH)
     ; /* the timer sprays at last_x/last_y */
   else
@@ -855,6 +1093,23 @@ on_drag_end (GtkGestureDrag *gesture, double offset_x, double offset_y, EaselCan
     return;
   self->drawing = FALSE;
   gtk_widget_queue_draw (GTK_WIDGET (self)); /* hover preview comes back */
+
+  if (self->tool == EASEL_TOOL_SELECT)
+    {
+      if (self->sel_creating)
+        {
+          int x, y;
+          to_image (self, self->start_x + offset_x, self->start_y + offset_y, &x, &y);
+          self->sel_creating = FALSE;
+          /* A click without dragging just deselects. */
+          self->sel_active = !(x == self->start_ix && y == self->start_iy);
+          if (!self->sel_active)
+            gtk_widget_queue_draw (GTK_WIDGET (self));
+          sel_notify (self);
+        }
+      self->sel_moving = FALSE;
+      return;
+    }
 
   if (self->tool == EASEL_TOOL_AIRBRUSH)
     {
@@ -937,10 +1192,18 @@ static gboolean
 on_key_pressed (GtkEventControllerKey *controller, guint keyval, guint keycode,
                 GdkModifierType state, EaselCanvas *self)
 {
+  if (keyval == GDK_KEY_Delete && self->sel_active)
+    {
+      easel_canvas_clear_selection (self);
+      return TRUE;
+    }
+
   if (keyval != GDK_KEY_Escape)
     return FALSE;
 
-  if (self->seq_active)
+  if (self->sel_active || self->sel_creating)
+    sel_commit (self);
+  else if (self->seq_active)
     cancel_seq (self);
   else if (self->drawing && is_shape_tool (self->tool))
     {
@@ -956,6 +1219,17 @@ on_key_pressed (GtkEventControllerKey *controller, guint keyval, guint keycode,
 static void
 on_motion (GtkEventControllerMotion *controller, double x, double y, EaselCanvas *self)
 {
+  /* Over a selection the pointer offers to move it. */
+  if (self->tool == EASEL_TOOL_SELECT && self->resize_handle == 0 && self->handle_hover == 0)
+    {
+      int ix, iy;
+      to_image (self, x, y, &ix, &iy);
+      if (sel_contains (self, ix, iy))
+        gtk_widget_set_cursor_from_name (GTK_WIDGET (self), "move");
+      else
+        gtk_widget_set_cursor (GTK_WIDGET (self), easel_cursor_for_tool (self->tool));
+    }
+
   /* While a handle is being dragged the pointer keeps its resize cursor. */
   int handle = self->resize_handle != 0 ? self->resize_handle : handle_at (self, x, y);
   if (handle != self->handle_hover)
@@ -1001,6 +1275,9 @@ easel_canvas_dispose (GObject *object)
   g_clear_handle_id (&self->spray_source, g_source_remove);
   g_clear_pointer (&self->edit_base, g_free);
   g_clear_pointer (&self->history, easel_history_free);
+  g_clear_pointer (&self->sel_clip, easel_clip_free);
+  g_clear_pointer (&self->sel_base, g_free);
+  g_clear_object (&self->sel_texture);
   G_OBJECT_CLASS (easel_canvas_parent_class)->dispose (object);
 }
 
@@ -1030,6 +1307,9 @@ easel_canvas_class_init (EaselCanvasClass *klass)
   signals[SIGNAL_HISTORY_CHANGED] =
     g_signal_new ("history-changed", G_TYPE_FROM_CLASS (klass), G_SIGNAL_RUN_LAST,
                   0, NULL, NULL, NULL, G_TYPE_NONE, 0);
+  signals[SIGNAL_SELECTION_CHANGED] =
+    g_signal_new ("selection-changed", G_TYPE_FROM_CLASS (klass), G_SIGNAL_RUN_LAST,
+                  0, NULL, NULL, NULL, G_TYPE_NONE, 0);
   signals[SIGNAL_ZOOM_CHANGED] =
     g_signal_new ("zoom-changed", G_TYPE_FROM_CLASS (klass), G_SIGNAL_RUN_LAST,
                   0, NULL, NULL, NULL, G_TYPE_NONE, 0);
@@ -1052,6 +1332,7 @@ easel_canvas_init (EaselCanvas *self)
   self->brush_shape = EASEL_BRUSH_CIRCLE;
   self->line_width = 1;
   self->zoom_level = 2;
+  self->sel_opaque = TRUE;
   self->history = easel_history_new ((size_t) 512 << 20);
   self->spray_rng = 2463534242u;
   self->fill_style = EASEL_FILL_OUTLINE;
@@ -1109,6 +1390,8 @@ easel_canvas_set_background (EaselCanvas *self, uint32_t argb)
 {
   g_return_if_fail (EASEL_IS_CANVAS (self));
   self->background = argb;
+  if (self->sel_clip != NULL && !self->sel_opaque)
+    sel_refresh_texture (self);
 }
 
 void
@@ -1116,7 +1399,10 @@ easel_canvas_set_tool (EaselCanvas *self, EaselTool tool)
 {
   g_return_if_fail (EASEL_IS_CANVAS (self));
   if (tool != self->tool)
-    commit_seq (self, FALSE);
+    {
+      sel_commit (self);
+      commit_seq (self, FALSE);
+    }
   self->tool = tool;
   if (self->handle_hover == 0)
     gtk_widget_set_cursor (GTK_WIDGET (self), easel_cursor_for_tool (tool));
@@ -1203,6 +1489,8 @@ easel_canvas_set_zoom (EaselCanvas *self, int zoom, int ix, int iy)
     }
 
   self->zoom = zoom;
+  if (self->sel_clip != NULL && !self->sel_opaque)
+    sel_refresh_texture (self); /* checkerboard cell size follows the zoom */
   g_signal_emit (self, signals[SIGNAL_ZOOM_CHANGED], 0);
   self->center_x = ix + 0.5;
   self->center_y = iy + 0.5;
@@ -1250,6 +1538,7 @@ easel_canvas_undo (EaselCanvas *self)
   g_return_val_if_fail (EASEL_IS_CANVAS (self), FALSE);
   EaselRect r;
 
+  sel_commit (self);
   if (self->seq_active) /* Undo during a polygon or curve abandons it */
     {
       cancel_seq (self);
@@ -1270,6 +1559,7 @@ easel_canvas_redo (EaselCanvas *self)
   g_return_val_if_fail (EASEL_IS_CANVAS (self), FALSE);
   EaselRect r;
 
+  sel_commit (self);
   if (self->drawing || self->seq_active || !easel_history_redo (self->history, self->doc, &r))
     return FALSE;
   gtk_widget_queue_resize (GTK_WIDGET (self)); /* the undone step may have changed the size */
@@ -1284,6 +1574,7 @@ void
 easel_canvas_clear (EaselCanvas *self, uint32_t argb)
 {
   g_return_if_fail (EASEL_IS_CANVAS (self));
+  sel_commit (self);
   commit_seq (self, FALSE);
   begin_edit (self);
   easel_document_fill (self->doc, argb);
@@ -1300,6 +1591,8 @@ easel_canvas_set_document (EaselCanvas *self, EaselDocument *doc)
   g_return_if_fail (doc != NULL);
 
   g_clear_handle_id (&self->spray_source, g_source_remove);
+  sel_discard (self);
+  sel_notify (self);
   g_clear_pointer (&self->backup, g_free);
   g_clear_pointer (&self->edit_base, g_free);
   self->seq_active = FALSE;
@@ -1327,6 +1620,7 @@ easel_canvas_resize (EaselCanvas *self, int width, int height)
 {
   g_return_val_if_fail (EASEL_IS_CANVAS (self), FALSE);
 
+  sel_commit (self);
   if (width == self->doc->width && height == self->doc->height)
     return TRUE;
   commit_seq (self, FALSE);
@@ -1350,4 +1644,181 @@ easel_canvas_set_show_grid (EaselCanvas *self, gboolean show)
   g_return_if_fail (EASEL_IS_CANVAS (self));
   self->show_grid = show;
   gtk_widget_queue_draw (GTK_WIDGET (self));
+}
+
+/* ---- Selection API --------------------------------------------------- */
+
+gboolean
+easel_canvas_has_selection (EaselCanvas *self)
+{
+  g_return_val_if_fail (EASEL_IS_CANVAS (self), FALSE);
+  return self->sel_active;
+}
+
+/* Puts any floating selection down; call before saving or other whole-picture work. */
+void
+easel_canvas_flush (EaselCanvas *self)
+{
+  g_return_if_fail (EASEL_IS_CANVAS (self));
+  sel_commit (self);
+  commit_seq (self, FALSE);
+}
+
+void
+easel_canvas_set_opaque (EaselCanvas *self, gboolean opaque)
+{
+  g_return_if_fail (EASEL_IS_CANVAS (self));
+  self->sel_opaque = opaque;
+  if (self->sel_clip != NULL)
+    sel_refresh_texture (self);
+}
+
+void
+easel_canvas_select_all (EaselCanvas *self)
+{
+  g_return_if_fail (EASEL_IS_CANVAS (self));
+  sel_commit (self);
+  self->sel_rect = (EaselRect) { 0, 0, self->doc->width, self->doc->height };
+  self->sel_active = TRUE;
+  gtk_widget_queue_draw (GTK_WIDGET (self));
+  sel_notify (self);
+}
+
+/* The selection's pixels, or NULL. */
+static EaselClip *
+selection_pixels (EaselCanvas *self)
+{
+  if (!self->sel_active)
+    return NULL;
+  if (self->sel_clip != NULL)
+    {
+      EaselClip *c = easel_clip_new (self->sel_clip->width, self->sel_clip->height);
+      if (c != NULL)
+        {
+          memcpy (c->pixels, self->sel_clip->pixels, (gsize) c->width * c->height * 4);
+          if (self->sel_clip->mask != NULL)
+            c->mask = g_memdup2 (self->sel_clip->mask, (gsize) c->width * c->height);
+        }
+      return c;
+    }
+  return easel_clip_copy_from (self->doc, self->sel_rect, NULL);
+}
+
+void
+easel_canvas_copy (EaselCanvas *self)
+{
+  g_return_if_fail (EASEL_IS_CANVAS (self));
+  EaselClip *clip = selection_pixels (self);
+
+  if (clip == NULL)
+    return;
+  g_autoptr (GdkTexture) texture = texture_from_clip (clip, TRUE, 0, 0);
+  gdk_clipboard_set_texture (gtk_widget_get_clipboard (GTK_WIDGET (self)), texture);
+  easel_clip_free (clip);
+}
+
+/* Delete / Cut: removes the selected pixels (background colour behind). */
+void
+easel_canvas_clear_selection (EaselCanvas *self)
+{
+  g_return_if_fail (EASEL_IS_CANVAS (self));
+  if (!self->sel_active)
+    return;
+
+  if (self->sel_clip != NULL)
+    {
+      /* Already lifted: the hole is there; just don't put the contents back. */
+      g_clear_pointer (&self->sel_clip, easel_clip_free);
+      g_clear_object (&self->sel_texture);
+      self->edit_rect = self->sel_edit;
+      push_undo (self, self->sel_base);
+      sel_discard (self);
+    }
+  else
+    {
+      begin_edit (self);
+      mark_dirty (self, easel_clip_erase (self->doc, self->sel_rect, NULL, hole_color (self)));
+      finish_edit (self);
+      sel_discard (self);
+    }
+  sel_notify (self);
+}
+
+void
+easel_canvas_cut (EaselCanvas *self)
+{
+  g_return_if_fail (EASEL_IS_CANVAS (self));
+  easel_canvas_copy (self);
+  easel_canvas_clear_selection (self);
+}
+
+static void
+on_clipboard_texture (GObject *source, GAsyncResult *result, gpointer data)
+{
+  EaselCanvas *self = data;
+  g_autoptr (GError) error = NULL;
+  g_autoptr (GdkTexture) texture = gdk_clipboard_read_texture_finish (GDK_CLIPBOARD (source), result, &error);
+
+  if (texture != NULL)
+    {
+      int w = gdk_texture_get_width (texture), h = gdk_texture_get_height (texture);
+      EaselClip *clip = easel_clip_new (w, h);
+
+      if (clip != NULL)
+        {
+          gdk_texture_download (texture, (guchar *) clip->pixels, (gsize) w * 4);
+          /* Flatten onto white: premultiplied, so add the missing white. */
+          for (gsize i = 0; i < (gsize) w * h; i++)
+            {
+              uint32_t c = clip->pixels[i];
+              uint32_t miss = 255 - (c >> 24);
+              uint32_t r = MIN (((c >> 16) & 0xFF) + miss, 255u);
+              uint32_t g = MIN (((c >> 8) & 0xFF) + miss, 255u);
+              uint32_t b = MIN ((c & 0xFF) + miss, 255u);
+              clip->pixels[i] = EASEL_RGB (r, g, b);
+            }
+          easel_canvas_paste_clip (self, clip);
+        }
+    }
+  g_object_unref (self);
+}
+
+void
+easel_canvas_paste (EaselCanvas *self)
+{
+  g_return_if_fail (EASEL_IS_CANVAS (self));
+  gdk_clipboard_read_texture_async (gtk_widget_get_clipboard (GTK_WIDGET (self)), NULL,
+                                    on_clipboard_texture, g_object_ref (self));
+}
+
+/* Floats `clip` (taking ownership) in the top-left of the visible area. The
+ * picture grows if the clip does not fit. */
+void
+easel_canvas_paste_clip (EaselCanvas *self, EaselClip *clip)
+{
+  g_return_if_fail (EASEL_IS_CANVAS (self));
+  g_return_if_fail (clip != NULL);
+
+  sel_commit (self);
+  commit_seq (self, FALSE);
+  if (clip->width > self->doc->width || clip->height > self->doc->height)
+    easel_canvas_resize (self, MAX (clip->width, self->doc->width), MAX (clip->height, self->doc->height));
+
+  int x = 0, y = 0;
+  GtkWidget *sw = gtk_widget_get_ancestor (GTK_WIDGET (self), GTK_TYPE_SCROLLED_WINDOW);
+  if (sw != NULL)
+    {
+      double s = logical_per_pixel (self);
+      x = (int) (gtk_adjustment_get_value (gtk_scrolled_window_get_hadjustment (GTK_SCROLLED_WINDOW (sw))) / s);
+      y = (int) (gtk_adjustment_get_value (gtk_scrolled_window_get_vadjustment (GTK_SCROLLED_WINDOW (sw))) / s);
+    }
+
+  g_free (self->sel_base);
+  self->sel_base = g_memdup2 (self->doc->pixels, (gsize) self->doc->width * self->doc->height * 4);
+  self->sel_edit = (EaselRect) { 0, 0, 0, 0 };
+  self->sel_clip = clip;
+  self->sel_rect = (EaselRect) { x, y, clip->width, clip->height };
+  self->sel_active = TRUE;
+  sel_refresh_texture (self);
+  sel_notify (self);
 }

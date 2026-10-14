@@ -2,6 +2,7 @@
 #include "core/document.h"
 #include "core/raster.h"
 #include "core/history.h"
+#include "core/clip.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -513,6 +514,67 @@ test_resize (void)
   easel_document_free (doc);
 }
 
+static void
+test_clip (void)
+{
+  EaselDocument *doc = easel_document_new (20, 20, WHITE);
+  easel_raster_shape (doc, EASEL_SHAPE_RECT, 2, 2, 7, 7, 1, EASEL_FILL_SOLID, RED, RED);
+
+  EaselClip *clip = easel_clip_copy_from (doc, (EaselRect) { 2, 2, 6, 6 }, NULL);
+  CHECK (clip != NULL && clip->width == 6 && clip->height == 6);
+  CHECK (clip->pixels[0] == RED && clip->pixels[35] == RED);
+
+  /* Lift = copy + erase to the background; move = blit elsewhere. */
+  easel_clip_erase (doc, (EaselRect) { 2, 2, 6, 6 }, NULL, WHITE);
+  CHECK (count_not (doc, WHITE) == 0);
+  EaselRect r = easel_clip_blit (doc, clip, 10, 10, false, 0);
+  CHECK (r.x == 10 && r.y == 10 && r.width == 6 && r.height == 6);
+  CHECK (count_not (doc, WHITE) == 36);
+
+  /* Partly off the image: clipped, nothing written out of bounds. */
+  easel_document_fill (doc, WHITE);
+  r = easel_clip_blit (doc, clip, 17, 18, false, 0);
+  CHECK (r.width == 3 && r.height == 2 && count_not (doc, WHITE) == 6);
+  r = easel_clip_blit (doc, clip, -4, -4, false, 0);
+  CHECK (r.x == 0 && r.width == 2);
+  r = easel_clip_blit (doc, clip, 50, 50, false, 0);
+  CHECK (r.width == 0);
+
+  /* Transparent: pixels equal to the key colour are skipped. */
+  easel_document_fill (doc, BLACK);
+  easel_clip_free (clip);
+  easel_document_fill (doc, WHITE);
+  easel_raster_shape (doc, EASEL_SHAPE_RECT, 0, 0, 3, 3, 1, EASEL_FILL_OUTLINE, RED, RED);
+  clip = easel_clip_copy_from (doc, (EaselRect) { 0, 0, 4, 4 }, NULL);
+  easel_document_fill (doc, BLACK);
+  easel_clip_blit (doc, clip, 5, 5, true, WHITE);
+  CHECK (count_not (doc, BLACK) == 12); /* only the red ring landed */
+  easel_clip_free (clip);
+
+  /* Fully transparent pixels never overwrite in transparent mode, but do in opaque mode. */
+  easel_document_fill (doc, WHITE);
+  clip = easel_clip_new (2, 2);
+  clip->pixels[0] = RED;       /* the other three stay 0 = transparent */
+  easel_clip_blit (doc, clip, 0, 0, true, BLACK);
+  CHECK (count_not (doc, WHITE) == 1);
+  easel_clip_blit (doc, clip, 5, 5, false, 0);
+  CHECK (easel_document_get_pixel (doc, 6, 6) == 0);
+  easel_clip_free (clip);
+
+  /* Masked copy keeps the shape: only masked pixels come back. */
+  easel_document_fill (doc, RED);
+  uint8_t mask[16] = { 1, 0, 0, 0,  1, 1, 0, 0,  1, 1, 1, 0,  1, 1, 1, 1 };
+  clip = easel_clip_copy_from (doc, (EaselRect) { 4, 4, 4, 4 }, mask);
+  easel_clip_erase (doc, (EaselRect) { 4, 4, 4, 4 }, mask, WHITE);
+  CHECK (count_not (doc, RED) == 10);
+  easel_document_fill (doc, BLACK);
+  easel_clip_blit (doc, clip, 0, 0, false, 0);
+  CHECK (count_not (doc, BLACK) == 10);
+  easel_clip_free (clip);
+
+  easel_document_free (doc);
+}
+
 int
 main (void)
 {
@@ -526,6 +588,7 @@ main (void)
   test_polygon_curve_spray ();
   test_history ();
   test_resize ();
+  test_clip ();
 
   if (failures != 0)
     {

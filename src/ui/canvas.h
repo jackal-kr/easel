@@ -4,6 +4,7 @@
 
 #include <gtk/gtk.h>
 
+#include "core/clip.h"
 #include "core/document.h"
 #include "core/raster.h"
 #include "ui/tool.h"
@@ -36,6 +37,17 @@ gboolean easel_canvas_undo (EaselCanvas *self);
 gboolean easel_canvas_redo (EaselCanvas *self);
 void     easel_canvas_clear (EaselCanvas *self, uint32_t argb); /* undoable */
 
+/* Selection (Select tool) and clipboard. */
+gboolean easel_canvas_has_selection (EaselCanvas *self);
+void     easel_canvas_flush (EaselCanvas *self); /* put a floating selection down */
+void     easel_canvas_select_all (EaselCanvas *self);
+void     easel_canvas_copy (EaselCanvas *self);
+void     easel_canvas_cut (EaselCanvas *self);
+void     easel_canvas_clear_selection (EaselCanvas *self);
+void     easel_canvas_paste (EaselCanvas *self);
+void     easel_canvas_paste_clip (EaselCanvas *self, EaselClip *clip); /* takes ownership */
+void     easel_canvas_set_opaque (EaselCanvas *self, gboolean opaque); /* Draw Opaque */
+
 /* Crops or extends the picture (new area in the background colour); undoable. */
 gboolean easel_canvas_resize (EaselCanvas *self, int width, int height);
 
@@ -49,6 +61,7 @@ void easel_canvas_invalidate (EaselCanvas *self);
  *  "pointer-moved" (int x, int y): image coordinates, or -1,-1 when the
  *                  pointer leaves the canvas.
  *  "history-changed": undo/redo availability may have changed.
+ *  "selection-changed": a selection appeared, moved into place or went away.
  *  "zoom-changed": the magnification changed.
  *  "resize-preview" (int w, int h): size while a resize handle is dragged;
  *                  -1,-1 when the drag ends.

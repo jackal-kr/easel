@@ -14,7 +14,7 @@ static const ToolDef tools[EASEL_N_TOOLS] = {
   [EASEL_TOOL_FREE_FORM_SELECT] = { "Free-Form Select", "edit-select-lasso-symbolic", "FS",
     "Selects a free-form part of the picture to move, copy, or edit.", FALSE },
   [EASEL_TOOL_SELECT] = { "Select", "edit-select-all-symbolic", "Se",
-    "Selects a rectangular part of the picture to move, copy, or edit.", FALSE },
+    "Selects a rectangular part of the picture to move, copy, or edit.", TRUE },
   [EASEL_TOOL_ERASER] = { "Eraser", "edit-clear-all-symbolic", "Er",
     "Erases a portion of the picture. Right button: replaces the foreground color with the background color.", TRUE },
   [EASEL_TOOL_FILL] = { "Fill With Color", "color-fill-symbolic", "Fl",
@@ -60,7 +60,7 @@ static const struct { EaselBrushShape shape; const char *name; } brush_shapes[] 
 };
 
 typedef enum { OPTION_PENCIL, OPTION_BRUSH, OPTION_ERASER, OPTION_LINE, OPTION_FILL,
-               OPTION_AIRBRUSH, OPTION_ZOOM } OptionKind;
+               OPTION_AIRBRUSH, OPTION_ZOOM, OPTION_OPAQUE } OptionKind;
 
 static const int airbrush_sizes[] = { 9, 16, 24 };
 static const int zoom_levels[] = { 1, 2, 4, 6, 8 };
@@ -96,6 +96,7 @@ struct _EaselToolbox
   EaselFillStyle  fill_style;
   int             airbrush_size;
   int             zoom_level;
+  gboolean        opaque;       /* Draw Opaque for selections */
 };
 
 G_DEFINE_FINAL_TYPE (EaselToolbox, easel_toolbox, GTK_TYPE_WIDGET)
@@ -114,6 +115,8 @@ options_page_for (EaselTool tool)
     case EASEL_TOOL_LINE:
     case EASEL_TOOL_CURVE:  return "line";
     case EASEL_TOOL_AIRBRUSH:  return "airbrush";
+    case EASEL_TOOL_SELECT:
+    case EASEL_TOOL_FREE_FORM_SELECT: return "select";
     case EASEL_TOOL_MAGNIFIER: return "zoom";
     case EASEL_TOOL_RECTANGLE:         return "shape-rect";
     case EASEL_TOOL_ROUNDED_RECTANGLE: return "shape-rounded";
@@ -171,6 +174,9 @@ on_option_toggled (GtkToggleButton *button, EaselToolbox *self)
     case OPTION_ZOOM:
       self->zoom_level = size;
       break;
+    case OPTION_OPAQUE:
+      self->opaque = size != 0;
+      break;
     case OPTION_FILL:
       self->fill_style = (EaselFillStyle) size;
       /* Keep the other shape pages showing the same (shared) choice. */
@@ -197,6 +203,35 @@ static void
 draw_preview (GtkDrawingArea *area, cairo_t *cr, int width, int height, gpointer data)
 {
   const Preview *p = data;
+
+  if (p->kind == OPTION_OPAQUE)
+    {
+      GdkRGBA c;
+      gtk_widget_get_color (GTK_WIDGET (area), &c);
+      gdk_cairo_set_source_rgba (cr, &c);
+      double x = (width - 20) / 2.0 + 0.5, y = (height - 14) / 2.0 + 0.5;
+
+      cairo_rectangle (cr, x, y, 19, 13);
+      if (p->size)
+        {
+          /* Opaque: the selection keeps its background (shaded), shape on top. */
+          cairo_save (cr);
+          cairo_set_source_rgba (cr, c.red, c.green, c.blue, 0.22);
+          cairo_fill_preserve (cr);
+          cairo_restore (cr);
+        }
+      else
+        {
+          static const double dash[] = { 2, 2 };
+          cairo_set_dash (cr, dash, 2, 0);
+        }
+      cairo_set_line_width (cr, 1);
+      cairo_stroke (cr);
+      cairo_set_dash (cr, NULL, 0, 0);
+      cairo_arc (cr, x + 9.5, y + 6.5, 3.5, 0, 2 * G_PI);
+      cairo_fill (cr);
+      return;
+    }
 
   if (p->kind == OPTION_AIRBRUSH)
     {
@@ -307,7 +342,9 @@ make_option_button (EaselToolbox *self, OptionKind kind, EaselBrushShape shape, 
                     const char *shape_name, gboolean with_preview, int form)
 {
   GtkWidget *button = gtk_toggle_button_new ();
-  g_autofree char *tip = kind == OPTION_ZOOM
+  g_autofree char *tip = kind == OPTION_OPAQUE
+                           ? g_strdup (shape_name)
+                           : kind == OPTION_ZOOM
                            ? g_strdup_printf ("%d×", size)
                            : kind == OPTION_FILL
                            ? g_strdup (shape_name)
@@ -401,6 +438,23 @@ build_line_options (EaselToolbox *self)
     add_option (grid, &leader,
                 make_option_button (self, OPTION_LINE, EASEL_BRUSH_CIRCLE, line_widths[i], NULL, TRUE, 0),
                 (int) (i % 2), (int) (i / 2), line_widths[i] == self->line_width);
+  return grid;
+}
+
+static GtkWidget *
+build_select_options (EaselToolbox *self)
+{
+  GtkWidget *grid = make_options_grid (), *leader = NULL;
+  static const struct { int opaque; const char *name; } modes[] = {
+    { 1, "Opaque: keep the selection's background" }, { 0, "Transparent: hide background color" },
+  };
+
+  for (guint i = 0; i < G_N_ELEMENTS (modes); i++)
+    {
+      GtkWidget *b = make_option_button (self, OPTION_OPAQUE, EASEL_BRUSH_CIRCLE, modes[i].opaque,
+                                         modes[i].name, TRUE, 0);
+      add_option (grid, &leader, b, 0, (int) i, (modes[i].opaque != 0) == self->opaque);
+    }
   return grid;
 }
 
@@ -619,6 +673,7 @@ easel_toolbox_init (EaselToolbox *self)
   self->fill_style = EASEL_FILL_OUTLINE;
   self->airbrush_size = 16;
   self->zoom_level = 2;
+  self->opaque = TRUE;
 
   self->columns = 2;
 
@@ -634,6 +689,7 @@ easel_toolbox_init (EaselToolbox *self)
   gtk_stack_add_named (GTK_STACK (self->options_stack), build_line_options (self), "line");
   gtk_stack_add_named (GTK_STACK (self->options_stack), build_airbrush_options (self), "airbrush");
   gtk_stack_add_named (GTK_STACK (self->options_stack), build_zoom_options (self), "zoom");
+  gtk_stack_add_named (GTK_STACK (self->options_stack), build_select_options (self), "select");
   gtk_stack_add_named (GTK_STACK (self->options_stack), build_shape_options (self, 0), "shape-rect");
   gtk_stack_add_named (GTK_STACK (self->options_stack), build_shape_options (self, 1), "shape-rounded");
   gtk_stack_add_named (GTK_STACK (self->options_stack), build_shape_options (self, 2), "shape-ellipse");
@@ -750,4 +806,11 @@ easel_toolbox_get_zoom_level (EaselToolbox *self)
 {
   g_return_val_if_fail (EASEL_IS_TOOLBOX (self), 2);
   return self->zoom_level;
+}
+
+gboolean
+easel_toolbox_get_opaque (EaselToolbox *self)
+{
+  g_return_val_if_fail (EASEL_IS_TOOLBOX (self), TRUE);
+  return self->opaque;
 }

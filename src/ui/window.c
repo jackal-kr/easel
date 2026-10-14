@@ -62,6 +62,7 @@ sync_canvas_tool (EaselWindow *self)
   easel_canvas_set_line_width (self->canvas, easel_toolbox_get_line_width (self->toolbox));
   easel_canvas_set_fill_style (self->canvas, easel_toolbox_get_fill_style (self->toolbox));
   easel_canvas_set_zoom_level (self->canvas, easel_toolbox_get_zoom_level (self->toolbox));
+  easel_canvas_set_opaque (self->canvas, easel_toolbox_get_opaque (self->toolbox));
 }
 
 static void
@@ -228,6 +229,7 @@ save_to (EaselWindow *self, GFile *file)
 {
   g_autoptr (GError) error = NULL;
 
+  easel_canvas_flush (self->canvas); /* a floating selection is part of the picture */
   if (!easel_file_save (easel_canvas_get_document (self->canvas), file, &error))
     {
       show_error (self, "Could not save the picture", error);
@@ -641,6 +643,63 @@ on_grid_change_state (GSimpleAction *action, GVariant *value, gpointer user_data
   easel_canvas_set_show_grid (self->canvas, g_variant_get_boolean (value));
 }
 
+
+/* ---- Edit: selection and clipboard ---------------------------------- */
+
+static void
+set_action_enabled (EaselWindow *self, const char *name, gboolean enabled)
+{
+  GAction *action = g_action_map_lookup_action (G_ACTION_MAP (self), name);
+  if (action != NULL)
+    g_simple_action_set_enabled (G_SIMPLE_ACTION (action), enabled);
+}
+
+static void
+on_selection_changed (EaselCanvas *canvas, EaselWindow *self)
+{
+  gboolean has = easel_canvas_has_selection (canvas);
+
+  set_action_enabled (self, "cut", has);
+  set_action_enabled (self, "copy", has);
+  set_action_enabled (self, "clear-selection", has);
+}
+
+static void
+action_cut (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+  easel_canvas_cut (((EaselWindow *) user_data)->canvas);
+}
+
+static void
+action_copy (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+  easel_canvas_copy (((EaselWindow *) user_data)->canvas);
+}
+
+static void
+action_clear_selection (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+  easel_canvas_clear_selection (((EaselWindow *) user_data)->canvas);
+}
+
+static void
+action_paste (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+  EaselWindow *self = user_data;
+
+  easel_toolbox_select_tool (self->toolbox, EASEL_TOOL_SELECT);
+  easel_canvas_paste (self->canvas);
+}
+
+static void
+action_select_all (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+  EaselWindow *self = user_data;
+
+  easel_toolbox_select_tool (self->toolbox, EASEL_TOOL_SELECT);
+  easel_canvas_select_all (self->canvas);
+}
+
 static const GActionEntry window_actions[] = {
   { "swap-colors", action_swap_colors },
   { "clear-image", action_clear_image },
@@ -652,6 +711,11 @@ static const GActionEntry window_actions[] = {
   { "zoom-normal", action_zoom_normal },
   { "zoom-large", action_zoom_large },
   { "zoom-custom", action_zoom_custom },
+  { "cut", action_cut },
+  { "copy", action_copy },
+  { "paste", action_paste },
+  { "clear-selection", action_clear_selection },
+  { "select-all", action_select_all },
   { "undo", action_undo },
   { "redo", action_redo },
 };
@@ -808,6 +872,8 @@ easel_window_init (EaselWindow *self)
   g_signal_connect (grid, "change-state", G_CALLBACK (on_grid_change_state), self);
   g_action_map_add_action (G_ACTION_MAP (self), G_ACTION (grid));
   g_object_unref (grid);
+  g_signal_connect (self->canvas, "selection-changed", G_CALLBACK (on_selection_changed), self);
+  on_selection_changed (self->canvas, self);
   g_signal_connect (self->canvas, "zoom-changed", G_CALLBACK (on_zoom_changed), self);
   g_signal_connect (self->canvas, "resize-preview", G_CALLBACK (on_resize_preview), self);
   g_signal_connect (self->canvas, "history-changed", G_CALLBACK (on_history_changed), self);

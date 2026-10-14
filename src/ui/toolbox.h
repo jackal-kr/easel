@@ -24,6 +24,7 @@ EaselBrushShape easel_toolbox_get_brush_shape (EaselToolbox *self);
 /* Shared by Line and the shape tools (as in classic Paint). */
 int            easel_toolbox_get_line_width (EaselToolbox *self);
 EaselFillStyle easel_toolbox_get_fill_style (EaselToolbox *self);
+gboolean       easel_toolbox_get_opaque (EaselToolbox *self); /* Draw Opaque (selections) */
 int            easel_toolbox_get_zoom_level (EaselToolbox *self);
 
 void easel_toolbox_select_tool (EaselToolbox *self, EaselTool tool);
