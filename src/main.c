@@ -54,6 +54,10 @@ on_startup (GApplication *app)
   gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.save-as", save_as_accels);
   const char *attr_accels[] = { "<Primary>e", NULL };
   gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.attributes", attr_accels);
+  const char *flip_accels[] = { "<Primary>r", NULL };
+  gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.flip-rotate", flip_accels);
+  const char *invert_accels[] = { "<Primary>i", NULL };
+  gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.invert-colors", invert_accels);
   const char *grid_accels[] = { "<Primary>g", NULL };
   const char *large_accels[] = { "<Primary>Page_Up", NULL };
   const char *normal_accels[] = { "<Primary>Page_Down", NULL };

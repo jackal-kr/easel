@@ -627,6 +627,7 @@ action_zoom_custom (GSimpleAction *action, GVariant *parameter, gpointer user_da
   adw_combo_row_set_selected (row, current);
   adw_preferences_group_add (ADW_PREFERENCES_GROUP (group), GTK_WIDGET (row));
 
+  adw_dialog_set_content_width (dialog, 440);
   adw_alert_dialog_set_extra_child (ADW_ALERT_DIALOG (dialog), group);
   adw_alert_dialog_add_responses (ADW_ALERT_DIALOG (dialog), "cancel", "_Cancel", "ok", "_OK", NULL);
   adw_alert_dialog_set_response_appearance (ADW_ALERT_DIALOG (dialog), "ok", ADW_RESPONSE_SUGGESTED);
@@ -827,6 +828,132 @@ action_select_all (GSimpleAction *action, GVariant *parameter, gpointer user_dat
   easel_canvas_select_all (self->canvas);
 }
 
+
+/* ---- Image: flip/rotate, stretch/skew, invert ------------------------- */
+
+static void
+action_invert_colors (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+  easel_canvas_invert (((EaselWindow *) user_data)->canvas);
+}
+
+typedef struct
+{
+  EaselWindow *window;
+  GtkWidget   *choices[5];
+} FlipDialog;
+
+static void
+on_flip_response (AdwAlertDialog *dialog, const char *response, FlipDialog *fd)
+{
+  if (g_str_equal (response, "ok"))
+    for (int i = 0; i < 5; i++)
+      if (gtk_check_button_get_active (GTK_CHECK_BUTTON (fd->choices[i])))
+        easel_canvas_turn (fd->window->canvas, (EaselTurn) i);
+  g_free (fd);
+}
+
+static void
+action_flip_rotate (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+  EaselWindow *self = user_data;
+  static const char *const labels[5] = {
+    "Flip horizontal", "Flip vertical", "Rotate 90° clockwise", "Rotate 180°", "Rotate 270° clockwise",
+  };
+  FlipDialog *fd = g_new0 (FlipDialog, 1);
+  GtkWidget *box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 6);
+  AdwDialog *dialog = adw_alert_dialog_new ("Flip and Rotate", NULL);
+
+  fd->window = self;
+  for (int i = 0; i < 5; i++)
+    {
+      fd->choices[i] = gtk_check_button_new_with_label (labels[i]);
+      if (i > 0)
+        gtk_check_button_set_group (GTK_CHECK_BUTTON (fd->choices[i]), GTK_CHECK_BUTTON (fd->choices[0]));
+      gtk_box_append (GTK_BOX (box), fd->choices[i]);
+    }
+  gtk_check_button_set_active (GTK_CHECK_BUTTON (fd->choices[0]), TRUE);
+
+  adw_alert_dialog_set_extra_child (ADW_ALERT_DIALOG (dialog), box);
+  adw_alert_dialog_add_responses (ADW_ALERT_DIALOG (dialog), "cancel", "_Cancel", "ok", "_OK", NULL);
+  adw_alert_dialog_set_default_response (ADW_ALERT_DIALOG (dialog), "ok");
+  adw_alert_dialog_set_close_response (ADW_ALERT_DIALOG (dialog), "cancel");
+  g_signal_connect (dialog, "response", G_CALLBACK (on_flip_response), fd);
+  adw_dialog_present (dialog, GTK_WIDGET (self));
+}
+
+typedef struct
+{
+  EaselWindow *window;
+  GtkWidget   *rows[4];
+  GtkWidget   *lock;
+} StretchDialog;
+
+/* With the lock on, the two stretch fields move together. */
+static void
+on_stretch_value_changed (AdwSpinRow *row, GParamSpec *pspec, StretchDialog *sd)
+{
+  if (!adw_switch_row_get_active (ADW_SWITCH_ROW (sd->lock)))
+    return;
+  AdwSpinRow *other = ADW_SPIN_ROW (GTK_WIDGET (row) == sd->rows[0] ? sd->rows[1] : sd->rows[0]);
+  adw_spin_row_set_value (other, adw_spin_row_get_value (row));
+}
+
+static void
+on_stretch_response (AdwAlertDialog *dialog, const char *response, StretchDialog *sd)
+{
+  if (g_str_equal (response, "ok"))
+    easel_canvas_stretch_skew (sd->window->canvas,
+                               (int) adw_spin_row_get_value (ADW_SPIN_ROW (sd->rows[0])),
+                               (int) adw_spin_row_get_value (ADW_SPIN_ROW (sd->rows[1])),
+                               adw_spin_row_get_value (ADW_SPIN_ROW (sd->rows[2])),
+                               adw_spin_row_get_value (ADW_SPIN_ROW (sd->rows[3])));
+  g_free (sd);
+}
+
+static void
+action_stretch_skew (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+  EaselWindow *self = user_data;
+  static const struct { const char *title; double min, max, value; } rows[4] = {
+    { "Stretch horizontally (%)", 1, 500, 100 }, { "Stretch vertically (%)", 1, 500, 100 },
+    { "Skew horizontally (°)", -89, 89, 0 }, { "Skew vertically (°)", -89, 89, 0 },
+  };
+  StretchDialog *sd = g_new0 (StretchDialog, 1);
+  GtkWidget *stretch_group = adw_preferences_group_new ();
+  GtkWidget *skew_group = adw_preferences_group_new ();
+  GtkWidget *content = gtk_box_new (GTK_ORIENTATION_VERTICAL, 18);
+  AdwDialog *dialog = adw_alert_dialog_new ("Stretch and Skew", NULL);
+
+  adw_preferences_group_set_title (ADW_PREFERENCES_GROUP (stretch_group), "Stretch");
+  adw_preferences_group_set_title (ADW_PREFERENCES_GROUP (skew_group), "Skew");
+  gtk_box_append (GTK_BOX (content), stretch_group);
+  gtk_box_append (GTK_BOX (content), skew_group);
+
+  sd->window = self;
+  sd->lock = adw_switch_row_new ();
+  adw_preferences_row_set_title (ADW_PREFERENCES_ROW (sd->lock), "Keep aspect ratio");
+  adw_switch_row_set_active (ADW_SWITCH_ROW (sd->lock), TRUE);
+  for (int i = 0; i < 4; i++)
+    {
+      sd->rows[i] = adw_spin_row_new_with_range (rows[i].min, rows[i].max, 1);
+      adw_preferences_row_set_title (ADW_PREFERENCES_ROW (sd->rows[i]), rows[i].title);
+      adw_spin_row_set_value (ADW_SPIN_ROW (sd->rows[i]), rows[i].value);
+      adw_preferences_group_add (ADW_PREFERENCES_GROUP (i < 2 ? stretch_group : skew_group), sd->rows[i]);
+      if (i == 1) /* the lock belongs with the stretch rows */
+        adw_preferences_group_add (ADW_PREFERENCES_GROUP (stretch_group), sd->lock);
+    }
+  g_signal_connect (sd->rows[0], "notify::value", G_CALLBACK (on_stretch_value_changed), sd);
+  g_signal_connect (sd->rows[1], "notify::value", G_CALLBACK (on_stretch_value_changed), sd);
+
+  adw_alert_dialog_set_extra_child (ADW_ALERT_DIALOG (dialog), content);
+  adw_alert_dialog_add_responses (ADW_ALERT_DIALOG (dialog), "cancel", "_Cancel", "ok", "_OK", NULL);
+  adw_alert_dialog_set_default_response (ADW_ALERT_DIALOG (dialog), "ok");
+  adw_alert_dialog_set_close_response (ADW_ALERT_DIALOG (dialog), "cancel");
+  g_signal_connect (dialog, "response", G_CALLBACK (on_stretch_response), sd);
+  adw_dialog_present (dialog, GTK_WIDGET (self));
+}
+
 static const GActionEntry window_actions[] = {
   { "swap-colors", action_swap_colors },
   { "clear-image", action_clear_image },
@@ -835,6 +962,9 @@ static const GActionEntry window_actions[] = {
   { "save", action_save },
   { "save-as", action_save_as },
   { "attributes", action_attributes },
+  { "flip-rotate", action_flip_rotate },
+  { "stretch-skew", action_stretch_skew },
+  { "invert-colors", action_invert_colors },
   { "zoom-normal", action_zoom_normal },
   { "zoom-large", action_zoom_large },
   { "zoom-custom", action_zoom_custom },

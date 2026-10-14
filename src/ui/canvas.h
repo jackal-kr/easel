@@ -62,6 +62,12 @@ void     easel_canvas_set_opaque (EaselCanvas *self, gboolean opaque); /* Draw O
 /* Crops or extends the picture (new area in the background colour); undoable. */
 gboolean easel_canvas_resize (EaselCanvas *self, int width, int height);
 
+/* Image menu. They act on the selection when there is one, else on the picture. */
+typedef enum { EASEL_FLIP_H, EASEL_FLIP_V, EASEL_ROTATE_90, EASEL_ROTATE_180, EASEL_ROTATE_270 } EaselTurn;
+void     easel_canvas_turn (EaselCanvas *self, EaselTurn turn);
+void     easel_canvas_invert (EaselCanvas *self);
+void     easel_canvas_stretch_skew (EaselCanvas *self, int stretch_h, int stretch_v, double skew_h, double skew_v);
+
 /* Replaces the picture; takes ownership, clears undo history. */
 void easel_canvas_set_document (EaselCanvas *self, EaselDocument *doc);
 

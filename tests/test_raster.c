@@ -3,6 +3,7 @@
 #include "core/raster.h"
 #include "core/history.h"
 #include "core/clip.h"
+#include "core/transform.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -623,6 +624,49 @@ test_clip_scaled (void)
   easel_clip_free (c); easel_clip_free (b); easel_clip_free (s);
 }
 
+static void
+test_transform (void)
+{
+  uint32_t px[6] = { 1, 2, 3, 4, 5, 6 };   /* 3 wide, 2 tall */
+  uint32_t f[6];
+
+  memcpy (f, px, sizeof px);
+  easel_flip (f, 3, 2, 4, 1);
+  CHECK (f[0] == 3 && f[2] == 1 && f[3] == 6);
+  memcpy (f, px, sizeof px);
+  easel_flip (f, 3, 2, 4, 0);
+  CHECK (f[0] == 4 && f[3] == 1);
+
+  int w, h;
+  uint32_t *r = easel_rotate (px, 3, 2, 4, 1, &w, &h);   /* clockwise */
+  CHECK (r != NULL && w == 2 && h == 3);
+  CHECK (r[0] == 4 && r[1] == 1 && r[4] == 6 && r[5] == 3);
+  free (r);
+  r = easel_rotate (px, 3, 2, 4, 2, &w, &h);
+  CHECK (r != NULL && w == 3 && h == 2 && r[0] == 6 && r[5] == 1);
+  free (r);
+  r = easel_rotate (px, 3, 2, 4, 3, &w, &h);
+  CHECK (r != NULL && w == 2 && h == 3 && r[0] == 3 && r[5] == 4);
+  free (r);
+
+  r = easel_scale (px, 3, 2, 4, 6, 4);
+  CHECK (r != NULL && r[0] == 1 && r[1] == 1 && r[2] == 2 && r[23] == 6);
+  free (r);
+
+  uint32_t fill = 0xFF;
+  r = easel_skew (px, 3, 2, 4, 45.0, 1, &fill, &w, &h);
+  CHECK (r != NULL && w == 4 && h == 2);
+  CHECK (r[1] == 1 && r[4] == 4 && r[0] == 0xFF);   /* top row slides right by one */
+  free (r);
+  r = easel_skew (px, 3, 2, 4, 45.0, 0, &fill, &w, &h);
+  CHECK (r != NULL && w == 3 && h == 4);
+  free (r);
+
+  uint32_t c[2] = { 0xFF102030u, 0x80000000u };
+  easel_invert (c, 2);
+  CHECK (c[0] == 0xFFEFDFCFu && c[1] == 0x80808080u);
+}
+
 int
 main (void)
 {
@@ -639,6 +683,7 @@ main (void)
   test_clip ();
   test_polygon_mask ();
   test_clip_scaled ();
+  test_transform ();
 
   if (failures != 0)
     {
