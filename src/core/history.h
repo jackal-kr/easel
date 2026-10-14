@@ -21,9 +21,15 @@ void          easel_history_clear (EaselHistory *history);
 bool easel_history_push (EaselHistory *history, const EaselDocument *doc,
                          const uint32_t *before, EaselRect area);
 
+/* Records a change of picture size (or any whole-picture change). `before`
+ * holds the old pixels (before_w x before_h); `doc` is already the result. */
+bool easel_history_push_full (EaselHistory *history, const uint32_t *before,
+                              int before_w, int before_h, const EaselDocument *doc);
+
 bool easel_history_can_undo (const EaselHistory *history);
 bool easel_history_can_redo (const EaselHistory *history);
 
-/* Apply a step to `doc`; `*changed` receives the rectangle that was touched. */
+/* Apply a step to `doc`; `*changed` receives the rectangle that was touched
+ * (the whole picture when its size changed). */
 bool easel_history_undo (EaselHistory *history, EaselDocument *doc, EaselRect *changed);
 bool easel_history_redo (EaselHistory *history, EaselDocument *doc, EaselRect *changed);

@@ -6,8 +6,10 @@
 typedef struct
 {
   EaselRect r;
-  uint32_t *before; /* r.width * r.height pixels */
-  uint32_t *after;
+  uint32_t *before; /* r.width * r.height pixels (full step: bw * bh) */
+  uint32_t *after;  /* (full step: aw * ah) */
+  bool      full;   /* whole picture, possibly of a different size */
+  int       bw, bh, aw, ah;
 } Step;
 
 struct _EaselHistory
@@ -23,6 +25,8 @@ struct _EaselHistory
 static size_t
 step_bytes (const Step *s)
 {
+  if (s->full)
+    return ((size_t) s->bw * s->bh + (size_t) s->aw * s->ah) * 4;
   return (size_t) s->r.width * s->r.height * 4 * 2;
 }
 
@@ -61,46 +65,10 @@ easel_history_free (EaselHistory *h)
   free (h);
 }
 
-bool
-easel_history_push (EaselHistory *h, const EaselDocument *doc, const uint32_t *before, EaselRect area)
+static bool
+append_step (EaselHistory *h, Step *step)
 {
-  /* Clip, then shrink to the pixels that really differ. */
-  int x0 = area.x < 0 ? 0 : area.x, y0 = area.y < 0 ? 0 : area.y;
-  int x1 = area.x + area.width > doc->width ? doc->width : area.x + area.width;
-  int y1 = area.y + area.height > doc->height ? doc->height : area.y + area.height;
-  int minx = x1, miny = y1, maxx = -1, maxy = -1;
-
-  for (int y = y0; y < y1; y++)
-    for (int x = x0; x < x1; x++)
-      {
-        size_t i = (size_t) y * doc->width + x;
-        if (doc->pixels[i] != before[i])
-          {
-            if (x < minx) minx = x;
-            if (x > maxx) maxx = x;
-            if (y < miny) miny = y;
-            if (y > maxy) maxy = y;
-          }
-      }
-  if (maxx < 0)
-    return false;
-
-  Step s = { { minx, miny, maxx - minx + 1, maxy - miny + 1 }, NULL, NULL };
-  size_t n = (size_t) s.r.width * s.r.height;
-  s.before = malloc (n * 4);
-  s.after = malloc (n * 4);
-  if (s.before == NULL || s.after == NULL)
-    {
-      free (s.before);
-      free (s.after);
-      return false;
-    }
-  for (int y = 0; y < s.r.height; y++)
-    {
-      size_t src = (size_t) (s.r.y + y) * doc->width + s.r.x;
-      memcpy (s.before + (size_t) y * s.r.width, before + src, (size_t) s.r.width * 4);
-      memcpy (s.after + (size_t) y * s.r.width, doc->pixels + src, (size_t) s.r.width * 4);
-    }
+  Step s = *step;
 
   /* A new edit forgets the redo steps. */
   while (h->count > h->pos)
@@ -137,6 +105,50 @@ easel_history_push (EaselHistory *h, const EaselDocument *doc, const uint32_t *b
 }
 
 bool
+easel_history_push (EaselHistory *h, const EaselDocument *doc, const uint32_t *before, EaselRect area)
+{
+  /* Clip, then shrink to the pixels that really differ. */
+  int x0 = area.x < 0 ? 0 : area.x, y0 = area.y < 0 ? 0 : area.y;
+  int x1 = area.x + area.width > doc->width ? doc->width : area.x + area.width;
+  int y1 = area.y + area.height > doc->height ? doc->height : area.y + area.height;
+  int minx = x1, miny = y1, maxx = -1, maxy = -1;
+
+  for (int y = y0; y < y1; y++)
+    for (int x = x0; x < x1; x++)
+      {
+        size_t i = (size_t) y * doc->width + x;
+        if (doc->pixels[i] != before[i])
+          {
+            if (x < minx) minx = x;
+            if (x > maxx) maxx = x;
+            if (y < miny) miny = y;
+            if (y > maxy) maxy = y;
+          }
+      }
+  if (maxx < 0)
+    return false;
+
+  Step s = { { minx, miny, maxx - minx + 1, maxy - miny + 1 }, NULL, NULL, false, 0, 0, 0, 0 };
+  size_t n = (size_t) s.r.width * s.r.height;
+  s.before = malloc (n * 4);
+  s.after = malloc (n * 4);
+  if (s.before == NULL || s.after == NULL)
+    {
+      free (s.before);
+      free (s.after);
+      return false;
+    }
+  for (int y = 0; y < s.r.height; y++)
+    {
+      size_t src = (size_t) (s.r.y + y) * doc->width + s.r.x;
+      memcpy (s.before + (size_t) y * s.r.width, before + src, (size_t) s.r.width * 4);
+      memcpy (s.after + (size_t) y * s.r.width, doc->pixels + src, (size_t) s.r.width * 4);
+    }
+
+  return append_step (h, &s);
+}
+
+bool
 easel_history_can_undo (const EaselHistory *h)
 {
   return h->pos > 0;
@@ -162,6 +174,17 @@ easel_history_undo (EaselHistory *h, EaselDocument *doc, EaselRect *changed)
   if (h->pos == 0)
     return false;
   Step *s = &h->steps[--h->pos];
+  if (s->full)
+    {
+      if (!easel_document_replace (doc, s->bw, s->bh, s->before))
+        {
+          h->pos++;
+          return false;
+        }
+      if (changed != NULL)
+        *changed = (EaselRect) { 0, 0, s->bw, s->bh };
+      return true;
+    }
   blit (doc, s->r, s->before);
   if (changed != NULL)
     *changed = s->r;
@@ -173,9 +196,40 @@ easel_history_redo (EaselHistory *h, EaselDocument *doc, EaselRect *changed)
 {
   if (h->pos >= h->count)
     return false;
-  Step *s = &h->steps[h->pos++];
+  Step *s = &h->steps[h->pos];
+  if (s->full)
+    {
+      if (!easel_document_replace (doc, s->aw, s->ah, s->after))
+        return false;
+      h->pos++;
+      if (changed != NULL)
+        *changed = (EaselRect) { 0, 0, s->aw, s->ah };
+      return true;
+    }
+  h->pos++;
   blit (doc, s->r, s->after);
   if (changed != NULL)
     *changed = s->r;
   return true;
+}
+
+bool
+easel_history_push_full (EaselHistory *h, const uint32_t *before, int before_w, int before_h,
+                         const EaselDocument *doc)
+{
+  Step s = { { 0, 0, doc->width, doc->height }, NULL, NULL, true, before_w, before_h,
+             doc->width, doc->height };
+  size_t bn = (size_t) before_w * before_h, an = (size_t) doc->width * doc->height;
+
+  s.before = malloc (bn * 4);
+  s.after = malloc (an * 4);
+  if (s.before == NULL || s.after == NULL)
+    {
+      free (s.before);
+      free (s.after);
+      return false;
+    }
+  memcpy (s.before, before, bn * 4);
+  memcpy (s.after, doc->pixels, an * 4);
+  return append_step (h, &s);
 }

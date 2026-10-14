@@ -52,6 +52,8 @@ on_startup (GApplication *app)
   gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.open", open_accels);
   gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.save", save_accels);
   gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.save-as", save_as_accels);
+  const char *attr_accels[] = { "<Primary>e", NULL };
+  gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.attributes", attr_accels);
   const char *undo_accels[] = { "<Primary>z", NULL };
   const char *redo_accels[] = { "<Primary>y", "<Primary><Shift>z", NULL };
   gtk_application_set_accels_for_action (GTK_APPLICATION (app), "win.undo", undo_accels);

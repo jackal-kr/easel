@@ -6,6 +6,9 @@
 #include "core/history.h"
 #include "ui/cursors.h"
 
+#define HANDLE_PAD  8  /* logical px reserved right/below the picture for resize handles */
+#define HANDLE_SIZE 5
+
 #define MAX_SEQ 512 /* vertices of a polygon in progress */
 
 struct _EaselCanvas
@@ -46,6 +49,11 @@ struct _EaselCanvas
   gboolean   seq_moved;
   gint64     last_press_us;
 
+  /* Resize handles: 0 none, 1 right edge, 2 bottom edge, 3 corner */
+  int      handle_hover;
+  int      resize_handle;   /* handle being dragged, 0 when not resizing */
+  int      resize_w, resize_h;
+
   /* Undo */
   EaselHistory *history;
   EaselRect     edit_rect;  /* pixels touched by the edit in progress */
@@ -65,7 +73,7 @@ struct _EaselCanvas
 
 G_DEFINE_FINAL_TYPE (EaselCanvas, easel_canvas, GTK_TYPE_WIDGET)
 
-enum { SIGNAL_POINTER_MOVED, SIGNAL_COLOR_PICKED, SIGNAL_HISTORY_CHANGED, N_SIGNALS };
+enum { SIGNAL_POINTER_MOVED, SIGNAL_COLOR_PICKED, SIGNAL_HISTORY_CHANGED, SIGNAL_RESIZE_PREVIEW, N_SIGNALS };
 static guint signals[N_SIGNALS];
 
 /* One image pixel is one *device* pixel at zoom 1, even on HiDPI screens,
@@ -159,7 +167,7 @@ easel_canvas_measure (GtkWidget *widget, GtkOrientation orientation, int for_siz
   EaselCanvas *self = EASEL_CANVAS (widget);
   int pixels = orientation == GTK_ORIENTATION_HORIZONTAL ? self->doc->width : self->doc->height;
   int scale = gtk_widget_get_scale_factor (widget);
-  int size = (pixels * self->zoom + scale - 1) / scale;
+  int size = (pixels * self->zoom + scale - 1) / scale + HANDLE_PAD;
 
   *minimum = *natural = size;
   if (minimum_baseline != NULL)
@@ -242,6 +250,65 @@ draw_brush_preview (EaselCanvas *self, GtkSnapshot *snapshot, double s)
       }
 }
 
+/* Centre of each resize handle, in widget coordinates. */
+static void
+handle_center (EaselCanvas *self, int handle, double *x, double *y)
+{
+  double s = logical_per_pixel (self);
+  double w = self->doc->width * s, h = self->doc->height * s;
+
+  *x = handle == 2 ? w / 2 : w + HANDLE_SIZE / 2.0 + 1;
+  *y = handle == 1 ? h / 2 : h + HANDLE_SIZE / 2.0 + 1;
+}
+
+static int
+handle_at (EaselCanvas *self, double wx, double wy)
+{
+  for (int handle = 1; handle <= 3; handle++)
+    {
+      double cx, cy;
+      handle_center (self, handle, &cx, &cy);
+      if (fabs (wx - cx) <= 5 && fabs (wy - cy) <= 5)
+        return handle;
+    }
+  return 0;
+}
+
+static void
+draw_handles (EaselCanvas *self, GtkSnapshot *snapshot)
+{
+  const GdkRGBA dark = { 0.15f, 0.15f, 0.17f, 1 };
+  const GdkRGBA light = { 1, 1, 1, 1 };
+
+  for (int handle = 1; handle <= 3; handle++)
+    {
+      double cx, cy;
+      handle_center (self, handle, &cx, &cy);
+      graphene_rect_t halo = GRAPHENE_RECT_INIT ((float) (cx - HANDLE_SIZE / 2.0 - 1),
+                                                 (float) (cy - HANDLE_SIZE / 2.0 - 1),
+                                                 HANDLE_SIZE + 2, HANDLE_SIZE + 2);
+      graphene_rect_t box = GRAPHENE_RECT_INIT ((float) (cx - HANDLE_SIZE / 2.0),
+                                                (float) (cy - HANDLE_SIZE / 2.0),
+                                                HANDLE_SIZE, HANDLE_SIZE);
+      gtk_snapshot_append_color (snapshot, &light, &halo);
+      gtk_snapshot_append_color (snapshot, &dark, &box);
+    }
+
+  /* Outline of the size the picture will become while a handle is dragged. */
+  if (self->resize_handle != 0)
+    {
+      double s = logical_per_pixel (self);
+      graphene_rect_t r = GRAPHENE_RECT_INIT (0, 0, (float) (self->resize_w * s),
+                                              (float) (self->resize_h * s));
+      GskRoundedRect rr;
+      const GdkRGBA black4[4] = { dark, dark, dark, dark };
+      const float width[4] = { 1, 1, 1, 1 };
+
+      gsk_rounded_rect_init_from_rect (&rr, &r, 0);
+      gtk_snapshot_append_border (snapshot, &rr, width, black4);
+    }
+}
+
 static void
 easel_canvas_snapshot (GtkWidget *widget, GtkSnapshot *snapshot)
 {
@@ -253,6 +320,18 @@ easel_canvas_snapshot (GtkWidget *widget, GtkSnapshot *snapshot)
   graphene_rect_t bounds = GRAPHENE_RECT_INIT (0, 0,
                                                (float) (self->doc->width * s),
                                                (float) (self->doc->height * s));
+  /* A hairline edge plus a soft shadow, hugging the picture itself (the
+   * widget is a little larger to leave room for the resize handles). */
+  {
+    GskRoundedRect outline;
+    const GdkRGBA edge = { 0, 0, 0, 0.30f };
+    const GdkRGBA soft = { 0, 0, 0, 0.18f };
+
+    gsk_rounded_rect_init_from_rect (&outline, &bounds, 0);
+    gtk_snapshot_append_outset_shadow (snapshot, &outline, &soft, 0, 1, 0, 6);
+    gtk_snapshot_append_outset_shadow (snapshot, &outline, &edge, 0, 0, 0.5f, 0);
+  }
+
   gtk_snapshot_append_scaled_texture (snapshot, self->texture,
                                       GSK_SCALING_FILTER_NEAREST, &bounds);
 
@@ -260,6 +339,8 @@ easel_canvas_snapshot (GtkWidget *widget, GtkSnapshot *snapshot)
   draw_brush_preview (self, snapshot, s);
   draw_eraser_outline (self, snapshot, s);
   gtk_snapshot_pop (snapshot);
+
+  draw_handles (self, snapshot);
 }
 
 static uint32_t
@@ -524,6 +605,25 @@ on_drag_begin (GtkGestureDrag *gesture, double x, double y, EaselCanvas *self)
       return;
     }
 
+  if (button == GDK_BUTTON_PRIMARY)
+    {
+      int handle = handle_at (self, x, y);
+      if (handle != 0)
+        {
+          commit_seq (self, FALSE);
+          self->resize_handle = handle;
+          if (self->handle_hover != handle)
+            {
+              static const char *const names[] = { NULL, "ew-resize", "ns-resize", "nwse-resize" };
+              self->handle_hover = handle;
+              gtk_widget_set_cursor_from_name (GTK_WIDGET (self), names[handle]);
+            }
+          self->resize_w = self->doc->width;
+          self->resize_h = self->doc->height;
+          return;
+        }
+    }
+
   /* Left button uses the foreground colour, right the background. */
   self->button = button;
   self->stroke_color = button == GDK_BUTTON_PRIMARY ? self->foreground : self->background;
@@ -655,6 +755,24 @@ on_drag_update (GtkGestureDrag *gesture, double offset_x, double offset_y, Easel
 {
   int x, y;
 
+  if (self->resize_handle != 0)
+    {
+      double s = logical_per_pixel (self);
+      int nx = (int) lround ((self->start_x + offset_x) / s);
+      int ny = (int) lround ((self->start_y + offset_y) / s);
+
+      /* The handle sits just past the edge, so measure from the start point. */
+      nx = self->doc->width + (nx - (int) lround (self->start_x / s));
+      ny = self->doc->height + (ny - (int) lround (self->start_y / s));
+      if (self->resize_handle != 2)
+        self->resize_w = CLAMP (nx, 1, 16384);
+      if (self->resize_handle != 1)
+        self->resize_h = CLAMP (ny, 1, 16384);
+      g_signal_emit (self, signals[SIGNAL_RESIZE_PREVIEW], 0, self->resize_w, self->resize_h);
+      gtk_widget_queue_draw (GTK_WIDGET (self));
+      return;
+    }
+
   if (!self->drawing)
     return;
 
@@ -697,6 +815,18 @@ on_drag_update (GtkGestureDrag *gesture, double offset_x, double offset_y, Easel
 static void
 on_drag_end (GtkGestureDrag *gesture, double offset_x, double offset_y, EaselCanvas *self)
 {
+  if (self->resize_handle != 0)
+    {
+      self->resize_handle = 0;
+      self->handle_hover = -1; /* next motion re-picks the cursor */
+      gtk_widget_set_cursor (GTK_WIDGET (self), easel_cursor_for_tool (self->tool));
+      g_signal_emit (self, signals[SIGNAL_RESIZE_PREVIEW], 0, -1, -1);
+      if (self->resize_w != self->doc->width || self->resize_h != self->doc->height)
+        easel_canvas_resize (self, self->resize_w, self->resize_h);
+      gtk_widget_queue_draw (GTK_WIDGET (self));
+      return;
+    }
+
   if (!self->drawing)
     return;
   self->drawing = FALSE;
@@ -802,6 +932,18 @@ on_key_pressed (GtkEventControllerKey *controller, guint keyval, guint keycode,
 static void
 on_motion (GtkEventControllerMotion *controller, double x, double y, EaselCanvas *self)
 {
+  /* While a handle is being dragged the pointer keeps its resize cursor. */
+  int handle = self->resize_handle != 0 ? self->resize_handle : handle_at (self, x, y);
+  if (handle != self->handle_hover)
+    {
+      static const char *const names[] = { NULL, "ew-resize", "ns-resize", "nwse-resize" };
+
+      self->handle_hover = handle;
+      if (handle != 0)
+        gtk_widget_set_cursor_from_name (GTK_WIDGET (self), names[handle]);
+      else
+        gtk_widget_set_cursor (GTK_WIDGET (self), easel_cursor_for_tool (self->tool));
+    }
   to_image (self, x, y, &self->hover_x, &self->hover_y);
   g_signal_emit (self, signals[SIGNAL_POINTER_MOVED], 0, self->hover_x, self->hover_y);
   if (self->seq_active && !self->drawing && self->tool == EASEL_TOOL_POLYGON)
@@ -864,6 +1006,9 @@ easel_canvas_class_init (EaselCanvasClass *klass)
   signals[SIGNAL_HISTORY_CHANGED] =
     g_signal_new ("history-changed", G_TYPE_FROM_CLASS (klass), G_SIGNAL_RUN_LAST,
                   0, NULL, NULL, NULL, G_TYPE_NONE, 0);
+  signals[SIGNAL_RESIZE_PREVIEW] =
+    g_signal_new ("resize-preview", G_TYPE_FROM_CLASS (klass), G_SIGNAL_RUN_LAST,
+                  0, NULL, NULL, NULL, G_TYPE_NONE, 2, G_TYPE_INT, G_TYPE_INT);
   signals[SIGNAL_COLOR_PICKED] =
     g_signal_new ("color-picked", G_TYPE_FROM_CLASS (klass), G_SIGNAL_RUN_LAST,
                   0, NULL, NULL, NULL, G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_BOOLEAN);
@@ -946,7 +1091,8 @@ easel_canvas_set_tool (EaselCanvas *self, EaselTool tool)
   if (tool != self->tool)
     commit_seq (self, FALSE);
   self->tool = tool;
-  gtk_widget_set_cursor (GTK_WIDGET (self), easel_cursor_for_tool (tool));
+  if (self->handle_hover == 0)
+    gtk_widget_set_cursor (GTK_WIDGET (self), easel_cursor_for_tool (tool));
   gtk_widget_queue_draw (GTK_WIDGET (self)); /* hover overlay appears or goes away */
 }
 
@@ -1083,7 +1229,8 @@ easel_canvas_undo (EaselCanvas *self)
     }
   if (self->drawing || !easel_history_undo (self->history, self->doc, &r))
     return FALSE;
-  mark_dirty (self, r);
+  gtk_widget_queue_resize (GTK_WIDGET (self)); /* the undone step may have changed the size */
+  mark_all_dirty (self);
   self->edit_rect = (EaselRect) { 0, 0, 0, 0 };
   g_signal_emit (self, signals[SIGNAL_HISTORY_CHANGED], 0);
   return TRUE;
@@ -1097,7 +1244,8 @@ easel_canvas_redo (EaselCanvas *self)
 
   if (self->drawing || self->seq_active || !easel_history_redo (self->history, self->doc, &r))
     return FALSE;
-  mark_dirty (self, r);
+  gtk_widget_queue_resize (GTK_WIDGET (self)); /* the undone step may have changed the size */
+  mark_all_dirty (self);
   self->edit_rect = (EaselRect) { 0, 0, 0, 0 };
   g_signal_emit (self, signals[SIGNAL_HISTORY_CHANGED], 0);
   return TRUE;
@@ -1141,4 +1289,28 @@ easel_canvas_set_document (EaselCanvas *self, EaselDocument *doc)
   gtk_widget_queue_resize (GTK_WIDGET (self));
   mark_all_dirty (self);
   g_signal_emit (self, signals[SIGNAL_HISTORY_CHANGED], 0);
+}
+
+/* Changes the picture size (crop or extend with the background colour) as one
+ * undoable step. */
+gboolean
+easel_canvas_resize (EaselCanvas *self, int width, int height)
+{
+  g_return_val_if_fail (EASEL_IS_CANVAS (self), FALSE);
+
+  if (width == self->doc->width && height == self->doc->height)
+    return TRUE;
+  commit_seq (self, FALSE);
+
+  int old_w = self->doc->width, old_h = self->doc->height;
+  g_autofree uint32_t *old = g_memdup2 (self->doc->pixels, (gsize) old_w * old_h * 4);
+
+  if (!easel_document_resize (self->doc, width, height, self->background))
+    return FALSE;
+
+  easel_history_push_full (self->history, old, old_w, old_h, self->doc);
+  gtk_widget_queue_resize (GTK_WIDGET (self));
+  mark_all_dirty (self);
+  g_signal_emit (self, signals[SIGNAL_HISTORY_CHANGED], 0);
+  return TRUE;
 }

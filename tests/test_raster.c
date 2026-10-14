@@ -463,6 +463,56 @@ test_history (void)
   easel_document_free (doc);
 }
 
+static void
+test_resize (void)
+{
+  EaselDocument *doc = easel_document_new (10, 8, WHITE);
+  easel_document_set_pixel (doc, 2, 2, BLACK);
+  easel_document_set_pixel (doc, 9, 7, RED);
+
+  CHECK (easel_document_resize (doc, 20, 12, RED));
+  CHECK (doc->width == 20 && doc->height == 12);
+  CHECK (easel_document_get_pixel (doc, 2, 2) == BLACK);
+  CHECK (easel_document_get_pixel (doc, 9, 7) == RED);
+  CHECK (easel_document_get_pixel (doc, 15, 3) == RED);   /* new area */
+  CHECK (easel_document_get_pixel (doc, 1, 1) == WHITE);
+
+  CHECK (easel_document_resize (doc, 4, 4, WHITE));       /* shrink = crop */
+  CHECK (doc->width == 4 && easel_document_get_pixel (doc, 2, 2) == BLACK);
+  CHECK (!easel_document_resize (doc, 0, 4, WHITE));
+  CHECK (doc->width == 4);
+
+  /* Undo/redo across a size change, mixed with a normal edit. */
+  EaselHistory *h = easel_history_new (1 << 20);
+  size_t old_n = (size_t) doc->width * doc->height;
+  uint32_t *old = malloc (old_n * 4);
+  memcpy (old, doc->pixels, old_n * 4);
+  int ow = doc->width, oh = doc->height;
+  CHECK (easel_document_resize (doc, 30, 30, WHITE));
+  CHECK (easel_history_push_full (h, old, ow, oh, doc));
+  free (old);
+
+  uint32_t *base = malloc ((size_t) 30 * 30 * 4);
+  memcpy (base, doc->pixels, (size_t) 30 * 30 * 4);
+  easel_raster_line (doc, 0, 29, 29, 29, 1, BLACK);
+  CHECK (easel_history_push (h, doc, base, (EaselRect) { 0, 29, 30, 1 }));
+  free (base);
+
+  EaselRect r;
+  CHECK (easel_history_undo (h, doc, &r));
+  CHECK (doc->width == 30 && easel_document_get_pixel (doc, 5, 29) == WHITE);
+  CHECK (easel_history_undo (h, doc, &r));
+  CHECK (doc->width == 4 && doc->height == 4 && r.width == 4);
+  CHECK (easel_document_get_pixel (doc, 2, 2) == BLACK);
+  CHECK (easel_history_redo (h, doc, &r));
+  CHECK (doc->width == 30 && r.width == 30);
+  CHECK (easel_history_redo (h, doc, &r));
+  CHECK (easel_document_get_pixel (doc, 5, 29) == BLACK);
+
+  easel_history_free (h);
+  easel_document_free (doc);
+}
+
 int
 main (void)
 {
@@ -475,6 +525,7 @@ main (void)
   test_shapes ();
   test_polygon_curve_spray ();
   test_history ();
+  test_resize ();
 
   if (failures != 0)
     {

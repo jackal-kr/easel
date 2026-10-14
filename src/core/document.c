@@ -77,3 +77,54 @@ easel_rect_union (EaselRect a, EaselRect b)
   int y1 = (a.y + a.height) > (b.y + b.height) ? (a.y + a.height) : (b.y + b.height);
   return (EaselRect) { x0, y0, x1 - x0, y1 - y0 };
 }
+
+static bool
+size_ok (int width, int height)
+{
+  return width > 0 && height > 0 && (uint64_t) width * (uint64_t) height <= EASEL_MAX_PIXELS;
+}
+
+bool
+easel_document_resize (EaselDocument *doc, int width, int height, uint32_t fill)
+{
+  if (!size_ok (width, height))
+    return false;
+
+  uint32_t *pixels = malloc ((size_t) width * (size_t) height * sizeof (uint32_t));
+  if (pixels == NULL)
+    return false;
+
+  int keep_w = width < doc->width ? width : doc->width;
+  int keep_h = height < doc->height ? height : doc->height;
+
+  for (int y = 0; y < height; y++)
+    for (int x = 0; x < width; x++)
+      pixels[(size_t) y * width + x] =
+        (x < keep_w && y < keep_h) ? doc->pixels[(size_t) y * doc->width + x] : fill;
+
+  free (doc->pixels);
+  doc->pixels = pixels;
+  doc->width = width;
+  doc->height = height;
+  return true;
+}
+
+bool
+easel_document_replace (EaselDocument *doc, int width, int height, const uint32_t *pixels)
+{
+  if (!size_ok (width, height))
+    return false;
+
+  size_t bytes = (size_t) width * (size_t) height * sizeof (uint32_t);
+  uint32_t *copy = malloc (bytes);
+  if (copy == NULL)
+    return false;
+  for (size_t i = 0; i < (size_t) width * (size_t) height; i++)
+    copy[i] = pixels[i];
+
+  free (doc->pixels);
+  doc->pixels = copy;
+  doc->width = width;
+  doc->height = height;
+  return true;
+}

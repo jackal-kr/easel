@@ -35,6 +35,9 @@ gboolean easel_canvas_undo (EaselCanvas *self);
 gboolean easel_canvas_redo (EaselCanvas *self);
 void     easel_canvas_clear (EaselCanvas *self, uint32_t argb); /* undoable */
 
+/* Crops or extends the picture (new area in the background colour); undoable. */
+gboolean easel_canvas_resize (EaselCanvas *self, int width, int height);
+
 /* Replaces the picture; takes ownership, clears undo history. */
 void easel_canvas_set_document (EaselCanvas *self, EaselDocument *doc);
 
@@ -45,6 +48,8 @@ void easel_canvas_invalidate (EaselCanvas *self);
  *  "pointer-moved" (int x, int y): image coordinates, or -1,-1 when the
  *                  pointer leaves the canvas.
  *  "history-changed": undo/redo availability may have changed.
+ *  "resize-preview" (int w, int h): size while a resize handle is dragged;
+ *                  -1,-1 when the drag ends.
  *  "color-picked"  (guint argb, gboolean foreground): Pick Color released. */
 
 G_END_DECLS

@@ -31,3 +31,10 @@ uint32_t easel_document_get_pixel (const EaselDocument *doc, int x, int y);
 void     easel_document_set_pixel (EaselDocument *doc, int x, int y, uint32_t color);
 
 EaselRect easel_rect_union (EaselRect a, EaselRect b);
+
+/* Changes the size, keeping the top-left part of the picture; new area gets
+ * `fill`. Returns false (document untouched) on invalid size or no memory. */
+bool easel_document_resize (EaselDocument *doc, int width, int height, uint32_t fill);
+
+/* Replaces size and contents with a copy of `pixels` (width * height). */
+bool easel_document_replace (EaselDocument *doc, int width, int height, const uint32_t *pixels);
