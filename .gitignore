@@ -1,5 +1,6 @@
 /build/
-/build-*/
+/build-flatpak/
+/build-deb/
 /dist/
 /.cache/
 .scratch/

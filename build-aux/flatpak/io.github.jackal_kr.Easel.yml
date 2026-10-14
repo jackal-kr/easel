@@ -1,0 +1,29 @@
+app-id: io.github.jackal_kr.Easel
+runtime: org.gnome.Platform
+runtime-version: '50'
+sdk: org.gnome.Sdk
+command: easel
+
+finish-args:
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+
+modules:
+  - name: easel
+    buildsystem: meson
+    config-opts:
+      - -Dbuildtype=release
+    sources:
+      - type: dir
+        path: ../..
+        skip:
+          - .git
+          - build
+          - build-flatpak
+          - dist
+          - .flatpak-builder
+          - .scratch
+          - .cache
+          - obj-x86_64-linux-gnu
