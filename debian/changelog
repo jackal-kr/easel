@@ -1,3 +1,9 @@
+easel (1.1.5) unstable; urgency=medium
+
+  * The Font dialog shows the current font almost at once in the Flatpak.
+
+ -- JOD (Oleksiy Degtyar) <oleksiy.degtyar@gmail.com>  Wed, 14 Oct 2026 21:30:00 +0200
+
 easel (1.1.4) unstable; urgency=medium
 
   * The Font dialog now shows its font list and highlights the current font.

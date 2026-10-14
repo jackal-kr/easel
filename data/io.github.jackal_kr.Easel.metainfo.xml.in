@@ -45,6 +45,11 @@
   </supports>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.1.5" date="2026-10-14">
+      <description>
+        <p>The Font dialog shows the current font almost at once in the Flatpak.</p>
+      </description>
+    </release>
     <release version="1.1.4" date="2026-10-14">
       <description>
         <p>The Font dialog now shows its font list and highlights the current font.</p>

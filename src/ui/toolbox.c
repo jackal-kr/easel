@@ -506,10 +506,12 @@ on_font_chosen (GObject *source, GAsyncResult *result, gpointer data)
  * (seen with Arial and Andale Mono inside Flatpak), leaves the list blank. So
  * the dialog opens without a font and the current one is set once the list has
  * had time to load. */
+static const guint font_tries[] = { 50, 200, 500, 1000, 2000 }; /* ms after opening */
+
 static gboolean
 select_current_font (gpointer data)
 {
-  char *font = data;
+  const char *font = data;
   GListModel *windows = gtk_window_get_toplevels ();
 
   /* GtkFontDialog gives no access to its chooser, so the (deprecated)
@@ -522,12 +524,16 @@ select_current_font (gpointer data)
       if (GTK_IS_FONT_CHOOSER (window))
         {
           PangoFontDescription *current = pango_font_description_from_string (font);
-          gtk_font_chooser_set_font_desc (GTK_FONT_CHOOSER (window), current);
+          PangoFontDescription *shown = gtk_font_chooser_get_font_desc (GTK_FONT_CHOOSER (window));
+
+          /* Try again later if the row was not there yet. */
+          if (shown == NULL || g_strcmp0 (pango_font_description_get_family (shown),
+                                          pango_font_description_get_family (current)) != 0)
+            gtk_font_chooser_set_font_desc (GTK_FONT_CHOOSER (window), current);
           pango_font_description_free (current);
         }
     }
   G_GNUC_END_IGNORE_DEPRECATIONS
-  g_free (font);
   return G_SOURCE_REMOVE;
 }
 
@@ -535,11 +541,24 @@ static void
 on_font_button_clicked (GtkButton *button, EaselToolbox *self)
 {
   GtkFontDialog *dialog = gtk_font_dialog_new ();
+  GtkWindow *parent = GTK_WINDOW (gtk_widget_get_root (GTK_WIDGET (self)));
+  /* Only inside Flatpak was the list seen going blank, so everywhere else the
+   * current font is simply passed in and shows at once. */
+  gboolean in_flatpak = g_file_test ("/.flatpak-info", G_FILE_TEST_EXISTS);
+  PangoFontDescription *current = in_flatpak ? NULL : pango_font_description_from_string (self->font);
 
   gtk_font_dialog_set_title (dialog, _("Font"));
-  gtk_font_dialog_choose_font (dialog, GTK_WINDOW (gtk_widget_get_root (GTK_WIDGET (self))), NULL, NULL,
-                               on_font_chosen, g_object_ref (self));
-  g_timeout_add (1200, select_current_font, g_strdup (self->font));
+  gtk_font_dialog_choose_font (dialog, parent, current, NULL, on_font_chosen, g_object_ref (self));
+  if (in_flatpak)
+    {
+      /* The first try is almost always enough; the later ones cover a slow
+       * machine (a try does nothing once the right font is showing). */
+      char *font = g_strdup (self->font);
+      for (guint i = 0; i < G_N_ELEMENTS (font_tries); i++)
+        g_timeout_add (font_tries[i], select_current_font, font);
+      g_timeout_add_once (font_tries[G_N_ELEMENTS (font_tries) - 1] + 1000, (GSourceOnceFunc) g_free, font);
+    }
+  g_clear_pointer (&current, pango_font_description_free);
   g_object_unref (dialog);
 }
 

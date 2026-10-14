@@ -2,6 +2,9 @@
 
 All notable user-facing changes to Easel. Newest first. Built from the git history; versions follow the tags.
 
+## 1.1.5
+- The Font dialog shows the current font almost at once in the Flatpak (selected as soon as the list loads; other installs pass it in directly).
+
 ## 1.1.4
 - The Font dialog now shows its font list and highlights the current font (it could come up empty for some fonts, such as Arial, in the Flatpak).
 
