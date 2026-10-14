@@ -1,10 +1,10 @@
 # Easel: how it works (humble guide for readers of the code)
 
-> **Why this file exists.** Easel was written with heavy AI assistance (Claude), and the author is open about it. In open source, everyone who reads, packages or reuses the code should be able to understand how it is built, not just trust that it works. This document is a humble attempt to explain it: the stack, the architecture, the flow of a click into pixels, the key structures and every source file. It is written for a C programmer new to GNOME. It may contain mistakes; the code and the `REVIEW:` comments in it are the source of truth. The list of changes in the latest releases is in `IMPROVEMENTS.md`.
+> **Why this file exists.** Easel was written with AI assistance (Claude), and the author is open about it. In open source, everyone who reads, packages or reuses the code should be able to understand how it is built, not just trust that it works. This document is a humble attempt to explain it: the stack, the architecture, the flow of a click into pixels, the key structures and every source file. It is written for a C programmer new to GNOME. It may contain mistakes; the code and the `REVIEW:` comments in it are the source of truth. The list of changes in the latest releases is in `IMPROVEMENTS.md`.
 
 A guided tour of the Easel source for a C programmer who is new to GNOME: what the pieces are, how a click becomes pixels, and where to look in each file, sized to read in about four hours.
 
-## How to read this in four hours
+## How to read this in an hour
 
 Read the parts in order, with the matching source file open beside the doc. Never read all the code line by line: the doc says which functions carry the idea and which are bulk you can skip.
 
