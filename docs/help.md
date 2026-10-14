@@ -24,7 +24,7 @@ Panels can be hidden from the View menu or from Preferences.
 ## Tools
 | Tool | What it does |
 |---|---|
-| Pan | Drag to move around a large or zoomed picture. |
+| Pan | Drag to move around a large or zoomed picture. Right-click for a menu (Paste, Paste From, Select All, zoom, Clear Image). |
 | Magnifier | Click to toggle between 100 % and the Magnifier zoom chosen in its options (the click point stays in view). |
 | Select / Free-Form Select | Select a rectangle or an outline; drag the selection to move it, **Ctrl+drag** to move a copy. Right-click it for a menu. |
 | Eraser | Erases to the background color or, in *Transparent* mode, to transparency. **Right button** replaces only the foreground color with the background (color eraser). |
@@ -47,6 +47,12 @@ Selection options (below the tool box) choose **Opaque** (the selection's backgr
 Preferences, Keyboard Shortcuts, About.
 
 Flip, rotate and invert act on the selection when there is one, otherwise on the whole picture.
+
+## Pasting pictures
+
+**Ctrl+V** pastes a picture from the clipboard (or copied picture files) as a selection you can move. If it is
+larger than the canvas, Easel asks: **Resize Canvas to Picture** or **Fit Picture to Canvas** (shrinks it, keeping
+proportions), or Cancel. Paste From… in the main menu does the same for a file.
 
 ## Files
 Open and save PNG, JPEG, BMP, TIFF and WebP (WebP when your system supports writing it). GIF files can be opened

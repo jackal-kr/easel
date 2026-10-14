@@ -124,8 +124,10 @@ struct _EaselCanvas
   int         text_handle;    /* handle (1..8) while resizing */
   int         text_grab_x, text_grab_y;
   EaselRect   text_orig;
-  GtkWidget  *ctx_popover[2];  /* right-click menus: selection, text */
-  GMenuModel *ctx_model[2];
+  GtkWidget  *ctx_popover[3];  /* right-click menus: selection, text, pan */
+  GMenuModel *ctx_model[3];
+  EaselCanvasOversizeFunc oversize_func; /* asks what to do with a paste bigger than the picture */
+  gpointer    oversize_data;
   int         ctx_pending;     /* menu to open when the button is released; -1 none */
   double      ctx_x, ctx_y;
   gboolean    eraser_opaque; /* Eraser paints the background colour; else transparency */

@@ -28,4 +28,4 @@ Automated: the two validators as meson tests when available. Manual: install the
 VS Code tasks in `.vscode/tasks.json`.
 
 ## Out of scope
-Publishing to Flathub, translations (spec 0002), accessibility (spec 0003).
+Publishing to Flathub.

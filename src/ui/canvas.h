@@ -63,8 +63,14 @@ void     easel_canvas_cut (EaselCanvas *self);
 void     easel_canvas_clear_selection (EaselCanvas *self);
 void     easel_canvas_paste (EaselCanvas *self);
 void     easel_canvas_paste_clip (EaselCanvas *self, EaselClip *clip); /* takes ownership */
+/* Like paste_clip but when `fit` the clip is shrunk to the picture, else the picture grows. */
+void     easel_canvas_paste_clip_as (EaselCanvas *self, EaselClip *clip, gboolean fit);
+/* Called instead of growing the picture when a pasted clip is bigger; it must call paste_clip_as
+ * (or easel_clip_free) on `clip`. */
+typedef void (*EaselCanvasOversizeFunc) (EaselCanvas *canvas, EaselClip *clip, gpointer data);
+void     easel_canvas_set_oversize_handler (EaselCanvas *self, EaselCanvasOversizeFunc func, gpointer data);
 void     easel_canvas_set_opaque (EaselCanvas *self, gboolean opaque); /* Draw Opaque */
-void     easel_canvas_set_context_menus (EaselCanvas *self, GMenuModel *selection, GMenuModel *text);
+void     easel_canvas_set_context_menus (EaselCanvas *self, GMenuModel *selection, GMenuModel *text, GMenuModel *pan);
 void     easel_canvas_set_eraser_opaque (EaselCanvas *self, gboolean opaque); /* eraser paints the background, else transparency */
 
 /* Crops or extends the picture (new area in the background colour); undoable. */

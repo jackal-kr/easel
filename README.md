@@ -10,7 +10,7 @@ Status: usable, pre-release (0.1). Debian package and Flatpak can be built local
 - All the classic tools: Pencil, Brush (12 shapes), Airbrush, Eraser (opaque or transparent, color eraser), Fill,
   Pick Color, Magnifier, Text, Line, Curve, Rectangle, Rounded Rectangle, Ellipse, Polygon, Select, Free-Form Select —
   plus Pan and Gradient.
-- Selections with move/copy, clipboard, flip, rotate, stretch/skew, invert; right-click context menus.
+- Selections with move/copy, clipboard, flip, rotate, stretch/skew, invert; right-click context menus (selection, text, Pan); pasting a larger picture asks to fit it or resize the canvas.
 - Unlimited-step undo/redo bounded by memory, zoom 10–800 %, pixel grid, thumbnail, canvas resize handles.
 - PNG, JPEG, BMP, TIFF and WebP; GIF can be opened. Printing.
 - 28-color palette with editing, Preferences (theme, panels, defaults), keyboard shortcuts window.

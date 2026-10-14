@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: easel\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-14 17:10+0200\n"
+"POT-Creation-Date: 2026-10-14 17:17+0200\n"
 "PO-Revision-Date: 2026-10-14 17:06+0200\n"
 "Last-Translator: JOD (Oleksiy Degtyar)\n"
 "Language-Team: none\n"
@@ -93,7 +93,7 @@ msgstr "Інвертувати кольори"
 msgid "Attributes…"
 msgstr "Атрибути…"
 
-#: data/menus.ui:13 src/main.c:66
+#: data/menus.ui:13 data/menus.ui:55 src/main.c:66
 msgid "Clear Image"
 msgstr "Очистити зображення"
 
@@ -101,27 +101,29 @@ msgstr "Очистити зображення"
 msgid "Draw Opaque"
 msgstr "Малювати непрозоро"
 
-#: data/menus.ui:21 data/menus.ui:45 data/menus.ui:86 src/main.c:59
+#: data/menus.ui:21 data/menus.ui:61 data/menus.ui:102 src/main.c:59
 msgid "Cut"
 msgstr "Вирізати"
 
-#: data/menus.ui:22 data/menus.ui:46 data/menus.ui:87 src/main.c:59
+#: data/menus.ui:22 data/menus.ui:62 data/menus.ui:103 src/main.c:59
 msgid "Copy"
 msgstr "Копіювати"
 
-#: data/menus.ui:23 data/menus.ui:47 data/menus.ui:88 src/main.c:59
+#: data/menus.ui:23 data/menus.ui:45 data/menus.ui:63 data/menus.ui:104
+#: src/main.c:59
 msgid "Paste"
 msgstr "Вставити"
 
-#: data/menus.ui:26 data/menus.ui:89 src/main.c:60
+#: data/menus.ui:26 data/menus.ui:105 src/main.c:60
 msgid "Clear Selection"
 msgstr "Очистити виділення"
 
-#: data/menus.ui:27 data/menus.ui:51 data/menus.ui:90 src/main.c:59
+#: data/menus.ui:27 data/menus.ui:47 data/menus.ui:67 data/menus.ui:106
+#: src/main.c:59
 msgid "Select All"
 msgstr "Вибрати все"
 
-#: data/menus.ui:28 data/menus.ui:93
+#: data/menus.ui:28 data/menus.ui:109
 msgid "Copy To…"
 msgstr "Копіювати до…"
 
@@ -149,79 +151,87 @@ msgstr "180°"
 msgid "90° Left"
 msgstr "90° ліворуч"
 
-#: data/menus.ui:48
-msgid "Delete"
-msgstr "Видалити"
-
-#: data/menus.ui:60 src/main.c:62
-msgid "Normal Size"
-msgstr "Звичайний розмір"
-
-#: data/menus.ui:61 src/main.c:62
-msgid "Large Size"
-msgstr "Великий розмір"
-
-#: data/menus.ui:62
-msgid "Custom Zoom…"
-msgstr "Власний масштаб…"
-
-#: data/menus.ui:65 src/main.c:63
-msgid "Show Grid"
-msgstr "Показати сітку"
-
-#: data/menus.ui:66
-msgid "Show Thumbnail"
-msgstr "Показати мініатюру"
-
-#: data/menus.ui:69
-msgid "Tool Box"
-msgstr "Панель інструментів"
-
-#: data/menus.ui:70
-msgid "Color Box"
-msgstr "Панель кольорів"
-
-#: data/menus.ui:71
-msgid "Status Bar"
-msgstr "Рядок стану"
-
-#: data/menus.ui:72
-msgid "Frame Time"
-msgstr "Час кадру"
-
-#: data/menus.ui:78 src/main.c:55
-msgid "New"
-msgstr "Створити"
-
-#: data/menus.ui:79 src/main.c:55
-msgid "Save As…"
-msgstr "Зберегти як…"
-
-#: data/menus.ui:80 src/main.c:56
-msgid "Print…"
-msgstr "Друкувати…"
-
-#: data/menus.ui:84 src/main.c:71
-msgid "Edit"
-msgstr "Редагування"
-
-#: data/menus.ui:94
+#: data/menus.ui:46 data/menus.ui:110
 msgid "Paste From…"
 msgstr "Вставити з…"
 
-#: data/menus.ui:97 src/ui/preferences.c:292 src/ui/preferences.c:295
+#: data/menus.ui:50
+msgid "Zoom In"
+msgstr "Збільшити"
+
+#: data/menus.ui:51
+msgid "Zoom Out"
+msgstr "Зменшити"
+
+#: data/menus.ui:52 data/menus.ui:76 src/main.c:62
+msgid "Normal Size"
+msgstr "Звичайний розмір"
+
+#: data/menus.ui:64
+msgid "Delete"
+msgstr "Видалити"
+
+#: data/menus.ui:77 src/main.c:62
+msgid "Large Size"
+msgstr "Великий розмір"
+
+#: data/menus.ui:78
+msgid "Custom Zoom…"
+msgstr "Власний масштаб…"
+
+#: data/menus.ui:81 src/main.c:63
+msgid "Show Grid"
+msgstr "Показати сітку"
+
+#: data/menus.ui:82
+msgid "Show Thumbnail"
+msgstr "Показати мініатюру"
+
+#: data/menus.ui:85
+msgid "Tool Box"
+msgstr "Панель інструментів"
+
+#: data/menus.ui:86
+msgid "Color Box"
+msgstr "Панель кольорів"
+
+#: data/menus.ui:87
+msgid "Status Bar"
+msgstr "Рядок стану"
+
+#: data/menus.ui:88
+msgid "Frame Time"
+msgstr "Час кадру"
+
+#: data/menus.ui:94 src/main.c:55
+msgid "New"
+msgstr "Створити"
+
+#: data/menus.ui:95 src/main.c:55
+msgid "Save As…"
+msgstr "Зберегти як…"
+
+#: data/menus.ui:96 src/main.c:56
+msgid "Print…"
+msgstr "Друкувати…"
+
+#: data/menus.ui:100 src/main.c:71
+msgid "Edit"
+msgstr "Редагування"
+
+#: data/menus.ui:113 src/ui/preferences.c:292 src/ui/preferences.c:295
 msgid "Preferences"
 msgstr "Налаштування"
 
-#: data/menus.ui:98 src/main.c:68
+#: data/menus.ui:114 src/main.c:68
 msgid "Keyboard Shortcuts"
 msgstr "Клавіатурні скорочення"
 
-#: data/menus.ui:99
+#: data/menus.ui:115
 msgid "Help"
 msgstr "Довідка"
 
-#: data/menus.ui:100
+#: data/menus.ui:116
 msgid "About Easel"
 msgstr "Про Easel"
 
@@ -281,7 +291,7 @@ msgstr "Скасувати поточне малювання або виділе
 msgid "File"
 msgstr "Файл"
 
-#: src/main.c:72 src/ui/window.c:1204
+#: src/main.c:72 src/ui/window.c:1243
 msgid "View"
 msgstr "Вигляд"
 
@@ -483,7 +493,7 @@ msgstr ""
 "Ліва кнопка: основний колір. Права кнопка: колір тла. Подвійне клацання: "
 "змінити цей колір. Клавіатура: Tab — фокус, стрілки, Enter / Shift+Enter, F2."
 
-#: src/ui/dialogs.c:13 src/ui/window.c:367
+#: src/ui/dialogs.c:13 src/ui/window.c:367 src/ui/window.c:741
 msgid "_Cancel"
 msgstr "_Скасувати"
 
@@ -1063,7 +1073,7 @@ msgstr "Інструмент: %s"
 msgid "Untitled"
 msgstr "Без назви"
 
-#: src/ui/window.c:180 src/ui/window.c:504 src/ui/window.c:1090
+#: src/ui/window.c:180 src/ui/window.c:504 src/ui/window.c:1129
 #, c-format
 msgid "%d × %d px"
 msgstr "%d × %d px"
@@ -1117,65 +1127,81 @@ msgstr "Копіювати до"
 msgid "Paste From"
 msgstr "Вставити з"
 
-#: src/ui/window.c:894
+#: src/ui/window.c:734
+msgid "The picture is %d × %d pixels; the canvas is %d × %d."
+msgstr "Зображення має %d × %d пікселів; полотно має %d × %d."
+
+#: src/ui/window.c:737
+msgid "Pasted picture is larger than the canvas"
+msgstr "Вставлене зображення більше за полотно"
+
+#: src/ui/window.c:742
+msgid "Fit Picture to Canvas"
+msgstr "Підігнати зображення під полотно"
+
+#: src/ui/window.c:742
+msgid "Resize Canvas to Picture"
+msgstr "Змінити розмір полотна під зображення"
+
+#: src/ui/window.c:933
 msgid "Thumbnail"
 msgstr "Мініатюра"
 
-#: src/ui/window.c:971
+#: src/ui/window.c:1010
 #, c-format
 msgid "Paint %.2f ms · %.0f fps"
 msgstr "Малювання %.2f мс · %.0f к/с"
 
-#: src/ui/window.c:1000 src/ui/window.c:1002
+#: src/ui/window.c:1039 src/ui/window.c:1041
 msgid "Zoom out"
 msgstr "Зменшити"
 
-#: src/ui/window.c:1001 src/ui/window.c:1003
+#: src/ui/window.c:1040 src/ui/window.c:1042
 msgid "Zoom in"
 msgstr "Збільшити"
 
-#: src/ui/window.c:1028 src/ui/window.c:1029
+#: src/ui/window.c:1067 src/ui/window.c:1068
 msgid "Main Menu"
 msgstr "Головне меню"
 
-#: src/ui/window.c:1086 src/ui/window.c:1087
+#: src/ui/window.c:1125 src/ui/window.c:1126
 msgid "Pointer position"
 msgstr "Позиція вказівника"
 
-#: src/ui/window.c:1095 src/ui/window.c:1096
+#: src/ui/window.c:1134 src/ui/window.c:1135
 msgid "Zoom"
 msgstr "Масштаб"
 
-#: src/ui/window.c:1102 src/ui/window.c:1103
+#: src/ui/window.c:1141 src/ui/window.c:1142
 msgid "Image size"
 msgstr "Розмір зображення"
 
-#: src/ui/window.c:1110 src/ui/window.c:1111
+#: src/ui/window.c:1149 src/ui/window.c:1150
 msgid "Time to paint the last frame, and frames per second while drawing"
 msgstr ""
 "Час малювання останнього кадру та кількість кадрів за секунду під час "
 "малювання"
 
-#: src/ui/window.c:1205
+#: src/ui/window.c:1244
 msgid "Image"
 msgstr "Зображення"
 
-#: src/ui/window.c:1206
+#: src/ui/window.c:1245
 msgid "New (Ctrl+N)"
 msgstr "Створити (Ctrl+N)"
 
-#: src/ui/window.c:1207
+#: src/ui/window.c:1246
 msgid "Open (Ctrl+O)"
 msgstr "Відкрити (Ctrl+O)"
 
-#: src/ui/window.c:1208
+#: src/ui/window.c:1247
 msgid "Save (Ctrl+S)"
 msgstr "Зберегти (Ctrl+S)"
 
-#: src/ui/window.c:1211
+#: src/ui/window.c:1250
 msgid "Undo (Ctrl+Z)"
 msgstr "Скасувати (Ctrl+Z)"
 
-#: src/ui/window.c:1212
+#: src/ui/window.c:1251
 msgid "Redo (Ctrl+Y)"
 msgstr "Повторити (Ctrl+Y)"

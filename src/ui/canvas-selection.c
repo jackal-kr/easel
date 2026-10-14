@@ -377,33 +377,66 @@ easel_canvas_cut (EaselCanvas *self)
 }
 
 static void
+paste_texture (EaselCanvas *self, GdkTexture *texture)
+{
+  int w = gdk_texture_get_width (texture), h = gdk_texture_get_height (texture);
+  EaselClip *clip = easel_clip_new (w, h);
+
+  if (clip == NULL)
+    return;
+  gdk_texture_download (texture, (guchar *) clip->pixels, (gsize) w * 4);
+  /* Flatten onto white: premultiplied, so add the missing white. */
+  for (gsize i = 0; i < (gsize) w * h; i++)
+    {
+      uint32_t c = clip->pixels[i];
+      uint32_t miss = 255 - (c >> 24);
+      uint32_t r = MIN (((c >> 16) & 0xFF) + miss, 255u);
+      uint32_t g = MIN (((c >> 8) & 0xFF) + miss, 255u);
+      uint32_t b = MIN ((c & 0xFF) + miss, 255u);
+      clip->pixels[i] = EASEL_RGB (r, g, b);
+    }
+  easel_canvas_paste_clip (self, clip);
+}
+
+/* Fallback: files copied in the file manager; the first readable picture is pasted. */
+static void
+on_clipboard_files (GObject *source, GAsyncResult *result, gpointer data)
+{
+  EaselCanvas *self = data;
+  g_autoptr (GError) error = NULL;
+  const GValue *value = gdk_clipboard_read_value_finish (GDK_CLIPBOARD (source), result, &error);
+
+  if (value != NULL && G_VALUE_HOLDS (value, GDK_TYPE_FILE_LIST))
+    {
+      for (GSList *l = gdk_file_list_get_files (g_value_get_boxed (value)); l != NULL; l = l->next)
+        {
+          g_autoptr (GdkTexture) texture = gdk_texture_new_from_file (l->data, NULL);
+
+          if (texture != NULL)
+            {
+              paste_texture (self, texture);
+              break;
+            }
+        }
+    }
+  g_object_unref (self);
+}
+
+static void
 on_clipboard_texture (GObject *source, GAsyncResult *result, gpointer data)
 {
   EaselCanvas *self = data;
   g_autoptr (GError) error = NULL;
   g_autoptr (GdkTexture) texture = gdk_clipboard_read_texture_finish (GDK_CLIPBOARD (source), result, &error);
 
-  if (texture != NULL)
+  if (texture == NULL)
     {
-      int w = gdk_texture_get_width (texture), h = gdk_texture_get_height (texture);
-      EaselClip *clip = easel_clip_new (w, h);
-
-      if (clip != NULL)
-        {
-          gdk_texture_download (texture, (guchar *) clip->pixels, (gsize) w * 4);
-          /* Flatten onto white: premultiplied, so add the missing white. */
-          for (gsize i = 0; i < (gsize) w * h; i++)
-            {
-              uint32_t c = clip->pixels[i];
-              uint32_t miss = 255 - (c >> 24);
-              uint32_t r = MIN (((c >> 16) & 0xFF) + miss, 255u);
-              uint32_t g = MIN (((c >> 8) & 0xFF) + miss, 255u);
-              uint32_t b = MIN ((c & 0xFF) + miss, 255u);
-              clip->pixels[i] = EASEL_RGB (r, g, b);
-            }
-          easel_canvas_paste_clip (self, clip);
-        }
+      g_warning ("Paste: no picture on the clipboard: %s", error != NULL ? error->message : "unknown error");
+      gdk_clipboard_read_value_async (GDK_CLIPBOARD (source), GDK_TYPE_FILE_LIST, G_PRIORITY_DEFAULT, NULL,
+                                      on_clipboard_files, g_object_ref (self));
     }
+  else
+    paste_texture (self, texture);
   g_object_unref (self);
 }
 
@@ -418,11 +451,68 @@ easel_canvas_paste (EaselCanvas *self)
 /* Floats `clip` (taking ownership) in the top-left of the visible area. The
  * picture grows if the clip does not fit. */
 void
+easel_canvas_set_oversize_handler (EaselCanvas *self, EaselCanvasOversizeFunc func, gpointer data)
+{
+  g_return_if_fail (EASEL_IS_CANVAS (self));
+  self->oversize_func = func;
+  self->oversize_data = data;
+}
+
+/* Smooth copy of `clip` scaled to fit inside w x h, keeping its proportions. */
+static EaselClip *
+clip_fit (const EaselClip *clip, int w, int h)
+{
+  double k = MIN ((double) w / clip->width, (double) h / clip->height);
+  int nw = MAX (1, (int) (clip->width * k)), nh = MAX (1, (int) (clip->height * k));
+  EaselClip *out = easel_clip_new (nw, nh);
+
+  if (out == NULL)
+    return NULL;
+  cairo_surface_t *src = cairo_image_surface_create_for_data ((guchar *) clip->pixels, CAIRO_FORMAT_ARGB32,
+                                                              clip->width, clip->height, clip->width * 4);
+  cairo_surface_t *dst = cairo_image_surface_create_for_data ((guchar *) out->pixels, CAIRO_FORMAT_ARGB32,
+                                                              nw, nh, nw * 4);
+  cairo_t *cr = cairo_create (dst);
+
+  cairo_scale (cr, (double) nw / clip->width, (double) nh / clip->height);
+  cairo_set_source_surface (cr, src, 0, 0);
+  cairo_pattern_set_filter (cairo_get_source (cr), CAIRO_FILTER_BEST);
+  cairo_paint (cr);
+  cairo_destroy (cr);
+  cairo_surface_finish (dst);
+  cairo_surface_destroy (dst);
+  cairo_surface_destroy (src);
+  return out;
+}
+
+void
 easel_canvas_paste_clip (EaselCanvas *self, EaselClip *clip)
 {
   g_return_if_fail (EASEL_IS_CANVAS (self));
   g_return_if_fail (clip != NULL);
 
+  if ((clip->width > self->doc->width || clip->height > self->doc->height) && self->oversize_func != NULL)
+    self->oversize_func (self, clip, self->oversize_data);
+  else
+    easel_canvas_paste_clip_as (self, clip, FALSE);
+}
+
+void
+easel_canvas_paste_clip_as (EaselCanvas *self, EaselClip *clip, gboolean fit)
+{
+  g_return_if_fail (EASEL_IS_CANVAS (self));
+  g_return_if_fail (clip != NULL);
+
+  if (fit && (clip->width > self->doc->width || clip->height > self->doc->height))
+    {
+      EaselClip *small = clip_fit (clip, self->doc->width, self->doc->height);
+
+      if (small != NULL)
+        {
+          easel_clip_free (clip);
+          clip = small;
+        }
+    }
   canvas_sel_commit (self);
   canvas_commit_seq (self, FALSE);
   if (clip->width > self->doc->width || clip->height > self->doc->height)

@@ -449,6 +449,8 @@ canvas_press (EaselCanvas *self, guint button, double x, double y, gboolean ctrl
       else if (self->tool == EASEL_TOOL_TEXT && self->text_active
                && canvas_text_hit (self, x, y) != TEXT_HIT_NONE)
         kind = 1;
+      else if (self->tool == EASEL_TOOL_PAN)
+        kind = 2;
       if (kind >= 0 && self->ctx_model[kind] != NULL)
         {
           self->ctx_pending = kind;
@@ -1161,7 +1163,7 @@ static void
 easel_canvas_dispose (GObject *object)
 {
   EaselCanvas *self = EASEL_CANVAS (object);
-  for (int i = 0; i < 2; i++)
+  for (int i = 0; i < 3; i++)
     {
       g_clear_pointer (&self->ctx_popover[i], gtk_widget_unparent);
       g_clear_object (&self->ctx_model[i]);
@@ -1235,12 +1237,12 @@ easel_canvas_class_init (EaselCanvasClass *klass)
 /* Menus for right-clicking a selection and the text box; the canvas shows
  * them, the window supplies the actions. */
 void
-easel_canvas_set_context_menus (EaselCanvas *self, GMenuModel *selection, GMenuModel *text)
+easel_canvas_set_context_menus (EaselCanvas *self, GMenuModel *selection, GMenuModel *text, GMenuModel *pan)
 {
   g_return_if_fail (EASEL_IS_CANVAS (self));
-  GMenuModel *models[2] = { selection, text };
+  GMenuModel *models[3] = { selection, text, pan };
 
-  for (int i = 0; i < 2; i++)
+  for (int i = 0; i < 3; i++)
     {
       g_clear_pointer (&self->ctx_popover[i], gtk_widget_unparent);
       g_set_object (&self->ctx_model[i], models[i]);

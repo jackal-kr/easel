@@ -708,6 +708,45 @@ action_clear_selection (GSimpleAction *action, GVariant *parameter, gpointer use
   easel_canvas_clear_selection (((EaselWindow *) user_data)->canvas);
 }
 
+typedef struct { EaselWindow *window; EaselClip *clip; } OversizePaste;
+
+static void
+on_oversize_response (AdwAlertDialog *dialog, const char *response, gpointer data)
+{
+  OversizePaste *op = data;
+
+  if (g_str_equal (response, "fit"))
+    easel_canvas_paste_clip_as (op->window->canvas, op->clip, TRUE);
+  else if (g_str_equal (response, "resize"))
+    easel_canvas_paste_clip_as (op->window->canvas, op->clip, FALSE);
+  else
+    easel_clip_free (op->clip);
+  g_object_unref (op->window);
+  g_free (op);
+}
+
+/* The pasted picture is bigger than the canvas: shrink it, or grow the canvas. */
+static void
+on_paste_oversize (EaselCanvas *canvas, EaselClip *clip, gpointer data)
+{
+  EaselWindow *self = data;
+  OversizePaste *op = g_new0 (OversizePaste, 1);
+  g_autofree char *body = g_strdup_printf (_("The picture is %d × %d pixels; the canvas is %d × %d."),
+                                           clip->width, clip->height, easel_canvas_get_document (canvas)->width,
+                                           easel_canvas_get_document (canvas)->height);
+  AdwDialog *dialog = adw_alert_dialog_new (_("Pasted picture is larger than the canvas"), body);
+
+  op->window = g_object_ref (self);
+  op->clip = clip;
+  adw_alert_dialog_add_responses (ADW_ALERT_DIALOG (dialog), "cancel", _("_Cancel"), "fit",
+                                  _("Fit Picture to Canvas"), "resize", _("Resize Canvas to Picture"), NULL);
+  adw_alert_dialog_set_response_appearance (ADW_ALERT_DIALOG (dialog), "resize", ADW_RESPONSE_SUGGESTED);
+  adw_alert_dialog_set_default_response (ADW_ALERT_DIALOG (dialog), "resize");
+  adw_alert_dialog_set_close_response (ADW_ALERT_DIALOG (dialog), "cancel");
+  g_signal_connect (dialog, "response", G_CALLBACK (on_oversize_response), op);
+  adw_dialog_present (dialog, GTK_WIDGET (self));
+}
+
 static void
 action_paste (GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
@@ -1256,7 +1295,9 @@ easel_window_init (EaselWindow *self)
   {
     g_autoptr (GtkBuilder) menus = gtk_builder_new_from_resource ("/io/github/jackal_kr/Easel/menus.ui");
     easel_canvas_set_context_menus (self->canvas, G_MENU_MODEL (gtk_builder_get_object (menus, "selection_menu")),
-                                    G_MENU_MODEL (gtk_builder_get_object (menus, "text_menu")));
+                                    G_MENU_MODEL (gtk_builder_get_object (menus, "text_menu")),
+                                    G_MENU_MODEL (gtk_builder_get_object (menus, "pan_menu")));
+    easel_canvas_set_oversize_handler (self->canvas, on_paste_oversize, self);
   }
   g_signal_connect (self->canvas, "zoom-changed", G_CALLBACK (on_zoom_changed), self);
   on_zoom_changed (self->canvas, self);

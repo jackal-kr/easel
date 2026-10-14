@@ -1,3 +1,11 @@
+easel (1.0.0) unstable; urgency=medium
+
+  * Polish and Ukrainian translations, accessibility labels.
+  * Pasting a picture larger than the canvas asks to fit it or resize the canvas.
+  * Right-click menu in Pan mode.
+
+ -- JOD (Oleksiy Degtyar) <oleksiy.degtyar@gmail.com>  Wed, 14 Oct 2026 17:30:00 +0200
+
 easel (0.1.0) unstable; urgency=medium
 
   * First packaged version.

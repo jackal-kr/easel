@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: easel\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-14 17:10+0200\n"
+"POT-Creation-Date: 2026-10-14 17:17+0200\n"
 "PO-Revision-Date: 2026-10-14 17:06+0200\n"
 "Last-Translator: JOD (Oleksiy Degtyar)\n"
 "Language-Team: none\n"
@@ -93,7 +93,7 @@ msgstr "Odwróć kolory"
 msgid "Attributes…"
 msgstr "Atrybuty…"
 
-#: data/menus.ui:13 src/main.c:66
+#: data/menus.ui:13 data/menus.ui:55 src/main.c:66
 msgid "Clear Image"
 msgstr "Wyczyść obraz"
 
@@ -101,27 +101,29 @@ msgstr "Wyczyść obraz"
 msgid "Draw Opaque"
 msgstr "Rysuj nieprzezroczyście"
 
-#: data/menus.ui:21 data/menus.ui:45 data/menus.ui:86 src/main.c:59
+#: data/menus.ui:21 data/menus.ui:61 data/menus.ui:102 src/main.c:59
 msgid "Cut"
 msgstr "Wytnij"
 
-#: data/menus.ui:22 data/menus.ui:46 data/menus.ui:87 src/main.c:59
+#: data/menus.ui:22 data/menus.ui:62 data/menus.ui:103 src/main.c:59
 msgid "Copy"
 msgstr "Kopiuj"
 
-#: data/menus.ui:23 data/menus.ui:47 data/menus.ui:88 src/main.c:59
+#: data/menus.ui:23 data/menus.ui:45 data/menus.ui:63 data/menus.ui:104
+#: src/main.c:59
 msgid "Paste"
 msgstr "Wklej"
 
-#: data/menus.ui:26 data/menus.ui:89 src/main.c:60
+#: data/menus.ui:26 data/menus.ui:105 src/main.c:60
 msgid "Clear Selection"
 msgstr "Wyczyść zaznaczenie"
 
-#: data/menus.ui:27 data/menus.ui:51 data/menus.ui:90 src/main.c:59
+#: data/menus.ui:27 data/menus.ui:47 data/menus.ui:67 data/menus.ui:106
+#: src/main.c:59
 msgid "Select All"
 msgstr "Zaznacz wszystko"
 
-#: data/menus.ui:28 data/menus.ui:93
+#: data/menus.ui:28 data/menus.ui:109
 msgid "Copy To…"
 msgstr "Kopiuj do…"
 
@@ -149,79 +151,87 @@ msgstr "180°"
 msgid "90° Left"
 msgstr "90° w lewo"
 
-#: data/menus.ui:48
-msgid "Delete"
-msgstr "Usuń"
-
-#: data/menus.ui:60 src/main.c:62
-msgid "Normal Size"
-msgstr "Normalny rozmiar"
-
-#: data/menus.ui:61 src/main.c:62
-msgid "Large Size"
-msgstr "Duży rozmiar"
-
-#: data/menus.ui:62
-msgid "Custom Zoom…"
-msgstr "Powiększenie niestandardowe…"
-
-#: data/menus.ui:65 src/main.c:63
-msgid "Show Grid"
-msgstr "Pokaż siatkę"
-
-#: data/menus.ui:66
-msgid "Show Thumbnail"
-msgstr "Pokaż miniaturę"
-
-#: data/menus.ui:69
-msgid "Tool Box"
-msgstr "Przybornik"
-
-#: data/menus.ui:70
-msgid "Color Box"
-msgstr "Paleta kolorów"
-
-#: data/menus.ui:71
-msgid "Status Bar"
-msgstr "Pasek stanu"
-
-#: data/menus.ui:72
-msgid "Frame Time"
-msgstr "Czas klatki"
-
-#: data/menus.ui:78 src/main.c:55
-msgid "New"
-msgstr "Nowy"
-
-#: data/menus.ui:79 src/main.c:55
-msgid "Save As…"
-msgstr "Zapisz jako…"
-
-#: data/menus.ui:80 src/main.c:56
-msgid "Print…"
-msgstr "Drukuj…"
-
-#: data/menus.ui:84 src/main.c:71
-msgid "Edit"
-msgstr "Edycja"
-
-#: data/menus.ui:94
+#: data/menus.ui:46 data/menus.ui:110
 msgid "Paste From…"
 msgstr "Wklej z…"
 
-#: data/menus.ui:97 src/ui/preferences.c:292 src/ui/preferences.c:295
+#: data/menus.ui:50
+msgid "Zoom In"
+msgstr "Powiększ"
+
+#: data/menus.ui:51
+msgid "Zoom Out"
+msgstr "Pomniejsz"
+
+#: data/menus.ui:52 data/menus.ui:76 src/main.c:62
+msgid "Normal Size"
+msgstr "Normalny rozmiar"
+
+#: data/menus.ui:64
+msgid "Delete"
+msgstr "Usuń"
+
+#: data/menus.ui:77 src/main.c:62
+msgid "Large Size"
+msgstr "Duży rozmiar"
+
+#: data/menus.ui:78
+msgid "Custom Zoom…"
+msgstr "Powiększenie niestandardowe…"
+
+#: data/menus.ui:81 src/main.c:63
+msgid "Show Grid"
+msgstr "Pokaż siatkę"
+
+#: data/menus.ui:82
+msgid "Show Thumbnail"
+msgstr "Pokaż miniaturę"
+
+#: data/menus.ui:85
+msgid "Tool Box"
+msgstr "Przybornik"
+
+#: data/menus.ui:86
+msgid "Color Box"
+msgstr "Paleta kolorów"
+
+#: data/menus.ui:87
+msgid "Status Bar"
+msgstr "Pasek stanu"
+
+#: data/menus.ui:88
+msgid "Frame Time"
+msgstr "Czas klatki"
+
+#: data/menus.ui:94 src/main.c:55
+msgid "New"
+msgstr "Nowy"
+
+#: data/menus.ui:95 src/main.c:55
+msgid "Save As…"
+msgstr "Zapisz jako…"
+
+#: data/menus.ui:96 src/main.c:56
+msgid "Print…"
+msgstr "Drukuj…"
+
+#: data/menus.ui:100 src/main.c:71
+msgid "Edit"
+msgstr "Edycja"
+
+#: data/menus.ui:113 src/ui/preferences.c:292 src/ui/preferences.c:295
 msgid "Preferences"
 msgstr "Preferencje"
 
-#: data/menus.ui:98 src/main.c:68
+#: data/menus.ui:114 src/main.c:68
 msgid "Keyboard Shortcuts"
 msgstr "Skróty klawiszowe"
 
-#: data/menus.ui:99
+#: data/menus.ui:115
 msgid "Help"
 msgstr "Pomoc"
 
-#: data/menus.ui:100
+#: data/menus.ui:116
 msgid "About Easel"
 msgstr "O programie Easel"
 
@@ -281,7 +291,7 @@ msgstr "Anuluj bieżące rysowanie lub zaznaczenie"
 msgid "File"
 msgstr "Plik"
 
-#: src/main.c:72 src/ui/window.c:1204
+#: src/main.c:72 src/ui/window.c:1243
 msgid "View"
 msgstr "Widok"
 
@@ -484,7 +494,7 @@ msgstr ""
 "kliknięcie: edytuj ten kolor. Klawiatura: Tab – fokus, strzałki, Enter / "
 "Shift+Enter, F2."
 
-#: src/ui/dialogs.c:13 src/ui/window.c:367
+#: src/ui/dialogs.c:13 src/ui/window.c:367 src/ui/window.c:741
 msgid "_Cancel"
 msgstr "_Anuluj"
 
@@ -1069,7 +1079,7 @@ msgstr "Narzędzie: %s"
 msgid "Untitled"
 msgstr "Bez nazwy"
 
-#: src/ui/window.c:180 src/ui/window.c:504 src/ui/window.c:1090
+#: src/ui/window.c:180 src/ui/window.c:504 src/ui/window.c:1129
 #, c-format
 msgid "%d × %d px"
 msgstr "%d × %d px"
@@ -1123,64 +1133,80 @@ msgstr "Kopiuj do"
 msgid "Paste From"
 msgstr "Wklej z"
 
-#: src/ui/window.c:894
+#: src/ui/window.c:734
+msgid "The picture is %d × %d pixels; the canvas is %d × %d."
+msgstr "Obraz ma %d × %d pikseli; płótno ma %d × %d."
+
+#: src/ui/window.c:737
+msgid "Pasted picture is larger than the canvas"
+msgstr "Wklejony obraz jest większy niż płótno"
+
+#: src/ui/window.c:742
+msgid "Fit Picture to Canvas"
+msgstr "Dopasuj obraz do płótna"
+
+#: src/ui/window.c:742
+msgid "Resize Canvas to Picture"
+msgstr "Zmień rozmiar płótna do obrazu"
+
+#: src/ui/window.c:933
 msgid "Thumbnail"
 msgstr "Miniatura"
 
-#: src/ui/window.c:971
+#: src/ui/window.c:1010
 #, c-format
 msgid "Paint %.2f ms · %.0f fps"
 msgstr "Rysowanie %.2f ms · %.0f kl./s"
 
-#: src/ui/window.c:1000 src/ui/window.c:1002
+#: src/ui/window.c:1039 src/ui/window.c:1041
 msgid "Zoom out"
 msgstr "Pomniejsz"
 
-#: src/ui/window.c:1001 src/ui/window.c:1003
+#: src/ui/window.c:1040 src/ui/window.c:1042
 msgid "Zoom in"
 msgstr "Powiększ"
 
-#: src/ui/window.c:1028 src/ui/window.c:1029
+#: src/ui/window.c:1067 src/ui/window.c:1068
 msgid "Main Menu"
 msgstr "Menu główne"
 
-#: src/ui/window.c:1086 src/ui/window.c:1087
+#: src/ui/window.c:1125 src/ui/window.c:1126
 msgid "Pointer position"
 msgstr "Położenie wskaźnika"
 
-#: src/ui/window.c:1095 src/ui/window.c:1096
+#: src/ui/window.c:1134 src/ui/window.c:1135
 msgid "Zoom"
 msgstr "Powiększenie"
 
-#: src/ui/window.c:1102 src/ui/window.c:1103
+#: src/ui/window.c:1141 src/ui/window.c:1142
 msgid "Image size"
 msgstr "Rozmiar obrazu"
 
-#: src/ui/window.c:1110 src/ui/window.c:1111
+#: src/ui/window.c:1149 src/ui/window.c:1150
 msgid "Time to paint the last frame, and frames per second while drawing"
 msgstr ""
 "Czas rysowania ostatniej klatki i liczba klatek na sekundę podczas rysowania"
 
-#: src/ui/window.c:1205
+#: src/ui/window.c:1244
 msgid "Image"
 msgstr "Obraz"
 
-#: src/ui/window.c:1206
+#: src/ui/window.c:1245
 msgid "New (Ctrl+N)"
 msgstr "Nowy (Ctrl+N)"
 
-#: src/ui/window.c:1207
+#: src/ui/window.c:1246
 msgid "Open (Ctrl+O)"
 msgstr "Otwórz (Ctrl+O)"
 
-#: src/ui/window.c:1208
+#: src/ui/window.c:1247
 msgid "Save (Ctrl+S)"
 msgstr "Zapisz (Ctrl+S)"
 
-#: src/ui/window.c:1211
+#: src/ui/window.c:1250
 msgid "Undo (Ctrl+Z)"
 msgstr "Cofnij (Ctrl+Z)"
 
-#: src/ui/window.c:1212
+#: src/ui/window.c:1251
 msgid "Redo (Ctrl+Y)"
 msgstr "Ponów (Ctrl+Y)"
