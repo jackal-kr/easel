@@ -2,7 +2,7 @@
 
 All notable user-facing changes to Easel. Newest first. Built from the git history; versions follow the tags.
 
-## Unreleased
+## 1.2.0
 - New Font dialog with a font list, a live preview, size, text color and Bold/Italic/Underline/Strikethrough in one place.
 - Font, size, color and styles can differ within one text box: select part of the text and use Font… or right-click → Font for Selection….
 - Available as an AppImage too, next to the .deb and the Flatpak.

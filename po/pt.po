@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: easel\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-14 21:51+0200\n"
+"POT-Creation-Date: 2026-10-14 22:09+0200\n"
 "PO-Revision-Date: 2026-10-14 22:01+0200\n"
 "Last-Translator: JOD (Oleksiy Degtyar)\n"
 "Language-Team: Portuguese\n"
@@ -46,17 +46,23 @@ msgstr "JOD (Oleksiy Degtyar)"
 msgid ""
 "Easel is a native GNOME paint program with the functionality and workflow of "
 "the old Microsoft Paint of Windows XP, built with GTK 4 and libadwaita."
-msgstr "O Easel é um programa de desenho nativo do GNOME com as funcionalidades e a forma de trabalhar do antigo Microsoft Paint do Windows XP, criado com GTK 4 e libadwaita."
+msgstr ""
+"O Easel é um programa de desenho nativo do GNOME com as funcionalidades e a "
+"forma de trabalhar do antigo Microsoft Paint do Windows XP, criado com GTK 4 "
+"e libadwaita."
 
 #: data/io.github.jackal_kr.Easel.metainfo.xml.in:17
 msgid ""
 "All the classic tools: pencil, brush, airbrush, eraser, fill, text, line, "
 "curve, shapes and selections"
-msgstr "Todas as ferramentas clássicas: lápis, pincel, aerógrafo, borracha, preenchimento, texto, linha, curva, formas e seleções"
+msgstr ""
+"Todas as ferramentas clássicas: lápis, pincel, aerógrafo, borracha, "
+"preenchimento, texto, linha, curva, formas e seleções"
 
 #: data/io.github.jackal_kr.Easel.metainfo.xml.in:18
 msgid "Unlimited-step undo and redo, zoom, pixel grid and thumbnail"
-msgstr "Anular e refazer sem limite de passos, zoom, grelha de píxeis e miniatura"
+msgstr ""
+"Anular e refazer sem limite de passos, zoom, grelha de píxeis e miniatura"
 
 #: data/io.github.jackal_kr.Easel.metainfo.xml.in:19
 msgid "Open and save PNG, JPEG, BMP, TIFF and WebP"
@@ -75,48 +81,70 @@ msgid "The dark style"
 msgstr "O estilo escuro"
 
 #: data/io.github.jackal_kr.Easel.metainfo.xml.in:50
-msgid "The Font dialog shows the current font almost at once in the Flatpak."
-msgstr "A caixa de diálogo de tipos de letra mostra o tipo de letra atual quase de imediato no Flatpak."
+msgid ""
+"A new Font dialog, with a different font, size and color inside one text "
+"box. New languages: Czech, German, Italian, Spanish, Portuguese and Russian. "
+"Also available as an AppImage."
+msgstr "Uma nova caixa de diálogo de tipos de letra, com tipo de letra, tamanho e cor diferentes dentro de uma só caixa de texto. Novos idiomas: checo, alemão, italiano, espanhol, português e russo. Também disponível como AppImage."
 
 #: data/io.github.jackal_kr.Easel.metainfo.xml.in:55
-msgid ""
-"The Font dialog now shows its font list and highlights the current font."
-msgstr "A caixa de diálogo de tipos de letra agora mostra a lista de tipos de letra e destaca o atual."
+msgid "The Font dialog shows the current font almost at once in the Flatpak."
+msgstr ""
+"A caixa de diálogo de tipos de letra mostra o tipo de letra atual quase de "
+"imediato no Flatpak."
 
 #: data/io.github.jackal_kr.Easel.metainfo.xml.in:60
 msgid ""
-"Gradients fade to transparent, so a second gradient lays over the first."
-msgstr "Os gradientes esbatem-se até à transparência, por isso um segundo gradiente fica sobre o primeiro."
+"The Font dialog now shows its font list and highlights the current font."
+msgstr ""
+"A caixa de diálogo de tipos de letra agora mostra a lista de tipos de letra "
+"e destaca o atual."
 
 #: data/io.github.jackal_kr.Easel.metainfo.xml.in:65
 msgid ""
-"Help opens in the web browser. Faster resize, paste and image transforms."
-msgstr "A ajuda abre-se no navegador web. Redimensionamento, colagem e transformações de imagem mais rápidos."
+"Gradients fade to transparent, so a second gradient lays over the first."
+msgstr ""
+"Os gradientes esbatem-se até à transparência, por isso um segundo gradiente "
+"fica sobre o primeiro."
 
 #: data/io.github.jackal_kr.Easel.metainfo.xml.in:70
 msgid ""
-"Right-click outside a selection with Select or Free-Form Select now offers "
-"Paste and the other canvas actions."
-msgstr "O clique direito fora de uma seleção com Selecionar ou Seleção livre agora oferece Colar e as restantes ações da tela."
+"Help opens in the web browser. Faster resize, paste and image transforms."
+msgstr ""
+"A ajuda abre-se no navegador web. Redimensionamento, colagem e "
+"transformações de imagem mais rápidos."
 
 #: data/io.github.jackal_kr.Easel.metainfo.xml.in:75
 msgid ""
-"Fit to Window zoom, a configurable grid (cell size and axonometric grid), "
-"and Stretch and Skew by percent or exact pixels."
-msgstr "Zoom Ajustar à janela, uma grelha configurável (tamanho da célula e grelha axonométrica) e Esticar e inclinar em percentagem ou em píxeis exatos."
+"Right-click outside a selection with Select or Free-Form Select now offers "
+"Paste and the other canvas actions."
+msgstr ""
+"O clique direito fora de uma seleção com Selecionar ou Seleção livre agora "
+"oferece Colar e as restantes ações da tela."
 
 #: data/io.github.jackal_kr.Easel.metainfo.xml.in:80
+msgid ""
+"Fit to Window zoom, a configurable grid (cell size and axonometric grid), "
+"and Stretch and Skew by percent or exact pixels."
+msgstr ""
+"Zoom Ajustar à janela, uma grelha configurável (tamanho da célula e grelha "
+"axonométrica) e Esticar e inclinar em percentagem ou em píxeis exatos."
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:85
 msgid "Adds store screenshots."
 msgstr "Adiciona capturas de ecrã para a loja."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:85
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:90
 msgid ""
 "First stable release: translations (Polish, Ukrainian), screen-reader "
 "labels, a right-click menu in Pan mode, and a choice between fitting a "
 "pasted picture to the canvas or resizing the canvas."
-msgstr "Primeira versão estável: traduções (polaco, ucraniano), etiquetas para leitores de ecrã, um menu de contexto no modo de deslocamento e a escolha entre ajustar a imagem colada à tela ou redimensionar a tela."
+msgstr ""
+"Primeira versão estável: traduções (polaco, ucraniano), etiquetas para "
+"leitores de ecrã, um menu de contexto no modo de deslocamento e a escolha "
+"entre ajustar a imagem colada à tela ou redimensionar a tela."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:90
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:95
 msgid "First public version."
 msgstr "Primeira versão pública."
 
@@ -290,7 +318,9 @@ msgstr "Microsoft Paint no Windows XP, o original que inspirou o Easel"
 msgid ""
 "A simple paint program in the spirit of classic Microsoft Paint, built for "
 "GNOME."
-msgstr "Um programa de desenho simples ao estilo do Microsoft Paint clássico, criado para o GNOME."
+msgstr ""
+"Um programa de desenho simples ao estilo do Microsoft Paint clássico, criado "
+"para o GNOME."
 
 #: src/main.c:33
 msgid "Inspired by"
@@ -336,7 +366,7 @@ msgstr "Cancelar o desenho ou a seleção atual"
 msgid "File"
 msgstr "Ficheiro"
 
-#: src/main.c:72 src/ui/window.c:1286
+#: src/main.c:72 src/ui/window.c:1307
 msgid "View"
 msgstr "Ver"
 
@@ -348,11 +378,11 @@ msgstr "Imagem e cores"
 msgid "General"
 msgstr "Geral"
 
-#: src/main.c:100
+#: src/main.c:102
 msgid "Help Not Found"
 msgstr "Ajuda não encontrada"
 
-#: src/main.c:100
+#: src/main.c:102
 msgid "The help file is not installed."
 msgstr "O ficheiro de ajuda não está instalado."
 
@@ -520,7 +550,9 @@ msgstr "Cor %d de %d: %s"
 
 #: src/ui/colorbox.c:446
 msgid "Foreground and background colors. Click a square to choose a color."
-msgstr "Cores de primeiro plano e de fundo. Clique num quadrado para escolher uma cor."
+msgstr ""
+"Cores de primeiro plano e de fundo. Clique num quadrado para escolher uma "
+"cor."
 
 #: src/ui/colorbox.c:455
 msgid "Swap foreground and background (Ctrl+Shift+X)"
@@ -534,9 +566,11 @@ msgstr "Trocar primeiro plano e fundo"
 msgid ""
 "Left-click: foreground. Right-click: background. Double-click: edit this "
 "color. Keyboard: Tab to focus, arrows, Enter / Shift+Enter, F2."
-msgstr "Clique esquerdo: primeiro plano. Clique direito: fundo. Duplo clique: editar esta cor. Teclado: Tab para focar, setas, Enter / Maiús+Enter, F2."
+msgstr ""
+"Clique esquerdo: primeiro plano. Clique direito: fundo. Duplo clique: editar "
+"esta cor. Teclado: Tab para focar, setas, Enter / Maiús+Enter, F2."
 
-#: src/ui/dialogs.c:13 src/ui/fontdialog.c:236 src/ui/window.c:379
+#: src/ui/dialogs.c:13 src/ui/fontdialog.c:248 src/ui/window.c:379
 #: src/ui/window.c:752
 msgid "_Cancel"
 msgstr "_Cancelar"
@@ -595,7 +629,9 @@ msgid ""
 "New area is filled with the background color; a smaller size crops the "
 "picture. Black and white converts the picture and cannot be reverted except "
 "with Undo."
-msgstr "A nova área é preenchida com a cor de fundo; um tamanho menor recorta a imagem. Preto e branco converte a imagem e só se pode reverter com Anular."
+msgstr ""
+"A nova área é preenchida com a cor de fundo; um tamanho menor recorta a "
+"imagem. Preto e branco converte a imagem e só se pode reverter com Anular."
 
 #: src/ui/dialogs.c:154
 msgid "Custom Zoom"
@@ -677,7 +713,9 @@ msgstr "Mostrar grelha axonométrica"
 msgid ""
 "Lines are drawn only when cells are at least 4 screen pixels wide, so zoom "
 "in to see a fine grid."
-msgstr "As linhas só são desenhadas quando as células têm pelo menos 4 píxeis de ecrã de largura, por isso aproxime para ver uma grelha fina."
+msgstr ""
+"As linhas só são desenhadas quando as células têm pelo menos 4 píxeis de "
+"ecrã de largura, por isso aproxime para ver uma grelha fina."
 
 #: src/ui/fileio.c:58
 #, c-format
@@ -799,13 +837,15 @@ msgstr "Memória para anular"
 
 #: src/ui/preferences.c:241
 msgid "Megabytes of history kept; older steps are forgotten first"
-msgstr "Megabytes de histórico mantidos; os passos mais antigos são esquecidos primeiro"
+msgstr ""
+"Megabytes de histórico mantidos; os passos mais antigos são esquecidos "
+"primeiro"
 
 #: src/ui/preferences.c:243 src/ui/tool.c:41
 msgid "Text"
 msgstr "Texto"
 
-#: src/ui/preferences.c:254 src/ui/fontdialog.c:251
+#: src/ui/preferences.c:254 src/ui/fontdialog.c:263
 msgid "Font"
 msgstr "Tipo de letra"
 
@@ -847,7 +887,9 @@ msgstr "Voltar às 28 cores originais"
 
 #: src/ui/preferences.c:296
 msgid "The settings schema is not installed, so preferences cannot be saved."
-msgstr "O esquema de definições não está instalado, por isso não é possível guardar as preferências."
+msgstr ""
+"O esquema de definições não está instalado, por isso não é possível guardar "
+"as preferências."
 
 #. "done" releases op.
 #: src/ui/print.c:63
@@ -862,7 +904,9 @@ msgstr "Gradiente"
 msgid ""
 "Fills with a blend from the foreground to the background color. Drag to set "
 "direction and length."
-msgstr "Preenche com uma mistura da cor de primeiro plano para a de fundo. Arraste para definir a direção e o comprimento."
+msgstr ""
+"Preenche com uma mistura da cor de primeiro plano para a de fundo. Arraste "
+"para definir a direção e o comprimento."
 
 #: src/ui/tool.c:11
 msgid "Pan"
@@ -878,9 +922,10 @@ msgstr "Seleção livre"
 
 #: src/ui/tool.c:15
 msgid "Selects a free-form part of the picture to move, copy, or edit."
-msgstr "Seleciona uma parte de forma livre da imagem para mover, copiar ou editar."
+msgstr ""
+"Seleciona uma parte de forma livre da imagem para mover, copiar ou editar."
 
-#: src/ui/tool.c:17 src/ui/fontdialog.c:237
+#: src/ui/tool.c:17 src/ui/fontdialog.c:249
 msgid "Select"
 msgstr "Selecionar"
 
@@ -896,7 +941,9 @@ msgstr "Borracha"
 msgid ""
 "Erases a portion of the picture. Right button: replaces the foreground color "
 "with the background color."
-msgstr "Apaga uma parte da imagem. Botão direito: substitui a cor de primeiro plano pela cor de fundo."
+msgstr ""
+"Apaga uma parte da imagem. Botão direito: substitui a cor de primeiro plano "
+"pela cor de fundo."
 
 #: src/ui/tool.c:23
 msgid "Fill With Color"
@@ -906,7 +953,9 @@ msgstr "Preencher com cor"
 msgid ""
 "Fills an area with the foreground color (left button) or the background "
 "color (right button)."
-msgstr "Preenche uma área com a cor de primeiro plano (botão esquerdo) ou a cor de fundo (botão direito)."
+msgstr ""
+"Preenche uma área com a cor de primeiro plano (botão esquerdo) ou a cor de "
+"fundo (botão direito)."
 
 #: src/ui/tool.c:26
 msgid "Pick Color"
@@ -916,7 +965,9 @@ msgstr "Escolher cor"
 msgid ""
 "Picks up a color from the picture for drawing. Left button: foreground. "
 "Right button: background."
-msgstr "Recolhe uma cor da imagem para desenhar. Botão esquerdo: primeiro plano. Botão direito: fundo."
+msgstr ""
+"Recolhe uma cor da imagem para desenhar. Botão esquerdo: primeiro plano. "
+"Botão direito: fundo."
 
 #: src/ui/tool.c:29
 msgid "Magnifier"
@@ -934,7 +985,9 @@ msgstr "Lápis"
 msgid ""
 "Draws a free-form line. Left button: foreground color. Right button: "
 "background color."
-msgstr "Desenha uma linha livre. Botão esquerdo: cor de primeiro plano. Botão direito: cor de fundo."
+msgstr ""
+"Desenha uma linha livre. Botão esquerdo: cor de primeiro plano. Botão "
+"direito: cor de fundo."
 
 #: src/ui/tool.c:35
 msgid "Brush"
@@ -1002,7 +1055,8 @@ msgstr "Retângulo arredondado"
 
 #: src/ui/tool.c:60
 msgid "Draws a rounded rectangle with the selected fill style."
-msgstr "Desenha um retângulo arredondado com o estilo de preenchimento selecionado."
+msgstr ""
+"Desenha um retângulo arredondado com o estilo de preenchimento selecionado."
 
 #: src/ui/fontdialog.c:82
 msgid ""
@@ -1010,33 +1064,37 @@ msgid ""
 "coffee. Nobody blamed the cat, because the cat had already pushed to "
 "production on a Friday. The penguins, meanwhile, held a very serious meeting "
 "about kernel panics and herring, and declared it a feature."
-msgstr "O sysadmin fez sudo nos gnomos num instante, antes de compilarem o resto do café. Ninguém culpou o gato, porque o gato já tinha feito push para produção numa sexta-feira. Os pinguins, entretanto, realizaram uma reunião muito séria sobre kernel panics e arenques, e declararam tudo uma funcionalidade."
+msgstr ""
+"O sysadmin fez sudo nos gnomos num instante, antes de compilarem o resto do "
+"café. Ninguém culpou o gato, porque o gato já tinha feito push para produção "
+"numa sexta-feira. Os pinguins, entretanto, realizaram uma reunião muito "
+"séria sobre kernel panics e arenques, e declararam tudo uma funcionalidade."
 
-#: src/ui/fontdialog.c:242
+#: src/ui/fontdialog.c:254
 msgid "Size"
 msgstr "Tamanho"
 
-#: src/ui/fontdialog.c:243
+#: src/ui/fontdialog.c:255
 msgid "Bold"
 msgstr "Negrito"
 
-#: src/ui/fontdialog.c:243
+#: src/ui/fontdialog.c:255
 msgid "Italic"
 msgstr "Itálico"
 
-#: src/ui/fontdialog.c:243
+#: src/ui/fontdialog.c:255
 msgid "Underline"
 msgstr "Sublinhado"
 
-#: src/ui/fontdialog.c:243
+#: src/ui/fontdialog.c:255
 msgid "Strikethrough"
 msgstr "Rasurado"
 
-#: src/ui/fontdialog.c:269
+#: src/ui/fontdialog.c:281
 msgid "Search font name"
 msgstr "Procurar nome do tipo de letra"
 
-#: src/ui/fontdialog.c:287 src/ui/fontdialog.c:290 src/ui/fontdialog.c:291
+#: src/ui/fontdialog.c:299 src/ui/fontdialog.c:302 src/ui/fontdialog.c:303
 msgid "Text Color"
 msgstr "Cor do texto"
 
@@ -1099,27 +1157,27 @@ msgstr "Transparente: apagar até à transparência"
 msgid "Opaque: erase to the background color"
 msgstr "Opaco: apagar com a cor de fundo"
 
-#: src/ui/toolbox.c:548
+#: src/ui/toolbox.c:554
 msgid "Font…"
 msgstr "Tipo de letra…"
 
-#: src/ui/toolbox.c:553
+#: src/ui/toolbox.c:559
 msgid "Smooth"
 msgstr "Suavizar"
 
-#: src/ui/toolbox.c:554
+#: src/ui/toolbox.c:560
 msgid "Smooth text edges (anti-aliasing)"
 msgstr "Suavizar os contornos do texto (anti-aliasing)"
 
-#: src/ui/toolbox.c:576
+#: src/ui/toolbox.c:582
 msgid "Linear"
 msgstr "Linear"
 
-#: src/ui/toolbox.c:576
+#: src/ui/toolbox.c:582
 msgid "Radial"
 msgstr "Radial"
 
-#: src/ui/toolbox.c:576
+#: src/ui/toolbox.c:582
 msgid "Reflected"
 msgstr "Refletido"
 
@@ -1141,7 +1199,7 @@ msgstr "Ferramenta: %s"
 msgid "Untitled"
 msgstr "Sem título"
 
-#: src/ui/window.c:189 src/ui/window.c:520 src/ui/window.c:1171
+#: src/ui/window.c:189 src/ui/window.c:520 src/ui/window.c:1192
 #, c-format
 msgid "%d × %d px"
 msgstr "%d × %d px"
@@ -1212,63 +1270,64 @@ msgstr "Ajustar a imagem à tela"
 msgid "Resize Canvas to Picture"
 msgstr "Redimensionar a tela à imagem"
 
-#: src/ui/window.c:973
+#: src/ui/window.c:991
 msgid "Thumbnail"
 msgstr "Miniatura"
 
-#: src/ui/window.c:1052
+#: src/ui/window.c:1073
 #, c-format
 msgid "Paint %.2f ms · %.0f fps"
 msgstr "Desenho %.2f ms · %.0f fps"
 
-#: src/ui/window.c:1081 src/ui/window.c:1083
+#: src/ui/window.c:1102 src/ui/window.c:1104
 msgid "Zoom out"
 msgstr "Reduzir"
 
-#: src/ui/window.c:1082 src/ui/window.c:1084
+#: src/ui/window.c:1103 src/ui/window.c:1105
 msgid "Zoom in"
 msgstr "Ampliar"
 
-#: src/ui/window.c:1109 src/ui/window.c:1110
+#: src/ui/window.c:1130 src/ui/window.c:1131
 msgid "Main Menu"
 msgstr "Menu principal"
 
-#: src/ui/window.c:1167 src/ui/window.c:1168
+#: src/ui/window.c:1188 src/ui/window.c:1189
 msgid "Pointer position"
 msgstr "Posição do ponteiro"
 
-#: src/ui/window.c:1176 src/ui/window.c:1177
+#: src/ui/window.c:1197 src/ui/window.c:1198
 msgid "Zoom"
 msgstr "Zoom"
 
-#: src/ui/window.c:1183 src/ui/window.c:1184
+#: src/ui/window.c:1204 src/ui/window.c:1205
 msgid "Image size"
 msgstr "Tamanho da imagem"
 
-#: src/ui/window.c:1191 src/ui/window.c:1192
+#: src/ui/window.c:1212 src/ui/window.c:1213
 msgid "Time to paint the last frame, and frames per second while drawing"
-msgstr "Tempo para desenhar a última imagem e imagens por segundo durante o desenho"
+msgstr ""
+"Tempo para desenhar a última imagem e imagens por segundo durante o desenho"
 
-#: src/ui/window.c:1287
+#: src/ui/window.c:1308
 msgid "Image"
 msgstr "Imagem"
 
-#: src/ui/window.c:1288
+#: src/ui/window.c:1309
 msgid "New (Ctrl+N)"
 msgstr "Novo (Ctrl+N)"
 
-#: src/ui/window.c:1289
+#: src/ui/window.c:1310
 msgid "Open (Ctrl+O)"
 msgstr "Abrir (Ctrl+O)"
 
-#: src/ui/window.c:1290
+#: src/ui/window.c:1311
 msgid "Save (Ctrl+S)"
 msgstr "Guardar (Ctrl+S)"
 
-#: src/ui/window.c:1293
+#: src/ui/window.c:1314
 msgid "Undo (Ctrl+Z)"
 msgstr "Anular (Ctrl+Z)"
 
-#: src/ui/window.c:1294
+#: src/ui/window.c:1315
 msgid "Redo (Ctrl+Y)"
 msgstr "Refazer (Ctrl+Y)"

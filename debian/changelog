@@ -1,3 +1,11 @@
+easel (1.2.0) unstable; urgency=medium
+
+  * A new Font dialog, with a different font, size and color inside one text box.
+  * New languages: Czech, German, Italian, Spanish, Portuguese and Russian.
+  * Also available as an AppImage.
+
+ -- JOD (Oleksiy Degtyar) <oleksiy.degtyar@gmail.com>  Wed, 14 Oct 2026 22:10:00 +0200
+
 easel (1.1.5) unstable; urgency=medium
 
   * The Font dialog shows the current font almost at once in the Flatpak.

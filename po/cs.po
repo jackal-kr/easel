@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: easel\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-14 21:51+0200\n"
+"POT-Creation-Date: 2026-10-14 22:09+0200\n"
 "PO-Revision-Date: 2026-10-14 22:01+0200\n"
 "Last-Translator: JOD (Oleksiy Degtyar)\n"
 "Language-Team: Czech\n"
@@ -46,13 +46,17 @@ msgstr "JOD (Oleksiy Degtyar)"
 msgid ""
 "Easel is a native GNOME paint program with the functionality and workflow of "
 "the old Microsoft Paint of Windows XP, built with GTK 4 and libadwaita."
-msgstr "Easel je nativní kreslicí program pro GNOME s funkcemi a způsobem práce starého Microsoft Paintu z Windows XP, vytvořený pomocí GTK 4 a libadwaita."
+msgstr ""
+"Easel je nativní kreslicí program pro GNOME s funkcemi a způsobem práce "
+"starého Microsoft Paintu z Windows XP, vytvořený pomocí GTK 4 a libadwaita."
 
 #: data/io.github.jackal_kr.Easel.metainfo.xml.in:17
 msgid ""
 "All the classic tools: pencil, brush, airbrush, eraser, fill, text, line, "
 "curve, shapes and selections"
-msgstr "Všechny klasické nástroje: tužka, štětec, sprej, guma, výplň, text, čára, křivka, tvary a výběry"
+msgstr ""
+"Všechny klasické nástroje: tužka, štětec, sprej, guma, výplň, text, čára, "
+"křivka, tvary a výběry"
 
 #: data/io.github.jackal_kr.Easel.metainfo.xml.in:18
 msgid "Unlimited-step undo and redo, zoom, pixel grid and thumbnail"
@@ -75,48 +79,64 @@ msgid "The dark style"
 msgstr "Tmavý styl"
 
 #: data/io.github.jackal_kr.Easel.metainfo.xml.in:50
+msgid ""
+"A new Font dialog, with a different font, size and color inside one text "
+"box. New languages: Czech, German, Italian, Spanish, Portuguese and Russian. "
+"Also available as an AppImage."
+msgstr "Nový dialog písma s různým písmem, velikostí a barvou v jednom textovém poli. Nové jazyky: čeština, němčina, italština, španělština, portugalština a ruština. K dispozici také jako AppImage."
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:55
 msgid "The Font dialog shows the current font almost at once in the Flatpak."
 msgstr "Dialog písma ve Flatpaku zobrazí aktuální písmo téměř okamžitě."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:55
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:60
 msgid ""
 "The Font dialog now shows its font list and highlights the current font."
 msgstr "Dialog písma nyní zobrazuje seznam písem a zvýrazňuje aktuální písmo."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:60
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:65
 msgid ""
 "Gradients fade to transparent, so a second gradient lays over the first."
 msgstr "Přechody mizí do průhlednosti, takže druhý přechod leží nad prvním."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:65
-msgid ""
-"Help opens in the web browser. Faster resize, paste and image transforms."
-msgstr "Nápověda se otevírá ve webovém prohlížeči. Rychlejší změna velikosti, vkládání a transformace obrázku."
-
 #: data/io.github.jackal_kr.Easel.metainfo.xml.in:70
 msgid ""
-"Right-click outside a selection with Select or Free-Form Select now offers "
-"Paste and the other canvas actions."
-msgstr "Kliknutí pravým tlačítkem mimo výběr s nástrojem Výběr nebo Výběr od ruky nyní nabízí Vložit a další akce plátna."
+"Help opens in the web browser. Faster resize, paste and image transforms."
+msgstr ""
+"Nápověda se otevírá ve webovém prohlížeči. Rychlejší změna velikosti, "
+"vkládání a transformace obrázku."
 
 #: data/io.github.jackal_kr.Easel.metainfo.xml.in:75
 msgid ""
-"Fit to Window zoom, a configurable grid (cell size and axonometric grid), "
-"and Stretch and Skew by percent or exact pixels."
-msgstr "Lupa Přizpůsobit oknu, nastavitelná mřížka (velikost buňky a axonometrická mřížka) a roztažení a zkosení v procentech nebo přesných pixelech."
+"Right-click outside a selection with Select or Free-Form Select now offers "
+"Paste and the other canvas actions."
+msgstr ""
+"Kliknutí pravým tlačítkem mimo výběr s nástrojem Výběr nebo Výběr od ruky "
+"nyní nabízí Vložit a další akce plátna."
 
 #: data/io.github.jackal_kr.Easel.metainfo.xml.in:80
+msgid ""
+"Fit to Window zoom, a configurable grid (cell size and axonometric grid), "
+"and Stretch and Skew by percent or exact pixels."
+msgstr ""
+"Lupa Přizpůsobit oknu, nastavitelná mřížka (velikost buňky a axonometrická "
+"mřížka) a roztažení a zkosení v procentech nebo přesných pixelech."
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:85
 msgid "Adds store screenshots."
 msgstr "Přidává snímky obrazovky pro obchod."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:85
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:90
 msgid ""
 "First stable release: translations (Polish, Ukrainian), screen-reader "
 "labels, a right-click menu in Pan mode, and a choice between fitting a "
 "pasted picture to the canvas or resizing the canvas."
-msgstr "První stabilní vydání: překlady (polština, ukrajinština), popisky pro čtečky obrazovky, kontextová nabídka v režimu posunu a volba mezi přizpůsobením vloženého obrázku plátnu nebo změnou velikosti plátna."
+msgstr ""
+"První stabilní vydání: překlady (polština, ukrajinština), popisky pro čtečky "
+"obrazovky, kontextová nabídka v režimu posunu a volba mezi přizpůsobením "
+"vloženého obrázku plátnu nebo změnou velikosti plátna."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:90
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:95
 msgid "First public version."
 msgstr "První veřejná verze."
 
@@ -290,7 +310,9 @@ msgstr "Microsoft Paint ve Windows XP, originál, který inspiroval Easel"
 msgid ""
 "A simple paint program in the spirit of classic Microsoft Paint, built for "
 "GNOME."
-msgstr "Jednoduchý kreslicí program v duchu klasického Microsoft Paintu, vytvořený pro GNOME."
+msgstr ""
+"Jednoduchý kreslicí program v duchu klasického Microsoft Paintu, vytvořený "
+"pro GNOME."
 
 #: src/main.c:33
 msgid "Inspired by"
@@ -336,7 +358,7 @@ msgstr "Zrušit aktuální kreslení nebo výběr"
 msgid "File"
 msgstr "Soubor"
 
-#: src/main.c:72 src/ui/window.c:1286
+#: src/main.c:72 src/ui/window.c:1307
 msgid "View"
 msgstr "Zobrazení"
 
@@ -348,11 +370,11 @@ msgstr "Obrázek a barvy"
 msgid "General"
 msgstr "Obecné"
 
-#: src/main.c:100
+#: src/main.c:102
 msgid "Help Not Found"
 msgstr "Nápověda nenalezena"
 
-#: src/main.c:100
+#: src/main.c:102
 msgid "The help file is not installed."
 msgstr "Soubor nápovědy není nainstalován."
 
@@ -534,9 +556,11 @@ msgstr "Prohodit popředí a pozadí"
 msgid ""
 "Left-click: foreground. Right-click: background. Double-click: edit this "
 "color. Keyboard: Tab to focus, arrows, Enter / Shift+Enter, F2."
-msgstr "Levé tlačítko: popředí. Pravé tlačítko: pozadí. Dvojklik: upravit tuto barvu. Klávesnice: Tab pro zaměření, šipky, Enter / Shift+Enter, F2."
+msgstr ""
+"Levé tlačítko: popředí. Pravé tlačítko: pozadí. Dvojklik: upravit tuto "
+"barvu. Klávesnice: Tab pro zaměření, šipky, Enter / Shift+Enter, F2."
 
-#: src/ui/dialogs.c:13 src/ui/fontdialog.c:236 src/ui/window.c:379
+#: src/ui/dialogs.c:13 src/ui/fontdialog.c:248 src/ui/window.c:379
 #: src/ui/window.c:752
 msgid "_Cancel"
 msgstr "_Zrušit"
@@ -595,7 +619,9 @@ msgid ""
 "New area is filled with the background color; a smaller size crops the "
 "picture. Black and white converts the picture and cannot be reverted except "
 "with Undo."
-msgstr "Nová oblast se vyplní barvou pozadí; menší velikost obrázek ořízne. Černobílý režim obrázek převede a vrátit jej lze jen příkazem Zpět."
+msgstr ""
+"Nová oblast se vyplní barvou pozadí; menší velikost obrázek ořízne. "
+"Černobílý režim obrázek převede a vrátit jej lze jen příkazem Zpět."
 
 #: src/ui/dialogs.c:154
 msgid "Custom Zoom"
@@ -677,7 +703,9 @@ msgstr "Zobrazit axonometrickou mřížku"
 msgid ""
 "Lines are drawn only when cells are at least 4 screen pixels wide, so zoom "
 "in to see a fine grid."
-msgstr "Čáry se kreslí, jen když jsou buňky široké alespoň 4 pixely obrazovky, takže pro jemnou mřížku obrázek přibližte."
+msgstr ""
+"Čáry se kreslí, jen když jsou buňky široké alespoň 4 pixely obrazovky, takže "
+"pro jemnou mřížku obrázek přibližte."
 
 #: src/ui/fileio.c:58
 #, c-format
@@ -805,7 +833,7 @@ msgstr "Megabajty uchovávané historie; starší kroky se zapomínají jako prv
 msgid "Text"
 msgstr "Text"
 
-#: src/ui/preferences.c:254 src/ui/fontdialog.c:251
+#: src/ui/preferences.c:254 src/ui/fontdialog.c:263
 msgid "Font"
 msgstr "Písmo"
 
@@ -862,7 +890,9 @@ msgstr "Přechod"
 msgid ""
 "Fills with a blend from the foreground to the background color. Drag to set "
 "direction and length."
-msgstr "Vyplní plynulým přechodem z barvy popředí do barvy pozadí. Tažením nastavíte směr a délku."
+msgstr ""
+"Vyplní plynulým přechodem z barvy popředí do barvy pozadí. Tažením nastavíte "
+"směr a délku."
 
 #: src/ui/tool.c:11
 msgid "Pan"
@@ -878,15 +908,18 @@ msgstr "Výběr od ruky"
 
 #: src/ui/tool.c:15
 msgid "Selects a free-form part of the picture to move, copy, or edit."
-msgstr "Vybere libovolně tvarovanou část obrázku pro přesunutí, kopírování nebo úpravu."
+msgstr ""
+"Vybere libovolně tvarovanou část obrázku pro přesunutí, kopírování nebo "
+"úpravu."
 
-#: src/ui/tool.c:17 src/ui/fontdialog.c:237
+#: src/ui/tool.c:17 src/ui/fontdialog.c:249
 msgid "Select"
 msgstr "Výběr"
 
 #: src/ui/tool.c:18
 msgid "Selects a rectangular part of the picture to move, copy, or edit."
-msgstr "Vybere obdélníkovou část obrázku pro přesunutí, kopírování nebo úpravu."
+msgstr ""
+"Vybere obdélníkovou část obrázku pro přesunutí, kopírování nebo úpravu."
 
 #: src/ui/tool.c:20
 msgid "Eraser"
@@ -896,7 +929,8 @@ msgstr "Guma"
 msgid ""
 "Erases a portion of the picture. Right button: replaces the foreground color "
 "with the background color."
-msgstr "Vymaže část obrázku. Pravé tlačítko: nahradí barvu popředí barvou pozadí."
+msgstr ""
+"Vymaže část obrázku. Pravé tlačítko: nahradí barvu popředí barvou pozadí."
 
 #: src/ui/tool.c:23
 msgid "Fill With Color"
@@ -906,7 +940,9 @@ msgstr "Vyplnit barvou"
 msgid ""
 "Fills an area with the foreground color (left button) or the background "
 "color (right button)."
-msgstr "Vyplní oblast barvou popředí (levé tlačítko) nebo barvou pozadí (pravé tlačítko)."
+msgstr ""
+"Vyplní oblast barvou popředí (levé tlačítko) nebo barvou pozadí (pravé "
+"tlačítko)."
 
 #: src/ui/tool.c:26
 msgid "Pick Color"
@@ -916,7 +952,9 @@ msgstr "Výběr barvy"
 msgid ""
 "Picks up a color from the picture for drawing. Left button: foreground. "
 "Right button: background."
-msgstr "Převezme barvu z obrázku pro kreslení. Levé tlačítko: popředí. Pravé tlačítko: pozadí."
+msgstr ""
+"Převezme barvu z obrázku pro kreslení. Levé tlačítko: popředí. Pravé "
+"tlačítko: pozadí."
 
 #: src/ui/tool.c:29
 msgid "Magnifier"
@@ -934,7 +972,9 @@ msgstr "Tužka"
 msgid ""
 "Draws a free-form line. Left button: foreground color. Right button: "
 "background color."
-msgstr "Kreslí libovolnou čáru. Levé tlačítko: barva popředí. Pravé tlačítko: barva pozadí."
+msgstr ""
+"Kreslí libovolnou čáru. Levé tlačítko: barva popředí. Pravé tlačítko: barva "
+"pozadí."
 
 #: src/ui/tool.c:35
 msgid "Brush"
@@ -1010,33 +1050,37 @@ msgid ""
 "coffee. Nobody blamed the cat, because the cat had already pushed to "
 "production on a Friday. The penguins, meanwhile, held a very serious meeting "
 "about kernel panics and herring, and declared it a feature."
-msgstr "Správce systému rychle sudoval gnómy, než stihli zkompilovat poslední zbytek kávy. Nikdo neobviňoval kočku, protože kočka už v pátek odeslala změny do produkce. Tučňáci mezitím uspořádali velmi vážnou poradu o kernel panics a sledích a prohlásili to za funkci."
+msgstr ""
+"Správce systému rychle sudoval gnómy, než stihli zkompilovat poslední zbytek "
+"kávy. Nikdo neobviňoval kočku, protože kočka už v pátek odeslala změny do "
+"produkce. Tučňáci mezitím uspořádali velmi vážnou poradu o kernel panics a "
+"sledích a prohlásili to za funkci."
 
-#: src/ui/fontdialog.c:242
+#: src/ui/fontdialog.c:254
 msgid "Size"
 msgstr "Velikost"
 
-#: src/ui/fontdialog.c:243
+#: src/ui/fontdialog.c:255
 msgid "Bold"
 msgstr "Tučné"
 
-#: src/ui/fontdialog.c:243
+#: src/ui/fontdialog.c:255
 msgid "Italic"
 msgstr "Kurzíva"
 
-#: src/ui/fontdialog.c:243
+#: src/ui/fontdialog.c:255
 msgid "Underline"
 msgstr "Podtržené"
 
-#: src/ui/fontdialog.c:243
+#: src/ui/fontdialog.c:255
 msgid "Strikethrough"
 msgstr "Přeškrtnuté"
 
-#: src/ui/fontdialog.c:269
+#: src/ui/fontdialog.c:281
 msgid "Search font name"
 msgstr "Hledat název písma"
 
-#: src/ui/fontdialog.c:287 src/ui/fontdialog.c:290 src/ui/fontdialog.c:291
+#: src/ui/fontdialog.c:299 src/ui/fontdialog.c:302 src/ui/fontdialog.c:303
 msgid "Text Color"
 msgstr "Barva textu"
 
@@ -1099,27 +1143,27 @@ msgstr "Průhledné: mazat do průhlednosti"
 msgid "Opaque: erase to the background color"
 msgstr "Neprůhledné: mazat barvou pozadí"
 
-#: src/ui/toolbox.c:548
+#: src/ui/toolbox.c:554
 msgid "Font…"
 msgstr "Písmo…"
 
-#: src/ui/toolbox.c:553
+#: src/ui/toolbox.c:559
 msgid "Smooth"
 msgstr "Vyhlazení"
 
-#: src/ui/toolbox.c:554
+#: src/ui/toolbox.c:560
 msgid "Smooth text edges (anti-aliasing)"
 msgstr "Vyhladit okraje textu (anti-aliasing)"
 
-#: src/ui/toolbox.c:576
+#: src/ui/toolbox.c:582
 msgid "Linear"
 msgstr "Lineární"
 
-#: src/ui/toolbox.c:576
+#: src/ui/toolbox.c:582
 msgid "Radial"
 msgstr "Kruhový"
 
-#: src/ui/toolbox.c:576
+#: src/ui/toolbox.c:582
 msgid "Reflected"
 msgstr "Zrcadlený"
 
@@ -1141,7 +1185,7 @@ msgstr "Nástroj: %s"
 msgid "Untitled"
 msgstr "Bez názvu"
 
-#: src/ui/window.c:189 src/ui/window.c:520 src/ui/window.c:1171
+#: src/ui/window.c:189 src/ui/window.c:520 src/ui/window.c:1192
 #, c-format
 msgid "%d × %d px"
 msgstr "%d × %d px"
@@ -1212,63 +1256,63 @@ msgstr "Přizpůsobit obrázek plátnu"
 msgid "Resize Canvas to Picture"
 msgstr "Změnit velikost plátna podle obrázku"
 
-#: src/ui/window.c:973
+#: src/ui/window.c:991
 msgid "Thumbnail"
 msgstr "Náhled"
 
-#: src/ui/window.c:1052
+#: src/ui/window.c:1073
 #, c-format
 msgid "Paint %.2f ms · %.0f fps"
 msgstr "Vykreslení %.2f ms · %.0f fps"
 
-#: src/ui/window.c:1081 src/ui/window.c:1083
+#: src/ui/window.c:1102 src/ui/window.c:1104
 msgid "Zoom out"
 msgstr "Oddálit"
 
-#: src/ui/window.c:1082 src/ui/window.c:1084
+#: src/ui/window.c:1103 src/ui/window.c:1105
 msgid "Zoom in"
 msgstr "Přiblížit"
 
-#: src/ui/window.c:1109 src/ui/window.c:1110
+#: src/ui/window.c:1130 src/ui/window.c:1131
 msgid "Main Menu"
 msgstr "Hlavní nabídka"
 
-#: src/ui/window.c:1167 src/ui/window.c:1168
+#: src/ui/window.c:1188 src/ui/window.c:1189
 msgid "Pointer position"
 msgstr "Poloha ukazatele"
 
-#: src/ui/window.c:1176 src/ui/window.c:1177
+#: src/ui/window.c:1197 src/ui/window.c:1198
 msgid "Zoom"
 msgstr "Lupa"
 
-#: src/ui/window.c:1183 src/ui/window.c:1184
+#: src/ui/window.c:1204 src/ui/window.c:1205
 msgid "Image size"
 msgstr "Velikost obrázku"
 
-#: src/ui/window.c:1191 src/ui/window.c:1192
+#: src/ui/window.c:1212 src/ui/window.c:1213
 msgid "Time to paint the last frame, and frames per second while drawing"
 msgstr "Doba vykreslení posledního snímku a snímky za sekundu při kreslení"
 
-#: src/ui/window.c:1287
+#: src/ui/window.c:1308
 msgid "Image"
 msgstr "Obrázek"
 
-#: src/ui/window.c:1288
+#: src/ui/window.c:1309
 msgid "New (Ctrl+N)"
 msgstr "Nový (Ctrl+N)"
 
-#: src/ui/window.c:1289
+#: src/ui/window.c:1310
 msgid "Open (Ctrl+O)"
 msgstr "Otevřít (Ctrl+O)"
 
-#: src/ui/window.c:1290
+#: src/ui/window.c:1311
 msgid "Save (Ctrl+S)"
 msgstr "Uložit (Ctrl+S)"
 
-#: src/ui/window.c:1293
+#: src/ui/window.c:1314
 msgid "Undo (Ctrl+Z)"
 msgstr "Zpět (Ctrl+Z)"
 
-#: src/ui/window.c:1294
+#: src/ui/window.c:1315
 msgid "Redo (Ctrl+Y)"
 msgstr "Znovu (Ctrl+Y)"
