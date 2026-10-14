@@ -1,3 +1,9 @@
+easel (1.1.1) unstable; urgency=medium
+
+  * Right-click outside a selection with Select or Free-Form Select now opens the Paste menu.
+
+ -- JOD (Oleksiy Degtyar) <oleksiy.degtyar@gmail.com>  Wed, 14 Oct 2026 19:40:00 +0200
+
 easel (1.1.0) unstable; urgency=medium
 
   * Fit to Window zoom replaces Large Size.

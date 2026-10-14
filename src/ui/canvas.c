@@ -487,8 +487,8 @@ canvas_press (EaselCanvas *self, guint button, double x, double y, gboolean ctrl
       else if (self->tool == EASEL_TOOL_TEXT && self->text_active
                && canvas_text_hit (self, x, y) != TEXT_HIT_NONE)
         kind = 1;
-      else if (self->tool == EASEL_TOOL_PAN)
-        kind = 2;
+      else if (self->tool == EASEL_TOOL_PAN || (easel_tool_info (self->tool)->flags & EASEL_TOOL_SELECTION))
+        kind = 2; /* Pan, or a selection tool outside the selection: Paste and friends */
       if (kind >= 0 && self->ctx_model[kind] != NULL)
         {
           self->ctx_pending = kind;

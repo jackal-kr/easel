@@ -45,6 +45,11 @@
   </supports>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.1.1" date="2026-10-14">
+      <description>
+        <p>Right-click outside a selection with Select or Free-Form Select now offers Paste and the other canvas actions.</p>
+      </description>
+    </release>
     <release version="1.1.0" date="2026-10-14">
       <description>
         <p>Fit to Window zoom, a configurable grid (cell size and axonometric grid), and Stretch and Skew by percent or exact pixels.</p>

@@ -26,7 +26,7 @@ Panels can be hidden from the View menu or from Preferences.
 |---|---|
 | Pan | Drag to move around a large or zoomed picture. Right-click for a menu (Paste, Paste From, Select All, zoom, Clear Image). |
 | Magnifier | Click to toggle between 100 % and the Magnifier zoom chosen in its options (the click point stays in view). |
-| Select / Free-Form Select | Select a rectangle or an outline; drag the selection to move it, **Ctrl+drag** to move a copy. Right-click it for a menu. |
+| Select / Free-Form Select | Select a rectangle or an outline; drag the selection to move it, **Ctrl+drag** to move a copy. Right-click it for a selection menu; right-click outside it for Paste and the canvas menu. |
 | Eraser | Erases to the background color or, in *Transparent* mode, to transparency. **Right button** replaces only the foreground color with the background (color eraser). |
 | Fill | Fills an area (left: foreground, right: background). |
 | Pick Color | Takes a color from the picture (left: foreground, right: background). |
