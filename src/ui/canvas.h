@@ -25,6 +25,10 @@ void easel_canvas_set_brush_shape (EaselCanvas *self, EaselBrushShape shape);
 void easel_canvas_set_line_width (EaselCanvas *self, int width);
 void easel_canvas_set_fill_style (EaselCanvas *self, EaselFillStyle style);
 
+void easel_canvas_set_zoom (EaselCanvas *self, int zoom, int ix, int iy);
+int  easel_canvas_get_zoom (EaselCanvas *self);
+void easel_canvas_set_zoom_level (EaselCanvas *self, int level); /* what a Magnifier click applies */
+
 /* Call after changing the document from outside the canvas. */
 void easel_canvas_invalidate (EaselCanvas *self);
 

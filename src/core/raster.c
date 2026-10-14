@@ -1,5 +1,6 @@
 #include "core/raster.h"
 
+#include <math.h>
 #include <stdlib.h>
 
 #ifndef MIN
@@ -333,4 +334,165 @@ easel_raster_shape (EaselDocument *doc, EaselShape shape, int x0, int y0, int x1
       }
 
   return (EaselRect) { left, top, right - left, bottom - top };
+}
+
+static EaselRect
+rect_union (EaselRect a, EaselRect b)
+{
+  return easel_rect_union (a, b);
+}
+
+EaselRect
+easel_raster_polyline (EaselDocument *doc, const EaselPoint *pts, int n, int line_width, uint32_t color)
+{
+  EaselRect r = { 0, 0, 0, 0 };
+
+  if (n == 1)
+    return easel_raster_line (doc, pts[0].x, pts[0].y, pts[0].x, pts[0].y, line_width, color);
+  for (int i = 0; i + 1 < n; i++)
+    r = rect_union (r, easel_raster_line (doc, pts[i].x, pts[i].y, pts[i + 1].x, pts[i + 1].y,
+                                          line_width, color));
+  return r;
+}
+
+static int
+compare_double (const void *a, const void *b)
+{
+  double x = *(const double *) a, y = *(const double *) b;
+  return (x > y) - (x < y);
+}
+
+static EaselRect
+fill_polygon (EaselDocument *doc, const EaselPoint *pts, int n, uint32_t color)
+{
+  EaselRect none = { 0, 0, 0, 0 };
+  int min_y = pts[0].y, max_y = pts[0].y, min_x = pts[0].x, max_x = pts[0].x;
+
+  for (int i = 1; i < n; i++)
+    {
+      min_y = MIN (min_y, pts[i].y); max_y = MAX (max_y, pts[i].y);
+      min_x = MIN (min_x, pts[i].x); max_x = MAX (max_x, pts[i].x);
+    }
+  int top = MAX (min_y, 0), bottom = MIN (max_y, doc->height - 1);
+  if (top > bottom)
+    return none;
+
+  double *xs = malloc ((size_t) n * sizeof *xs);
+  if (xs == NULL)
+    return none;
+
+  for (int y = top; y <= bottom; y++)
+    {
+      double cy = y + 0.5;
+      int count = 0;
+
+      for (int i = 0; i < n; i++)
+        {
+          /* Vertices sit at pixel centres, like the outline pixels. */
+          EaselPoint a = pts[i], b = pts[(i + 1) % n];
+          double ay = a.y + 0.5, by = b.y + 0.5;
+          if ((ay <= cy) == (by <= cy))
+            continue; /* edge does not cross this scanline */
+          xs[count++] = a.x + 0.5 + ((cy - ay) / (by - ay)) * (b.x - a.x);
+        }
+      qsort (xs, (size_t) count, sizeof *xs, compare_double);
+
+      for (int k = 0; k + 1 < count; k += 2)
+        {
+          int from = (int) ceil (xs[k] - 0.5), to = (int) ceil (xs[k + 1] - 0.5) - 1;
+          from = MAX (from, 0);
+          to = MIN (to, doc->width - 1);
+          for (int x = from; x <= to; x++)
+            doc->pixels[(size_t) y * doc->width + x] = color;
+        }
+    }
+  free (xs);
+
+  int left = MAX (min_x, 0), right = MIN (max_x, doc->width - 1);
+  if (left > right)
+    return none;
+  return (EaselRect) { left, top, right - left + 1, bottom - top + 1 };
+}
+
+EaselRect
+easel_raster_polygon (EaselDocument *doc, const EaselPoint *pts, int n, int line_width,
+                      EaselFillStyle style, uint32_t outline_color, uint32_t fill_color)
+{
+  EaselRect r = { 0, 0, 0, 0 };
+
+  if (n < 1)
+    return r;
+  if (n >= 3 && style != EASEL_FILL_OUTLINE)
+    r = fill_polygon (doc, pts, n,
+                      style == EASEL_FILL_SOLID ? outline_color : fill_color);
+
+  /* Closed border; for SOLID it keeps the edges tidy in the same colour. */
+  r = rect_union (r, easel_raster_polyline (doc, pts, n, line_width, outline_color));
+  if (n >= 3)
+    r = rect_union (r, easel_raster_line (doc, pts[n - 1].x, pts[n - 1].y, pts[0].x, pts[0].y,
+                                          line_width, outline_color));
+  return r;
+}
+
+EaselRect
+easel_raster_curve (EaselDocument *doc, EaselPoint p0, EaselPoint c1, EaselPoint c2, EaselPoint p3,
+                    int line_width, uint32_t color)
+{
+  double len = hypot (c1.x - p0.x, c1.y - p0.y) + hypot (c2.x - c1.x, c2.y - c1.y)
+               + hypot (p3.x - c2.x, p3.y - c2.y);
+  int steps = MAX (8, MIN ((int) len, 1024));
+  EaselRect r = { 0, 0, 0, 0 };
+  EaselPoint prev = p0;
+
+  for (int i = 1; i <= steps; i++)
+    {
+      double t = (double) i / steps, u = 1 - t;
+      double bx = u * u * u * p0.x + 3 * u * u * t * c1.x + 3 * u * t * t * c2.x + t * t * t * p3.x;
+      double by = u * u * u * p0.y + 3 * u * u * t * c1.y + 3 * u * t * t * c2.y + t * t * t * p3.y;
+      EaselPoint cur = { (int) lround (bx), (int) lround (by) };
+
+      if (cur.x == prev.x && cur.y == prev.y && i != steps)
+        continue;
+      r = rect_union (r, easel_raster_line (doc, prev.x, prev.y, cur.x, cur.y, line_width, color));
+      prev = cur;
+    }
+  return r;
+}
+
+static uint32_t
+next_random (uint32_t *rng)
+{
+  uint32_t x = *rng;
+  x ^= x << 13;
+  x ^= x >> 17;
+  x ^= x << 5;
+  return *rng = x;
+}
+
+EaselRect
+easel_raster_spray (EaselDocument *doc, int cx, int cy, int diameter, uint32_t color, int count,
+                    uint32_t *rng)
+{
+  int d = diameter < 1 ? 1 : (diameter > EASEL_MAX_BRUSH ? EASEL_MAX_BRUSH : diameter);
+  int left = cx - d / 2, top = cy - d / 2;
+
+  if (*rng == 0)
+    *rng = 0x9E3779B9u;
+  for (int k = 0; k < count; k++)
+    {
+      int i = (int) (next_random (rng) % (uint32_t) d);
+      int j = (int) (next_random (rng) % (uint32_t) d);
+      int x = left + i, y = top + j;
+
+      if (!easel_brush_covers (EASEL_BRUSH_CIRCLE, d, i, j))
+        continue;
+      if (x >= 0 && y >= 0 && x < doc->width && y < doc->height)
+        doc->pixels[(size_t) y * doc->width + x] = color;
+    }
+
+  int x0 = MAX (left, 0), y0 = MAX (top, 0);
+  int x1 = MIN (left + d, doc->width), y1 = MIN (top + d, doc->height);
+  if (x0 >= x1 || y0 >= y1)
+    return (EaselRect) { 0, 0, 0, 0 };
+  return (EaselRect) { x0, y0, x1 - x0, y1 - y0 };
 }

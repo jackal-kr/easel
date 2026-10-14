@@ -22,23 +22,23 @@ static const ToolDef tools[EASEL_N_TOOLS] = {
   [EASEL_TOOL_PICK_COLOR] = { "Pick Color", "color-select-symbolic", "Pk",
     "Picks up a color from the picture for drawing. Left button: foreground. Right button: background.", TRUE },
   [EASEL_TOOL_MAGNIFIER] = { "Magnifier", "zoom-in-symbolic", "Mg",
-    "Changes the magnification.", FALSE },
+    "Changes the magnification.", TRUE },
   [EASEL_TOOL_PENCIL] = { "Pencil", "document-edit-symbolic", "Pe",
     "Draws a free-form line. Left button: foreground color. Right button: background color.", TRUE },
   [EASEL_TOOL_BRUSH] = { "Brush", "applications-graphics-symbolic", "Br",
     "Draws using a brush with the selected shape and size.", TRUE },
   [EASEL_TOOL_AIRBRUSH] = { "Airbrush", "weather-showers-symbolic", "Ai",
-    "Draws using an airbrush of the selected size.", FALSE },
+    "Draws using an airbrush of the selected size.", TRUE },
   [EASEL_TOOL_TEXT] = { "Text", "insert-text-symbolic", "Tx",
     "Inserts text into the picture.", FALSE },
   [EASEL_TOOL_LINE] = { "Line", "list-remove-symbolic", "Ln",
     "Draws a straight line with the selected line width.", TRUE },
   [EASEL_TOOL_CURVE] = { "Curve", "media-playlist-shuffle-symbolic", "Cv",
-    "Draws a curved line with the selected line width.", FALSE },
+    "Draws a curved line with the selected line width.", TRUE },
   [EASEL_TOOL_RECTANGLE] = { "Rectangle", "checkbox-symbolic", "Re",
     "Draws a rectangle with the selected fill style.", TRUE },
   [EASEL_TOOL_POLYGON] = { "Polygon", "emblem-shared-symbolic", "Po",
-    "Draws a polygon with the selected fill style.", FALSE },
+    "Draws a polygon with the selected fill style.", TRUE },
   [EASEL_TOOL_ELLIPSE] = { "Ellipse", "media-record-symbolic", "El",
     "Draws an ellipse with the selected fill style.", TRUE },
   [EASEL_TOOL_ROUNDED_RECTANGLE] = { "Rounded Rectangle", "checkbox-symbolic", "RR",
@@ -59,7 +59,11 @@ static const struct { EaselBrushShape shape; const char *name; } brush_shapes[] 
   { EASEL_BRUSH_BACKSLASH, "Backward diagonal" },
 };
 
-typedef enum { OPTION_PENCIL, OPTION_BRUSH, OPTION_ERASER, OPTION_LINE, OPTION_FILL } OptionKind;
+typedef enum { OPTION_PENCIL, OPTION_BRUSH, OPTION_ERASER, OPTION_LINE, OPTION_FILL,
+               OPTION_AIRBRUSH, OPTION_ZOOM } OptionKind;
+
+static const int airbrush_sizes[] = { 9, 16, 24 };
+static const int zoom_levels[] = { 1, 2, 4, 6, 8 };
 
 static const int line_widths[] = { 1, 2, 3, 4, 5 };
 static const struct { EaselFillStyle style; const char *name; } fill_styles[] = {
@@ -90,6 +94,8 @@ struct _EaselToolbox
   EaselBrushShape brush_shape;
   int             line_width;
   EaselFillStyle  fill_style;
+  int             airbrush_size;
+  int             zoom_level;
 };
 
 G_DEFINE_FINAL_TYPE (EaselToolbox, easel_toolbox, GTK_TYPE_WIDGET)
@@ -107,6 +113,8 @@ options_page_for (EaselTool tool)
     case EASEL_TOOL_ERASER: return "eraser";
     case EASEL_TOOL_LINE:
     case EASEL_TOOL_CURVE:  return "line";
+    case EASEL_TOOL_AIRBRUSH:  return "airbrush";
+    case EASEL_TOOL_MAGNIFIER: return "zoom";
     case EASEL_TOOL_RECTANGLE:         return "shape-rect";
     case EASEL_TOOL_ROUNDED_RECTANGLE: return "shape-rounded";
     case EASEL_TOOL_ELLIPSE:           return "shape-ellipse";
@@ -157,6 +165,12 @@ on_option_toggled (GtkToggleButton *button, EaselToolbox *self)
     case OPTION_LINE:
       self->line_width = size;
       break;
+    case OPTION_AIRBRUSH:
+      self->airbrush_size = size;
+      break;
+    case OPTION_ZOOM:
+      self->zoom_level = size;
+      break;
     case OPTION_FILL:
       self->fill_style = (EaselFillStyle) size;
       /* Keep the other shape pages showing the same (shared) choice. */
@@ -183,6 +197,26 @@ static void
 draw_preview (GtkDrawingArea *area, cairo_t *cr, int width, int height, gpointer data)
 {
   const Preview *p = data;
+
+  if (p->kind == OPTION_AIRBRUSH)
+    {
+      EaselDocument *doc = easel_document_new (24, 24, EASEL_RGB (255, 255, 255));
+      GdkRGBA c;
+      uint32_t rng = 7;
+
+      if (doc == NULL)
+        return;
+      easel_raster_spray (doc, 12, 12, p->size, EASEL_RGB (0, 0, 0), p->size * p->size / 2, &rng);
+      gtk_widget_get_color (GTK_WIDGET (area), &c);
+      gdk_cairo_set_source_rgba (cr, &c);
+      for (int y = 0; y < 24; y++)
+        for (int x = 0; x < 24; x++)
+          if (easel_document_get_pixel (doc, x, y) != EASEL_RGB (255, 255, 255))
+            cairo_rectangle (cr, (width - 24) / 2.0 + x, (height - 24) / 2.0 + y, 1, 1);
+      cairo_fill (cr);
+      easel_document_free (doc);
+      return;
+    }
 
   if (p->kind == OPTION_LINE || p->kind == OPTION_FILL)
     {
@@ -273,7 +307,9 @@ make_option_button (EaselToolbox *self, OptionKind kind, EaselBrushShape shape, 
                     const char *shape_name, gboolean with_preview, int form)
 {
   GtkWidget *button = gtk_toggle_button_new ();
-  g_autofree char *tip = kind == OPTION_FILL
+  g_autofree char *tip = kind == OPTION_ZOOM
+                           ? g_strdup_printf ("%d×", size)
+                           : kind == OPTION_FILL
                            ? g_strdup (shape_name)
                            : (shape_name != NULL ? g_strdup_printf ("%s, %d px", shape_name, size)
                                                  : g_strdup_printf ("%d px", size));
@@ -294,7 +330,7 @@ make_option_button (EaselToolbox *self, OptionKind kind, EaselBrushShape shape, 
     }
   else
     {
-      g_autofree char *label = g_strdup_printf ("%d", size);
+      g_autofree char *label = g_strdup_printf (kind == OPTION_ZOOM ? "%dx" : "%d", size);
       gtk_button_set_label (GTK_BUTTON (button), label);
       gtk_widget_add_css_class (button, "numeric");
     }
@@ -365,6 +401,30 @@ build_line_options (EaselToolbox *self)
     add_option (grid, &leader,
                 make_option_button (self, OPTION_LINE, EASEL_BRUSH_CIRCLE, line_widths[i], NULL, TRUE, 0),
                 (int) (i % 2), (int) (i / 2), line_widths[i] == self->line_width);
+  return grid;
+}
+
+static GtkWidget *
+build_airbrush_options (EaselToolbox *self)
+{
+  GtkWidget *grid = make_options_grid (), *leader = NULL;
+
+  for (guint i = 0; i < G_N_ELEMENTS (airbrush_sizes); i++)
+    add_option (grid, &leader,
+                make_option_button (self, OPTION_AIRBRUSH, EASEL_BRUSH_CIRCLE, airbrush_sizes[i], NULL, TRUE, 0),
+                (int) (i % 2), (int) (i / 2), airbrush_sizes[i] == self->airbrush_size);
+  return grid;
+}
+
+static GtkWidget *
+build_zoom_options (EaselToolbox *self)
+{
+  GtkWidget *grid = make_options_grid (), *leader = NULL;
+
+  for (guint i = 0; i < G_N_ELEMENTS (zoom_levels); i++)
+    add_option (grid, &leader,
+                make_option_button (self, OPTION_ZOOM, EASEL_BRUSH_CIRCLE, zoom_levels[i], NULL, FALSE, 0),
+                (int) (i % 2), (int) (i / 2), zoom_levels[i] == self->zoom_level);
   return grid;
 }
 
@@ -557,6 +617,8 @@ easel_toolbox_init (EaselToolbox *self)
   self->brush_shape = EASEL_BRUSH_CIRCLE;
   self->line_width = 1;
   self->fill_style = EASEL_FILL_OUTLINE;
+  self->airbrush_size = 16;
+  self->zoom_level = 2;
 
   self->columns = 2;
 
@@ -570,6 +632,8 @@ easel_toolbox_init (EaselToolbox *self)
   gtk_stack_add_named (GTK_STACK (self->options_stack), build_brush_options (self), "brush");
   gtk_stack_add_named (GTK_STACK (self->options_stack), build_eraser_options (self), "eraser");
   gtk_stack_add_named (GTK_STACK (self->options_stack), build_line_options (self), "line");
+  gtk_stack_add_named (GTK_STACK (self->options_stack), build_airbrush_options (self), "airbrush");
+  gtk_stack_add_named (GTK_STACK (self->options_stack), build_zoom_options (self), "zoom");
   gtk_stack_add_named (GTK_STACK (self->options_stack), build_shape_options (self, 0), "shape-rect");
   gtk_stack_add_named (GTK_STACK (self->options_stack), build_shape_options (self, 1), "shape-rounded");
   gtk_stack_add_named (GTK_STACK (self->options_stack), build_shape_options (self, 2), "shape-ellipse");
@@ -640,6 +704,7 @@ easel_toolbox_get_tool_size (EaselToolbox *self)
     case EASEL_TOOL_PENCIL: return self->pencil_size;
     case EASEL_TOOL_BRUSH:  return self->brush_size;
     case EASEL_TOOL_ERASER: return self->eraser_size;
+    case EASEL_TOOL_AIRBRUSH: return self->airbrush_size;
     default:                return 1;
     }
 }
@@ -678,4 +743,11 @@ easel_toolbox_get_fill_style (EaselToolbox *self)
 {
   g_return_val_if_fail (EASEL_IS_TOOLBOX (self), EASEL_FILL_OUTLINE);
   return self->fill_style;
+}
+
+int
+easel_toolbox_get_zoom_level (EaselToolbox *self)
+{
+  g_return_val_if_fail (EASEL_IS_TOOLBOX (self), 2);
+  return self->zoom_level;
 }

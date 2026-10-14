@@ -5,6 +5,8 @@
 
 #include "ui/cursors.h"
 
+#define MAX_SEQ 512 /* vertices of a polygon in progress */
+
 struct _EaselCanvas
 {
   GtkWidget parent_instance;
@@ -33,6 +35,24 @@ struct _EaselCanvas
   int      start_ix, start_iy; /* image pixel where the drag began */
   uint32_t *backup;          /* pixels before a shape drag: lets the live preview be redrawn */
   EaselRect shape_prev;      /* area the previewed shape currently covers */
+
+  /* Multi-step tools (polygon, curve): points collected so far. Polygon:
+   * vertices. Curve: [0] start, [1] end, [2] and [3] control points. */
+  gboolean   seq_active;
+  int        seq_stage;     /* curve: 0 drawing the line, 1 awaiting bend, 2 awaiting 2nd bend */
+  int        seq_n;
+  EaselPoint seq[MAX_SEQ];
+  gboolean   seq_moved;
+  gint64     last_press_us;
+
+  /* Airbrush */
+  guint    spray_source;
+  uint32_t spray_rng;
+
+  /* Magnifier */
+  int    zoom_level;      /* zoom a click applies */
+  gboolean center_pending;
+  double center_x, center_y; /* image point to bring to the middle of the view */
 
   int hover_x, hover_y; /* pointer in image pixels, -1 when outside */
 };
@@ -278,6 +298,83 @@ apply_stroke (EaselCanvas *self, int x0, int y0, int x1, int y1)
     }
 }
 
+static void restore_shape_area (EaselCanvas *self);
+
+static void
+end_seq (EaselCanvas *self)
+{
+  self->seq_active = FALSE;
+  self->seq_stage = 0;
+  self->seq_n = 0;
+  self->shape_prev = (EaselRect) { 0, 0, 0, 0 };
+  g_clear_pointer (&self->backup, g_free);
+}
+
+/* Redraws the polygon or curve in progress from the saved pixels. */
+static void
+seq_render (EaselCanvas *self, gboolean closed, gboolean rubber, int rx, int ry)
+{
+  uint32_t outline = self->stroke_color;
+  uint32_t fill = self->button == GDK_BUTTON_PRIMARY ? self->background : self->foreground;
+  EaselRect now;
+
+  restore_shape_area (self);
+  if (self->tool == EASEL_TOOL_POLYGON)
+    {
+      EaselPoint pts[MAX_SEQ + 1];
+      int n = self->seq_n;
+
+      memcpy (pts, self->seq, (size_t) n * sizeof pts[0]);
+      if (rubber && n < MAX_SEQ)
+        pts[n++] = (EaselPoint) { rx, ry };
+      now = closed && n >= 3
+              ? easel_raster_polygon (self->doc, pts, n, self->line_width, self->fill_style, outline, fill)
+              : easel_raster_polyline (self->doc, pts, n, self->line_width, outline);
+    }
+  else if (self->seq_stage == 0)
+    now = easel_raster_line (self->doc, self->seq[0].x, self->seq[0].y, self->seq[1].x, self->seq[1].y,
+                             self->line_width, outline);
+  else
+    now = easel_raster_curve (self->doc, self->seq[0], self->seq[2], self->seq[3], self->seq[1],
+                              self->line_width, outline);
+
+  mark_dirty (self, easel_rect_union (self->shape_prev, now));
+  self->shape_prev = now;
+}
+
+static void
+cancel_seq (EaselCanvas *self)
+{
+  if (!self->seq_active)
+    return;
+  restore_shape_area (self);
+  mark_dirty (self, self->shape_prev);
+  end_seq (self);
+  self->drawing = FALSE;
+}
+
+/* Keeps what is on screen (without the rubber-band segment) as the result. */
+static void
+commit_seq (EaselCanvas *self, gboolean closed)
+{
+  if (!self->seq_active)
+    return;
+  seq_render (self, closed, FALSE, 0, 0);
+  end_seq (self);
+  self->drawing = FALSE;
+}
+
+static gboolean
+spray_tick (gpointer data)
+{
+  EaselCanvas *self = data;
+  int d = self->tool_size;
+
+  mark_dirty (self, easel_raster_spray (self->doc, self->last_x, self->last_y, d,
+                                        self->stroke_color, MAX (2, d * d / 8), &self->spray_rng));
+  return G_SOURCE_CONTINUE;
+}
+
 static gboolean
 is_shape_tool (EaselTool tool)
 {
@@ -401,6 +498,80 @@ on_drag_begin (GtkGestureDrag *gesture, double x, double y, EaselCanvas *self)
 
   switch (self->tool)
     {
+    case EASEL_TOOL_MAGNIFIER:
+      easel_canvas_set_zoom (self, self->zoom == 1 ? self->zoom_level : 1,
+                             self->last_x, self->last_y);
+      break;
+
+    case EASEL_TOOL_AIRBRUSH:
+      self->drawing = TRUE;
+      spray_tick (self);
+      g_clear_handle_id (&self->spray_source, g_source_remove);
+      self->spray_source = g_timeout_add (30, spray_tick, self);
+      break;
+
+    case EASEL_TOOL_POLYGON:
+      {
+        gint64 now = g_get_monotonic_time ();
+
+        gtk_widget_grab_focus (GTK_WIDGET (self));
+        if (!self->seq_active)
+          {
+            g_free (self->backup);
+            self->backup = g_memdup2 (self->doc->pixels,
+                                      (gsize) self->doc->width * self->doc->height * 4);
+            self->shape_prev = (EaselRect) { 0, 0, 0, 0 };
+            self->seq_active = TRUE;
+            self->seq[0] = self->seq[1] = (EaselPoint) { self->last_x, self->last_y };
+            self->seq_n = 2;
+          }
+        else
+          {
+            EaselPoint first = self->seq[0], tail = self->seq[self->seq_n - 1];
+            gboolean dbl = now - self->last_press_us < 400000
+                           && self->last_x == tail.x && self->last_y == tail.y;
+            gboolean near_start = self->seq_n >= 3 && abs (self->last_x - first.x) <= 3
+                                  && abs (self->last_y - first.y) <= 3;
+
+            if (dbl || near_start)
+              {
+                commit_seq (self, TRUE); /* closes and fills */
+                break;
+              }
+            if (self->seq_n < MAX_SEQ)
+              self->seq[self->seq_n++] = (EaselPoint) { self->last_x, self->last_y };
+          }
+        self->last_press_us = now;
+        self->drawing = TRUE;
+        seq_render (self, FALSE, FALSE, 0, 0);
+        break;
+      }
+
+    case EASEL_TOOL_CURVE:
+      {
+        EaselPoint here = { self->last_x, self->last_y };
+
+        gtk_widget_grab_focus (GTK_WIDGET (self));
+        if (!self->seq_active)
+          {
+            g_free (self->backup);
+            self->backup = g_memdup2 (self->doc->pixels,
+                                      (gsize) self->doc->width * self->doc->height * 4);
+            self->shape_prev = (EaselRect) { 0, 0, 0, 0 };
+            self->seq_active = TRUE;
+            self->seq_stage = 0;
+            self->seq[0] = self->seq[1] = here;
+          }
+        else if (self->seq_stage == 1)
+          self->seq[2] = self->seq[3] = here;
+        else
+          self->seq[3] = here;
+        self->seq_moved = FALSE;
+        self->drawing = TRUE;
+        seq_render (self, FALSE, FALSE, 0, 0);
+        break;
+      }
+
     case EASEL_TOOL_FILL:
       mark_dirty (self, easel_raster_flood_fill (self->doc, self->last_x, self->last_y,
                                                  self->stroke_color));
@@ -451,6 +622,26 @@ on_drag_update (GtkGestureDrag *gesture, double offset_x, double offset_y, Easel
     self->picked = sample (self, x, y);
   else if (is_shape_tool (self->tool))
     update_shape (self, x, y, shift_held (gesture));
+  else if (self->tool == EASEL_TOOL_POLYGON)
+    {
+      self->seq[self->seq_n - 1] = (EaselPoint) { x, y };
+      seq_render (self, FALSE, FALSE, 0, 0);
+    }
+  else if (self->tool == EASEL_TOOL_CURVE)
+    {
+      EaselPoint here = { x, y };
+
+      if (self->seq_stage == 0)
+        self->seq[1] = here;
+      else if (self->seq_stage == 1)
+        self->seq[2] = self->seq[3] = here;
+      else
+        self->seq[3] = here;
+      self->seq_moved = TRUE;
+      seq_render (self, FALSE, FALSE, 0, 0);
+    }
+  else if (self->tool == EASEL_TOOL_AIRBRUSH)
+    ; /* the timer sprays at last_x/last_y */
   else
     /* Join consecutive samples with a line so fast strokes have no gaps. */
     mark_dirty (self, apply_stroke (self, self->last_x, self->last_y, x, y));
@@ -466,6 +657,55 @@ on_drag_end (GtkGestureDrag *gesture, double offset_x, double offset_y, EaselCan
     return;
   self->drawing = FALSE;
   gtk_widget_queue_draw (GTK_WIDGET (self)); /* hover preview comes back */
+
+  if (self->tool == EASEL_TOOL_AIRBRUSH)
+    {
+      g_clear_handle_id (&self->spray_source, g_source_remove);
+      return;
+    }
+
+  if (self->tool == EASEL_TOOL_POLYGON)
+    {
+      int x, y;
+      to_image (self, self->start_x + offset_x, self->start_y + offset_y, &x, &y);
+      if (self->seq_active)
+        {
+          self->seq[self->seq_n - 1] = (EaselPoint) { x, y };
+          if (self->seq_n == 2 && x == self->seq[0].x && y == self->seq[0].y)
+            self->seq_n = 1; /* first press without a drag: the next click sets the first edge's end */
+          seq_render (self, FALSE, FALSE, 0, 0);
+        }
+      return;
+    }
+
+  if (self->tool == EASEL_TOOL_CURVE)
+    {
+      if (self->seq_stage == 0)
+        {
+          if (self->seq[1].x == self->seq[0].x && self->seq[1].y == self->seq[0].y)
+            cancel_seq (self);
+          else
+            self->seq_stage = 1;
+        }
+      else if (self->seq_stage == 1)
+        {
+          if (self->seq_moved)
+            self->seq_stage = 2;
+          else
+            {
+              self->seq[2] = self->seq[0];
+              self->seq[3] = self->seq[1];
+              commit_seq (self, FALSE);
+            }
+        }
+      else
+        {
+          if (!self->seq_moved)
+            self->seq[3] = self->seq[2];
+          commit_seq (self, FALSE);
+        }
+      return;
+    }
 
   if (is_shape_tool (self->tool))
     {
@@ -492,11 +732,33 @@ on_drag_end (GtkGestureDrag *gesture, double offset_x, double offset_y, EaselCan
     }
 }
 
+static gboolean
+on_key_pressed (GtkEventControllerKey *controller, guint keyval, guint keycode,
+                GdkModifierType state, EaselCanvas *self)
+{
+  if (keyval != GDK_KEY_Escape)
+    return FALSE;
+
+  if (self->seq_active)
+    cancel_seq (self);
+  else if (self->drawing && is_shape_tool (self->tool))
+    {
+      end_shape_drag (self, FALSE);
+      self->drawing = FALSE;
+    }
+  else
+    return FALSE;
+  gtk_widget_queue_draw (GTK_WIDGET (self));
+  return TRUE;
+}
+
 static void
 on_motion (GtkEventControllerMotion *controller, double x, double y, EaselCanvas *self)
 {
   to_image (self, x, y, &self->hover_x, &self->hover_y);
   g_signal_emit (self, signals[SIGNAL_POINTER_MOVED], 0, self->hover_x, self->hover_y);
+  if (self->seq_active && !self->drawing && self->tool == EASEL_TOOL_POLYGON)
+    seq_render (self, FALSE, TRUE, self->hover_x, self->hover_y);
   if (wants_hover_overlay (self->tool))
     gtk_widget_queue_draw (GTK_WIDGET (self));
 }
@@ -523,6 +785,7 @@ easel_canvas_dispose (GObject *object)
   g_clear_object (&self->texture);
   g_clear_pointer (&self->dirty, cairo_region_destroy);
   g_clear_pointer (&self->backup, g_free);
+  g_clear_handle_id (&self->spray_source, g_source_remove);
   G_OBJECT_CLASS (easel_canvas_parent_class)->dispose (object);
 }
 
@@ -564,6 +827,8 @@ easel_canvas_init (EaselCanvas *self)
   self->tool_size = 1;
   self->brush_shape = EASEL_BRUSH_CIRCLE;
   self->line_width = 1;
+  self->zoom_level = 2;
+  self->spray_rng = 2463534242u;
   self->fill_style = EASEL_FILL_OUTLINE;
   self->hover_x = self->hover_y = -1;
 
@@ -576,6 +841,11 @@ easel_canvas_init (EaselCanvas *self)
   g_signal_connect (drag, "drag-update", G_CALLBACK (on_drag_update), self);
   g_signal_connect (drag, "drag-end", G_CALLBACK (on_drag_end), self);
   gtk_widget_add_controller (GTK_WIDGET (self), GTK_EVENT_CONTROLLER (drag));
+
+  gtk_widget_set_focusable (GTK_WIDGET (self), TRUE);
+  GtkEventController *keys = gtk_event_controller_key_new ();
+  g_signal_connect (keys, "key-pressed", G_CALLBACK (on_key_pressed), self);
+  gtk_widget_add_controller (GTK_WIDGET (self), keys);
 
   GtkEventController *motion = gtk_event_controller_motion_new ();
   g_signal_connect (motion, "motion", G_CALLBACK (on_motion), self);
@@ -620,6 +890,8 @@ void
 easel_canvas_set_tool (EaselCanvas *self, EaselTool tool)
 {
   g_return_if_fail (EASEL_IS_CANVAS (self));
+  if (tool != self->tool)
+    commit_seq (self, FALSE);
   self->tool = tool;
   gtk_widget_set_cursor (GTK_WIDGET (self), easel_cursor_for_tool (tool));
   gtk_widget_queue_draw (GTK_WIDGET (self)); /* hover overlay appears or goes away */
@@ -644,6 +916,8 @@ void
 easel_canvas_invalidate (EaselCanvas *self)
 {
   g_return_if_fail (EASEL_IS_CANVAS (self));
+  if (self->seq_active)
+    end_seq (self); /* the picture changed under it */
   mark_all_dirty (self);
 }
 
@@ -659,4 +933,72 @@ easel_canvas_set_fill_style (EaselCanvas *self, EaselFillStyle style)
 {
   g_return_if_fail (EASEL_IS_CANVAS (self));
   self->fill_style = style;
+}
+
+static void
+apply_center (gpointer data)
+{
+  EaselCanvas *self = data;
+  GtkWidget *sw = gtk_widget_get_ancestor (GTK_WIDGET (self), GTK_TYPE_SCROLLED_WINDOW);
+
+  if (sw != NULL && self->center_pending)
+    {
+      double s = logical_per_pixel (self);
+      GtkAdjustment *h = gtk_scrolled_window_get_hadjustment (GTK_SCROLLED_WINDOW (sw));
+      GtkAdjustment *v = gtk_scrolled_window_get_vadjustment (GTK_SCROLLED_WINDOW (sw));
+
+      gtk_adjustment_set_value (h, self->center_x * s - gtk_adjustment_get_page_size (h) / 2);
+      gtk_adjustment_set_value (v, self->center_y * s - gtk_adjustment_get_page_size (v) / 2);
+    }
+  self->center_pending = FALSE;
+  g_object_unref (self);
+}
+
+/* Sets the magnification and keeps image point (ix, iy) in the middle of the
+ * view; ix < 0 keeps whatever is in the middle now. */
+void
+easel_canvas_set_zoom (EaselCanvas *self, int zoom, int ix, int iy)
+{
+  g_return_if_fail (EASEL_IS_CANVAS (self));
+  zoom = CLAMP (zoom, 1, 8);
+  if (zoom == self->zoom)
+    return;
+
+  GtkWidget *sw = gtk_widget_get_ancestor (GTK_WIDGET (self), GTK_TYPE_SCROLLED_WINDOW);
+  if (ix < 0 && sw != NULL)
+    {
+      double s = logical_per_pixel (self);
+      GtkAdjustment *h = gtk_scrolled_window_get_hadjustment (GTK_SCROLLED_WINDOW (sw));
+      GtkAdjustment *v = gtk_scrolled_window_get_vadjustment (GTK_SCROLLED_WINDOW (sw));
+      ix = (int) ((gtk_adjustment_get_value (h) + gtk_adjustment_get_page_size (h) / 2) / s);
+      iy = (int) ((gtk_adjustment_get_value (v) + gtk_adjustment_get_page_size (v) / 2) / s);
+      ix = CLAMP (ix, 0, self->doc->width - 1);
+      iy = CLAMP (iy, 0, self->doc->height - 1);
+    }
+
+  self->zoom = zoom;
+  self->center_x = ix + 0.5;
+  self->center_y = iy + 0.5;
+  gtk_widget_queue_resize (GTK_WIDGET (self));
+  gtk_widget_queue_draw (GTK_WIDGET (self));
+
+  if (!self->center_pending)
+    {
+      self->center_pending = TRUE;
+      g_idle_add_once (apply_center, g_object_ref (self));
+    }
+}
+
+int
+easel_canvas_get_zoom (EaselCanvas *self)
+{
+  g_return_val_if_fail (EASEL_IS_CANVAS (self), 1);
+  return self->zoom;
+}
+
+void
+easel_canvas_set_zoom_level (EaselCanvas *self, int level)
+{
+  g_return_if_fail (EASEL_IS_CANVAS (self));
+  self->zoom_level = CLAMP (level, 1, 8);
 }

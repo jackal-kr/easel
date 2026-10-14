@@ -76,3 +76,23 @@ typedef enum
 EaselRect easel_raster_shape (EaselDocument *doc, EaselShape shape,
                               int x0, int y0, int x1, int y1, int line_width,
                               EaselFillStyle style, uint32_t outline_color, uint32_t fill_color);
+
+typedef struct { int x, y; } EaselPoint;
+
+/* Filled polygon (even-odd rule, pixel centres), then its border according
+ * to `style`, like the shape tools. Needs n >= 2 (2 points = a line). */
+EaselRect easel_raster_polygon (EaselDocument *doc, const EaselPoint *pts, int n, int line_width,
+                                EaselFillStyle style, uint32_t outline_color, uint32_t fill_color);
+
+/* Open polyline through the points. */
+EaselRect easel_raster_polyline (EaselDocument *doc, const EaselPoint *pts, int n, int line_width,
+                                 uint32_t color);
+
+/* Cubic Bezier from p0 to p3 with control points c1, c2, drawn as a polyline. */
+EaselRect easel_raster_curve (EaselDocument *doc, EaselPoint p0, EaselPoint c1, EaselPoint c2,
+                              EaselPoint p3, int line_width, uint32_t color);
+
+/* Airbrush: `count` random pixels inside a circle of the given diameter. The
+ * generator state `*rng` must be non-zero and is advanced. */
+EaselRect easel_raster_spray (EaselDocument *doc, int cx, int cy, int diameter, uint32_t color,
+                              int count, uint32_t *rng);

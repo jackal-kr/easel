@@ -52,6 +52,7 @@ sync_canvas_tool (EaselWindow *self)
   easel_canvas_set_brush_shape (self->canvas, easel_toolbox_get_brush_shape (self->toolbox));
   easel_canvas_set_line_width (self->canvas, easel_toolbox_get_line_width (self->toolbox));
   easel_canvas_set_fill_style (self->canvas, easel_toolbox_get_fill_style (self->toolbox));
+  easel_canvas_set_zoom_level (self->canvas, easel_toolbox_get_zoom_level (self->toolbox));
 }
 
 static void
@@ -65,6 +66,9 @@ static void
 on_options_changed (EaselToolbox *toolbox, EaselWindow *self)
 {
   sync_canvas_tool (self);
+  /* Choosing a magnification while the Magnifier is active applies it now. */
+  if (easel_toolbox_get_tool (toolbox) == EASEL_TOOL_MAGNIFIER)
+    easel_canvas_set_zoom (self->canvas, easel_toolbox_get_zoom_level (toolbox), -1, -1);
 }
 
 /* Pick Color sets the chosen colour and then hands control back to the tool

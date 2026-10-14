@@ -322,6 +322,80 @@ test_shapes (void)
   easel_document_free (doc);
 }
 
+static void
+test_polygon_curve_spray (void)
+{
+  EaselDocument *doc = easel_document_new (40, 40, WHITE);
+
+  /* Square polygon, solid: same area as the equivalent rectangle. */
+  EaselPoint sq[] = { { 5, 5 }, { 14, 5 }, { 14, 14 }, { 5, 14 } };
+  easel_raster_polygon (doc, sq, 4, 1, EASEL_FILL_SOLID, BLACK, RED);
+  CHECK (count_not (doc, WHITE) == 100);
+
+  /* Outline only leaves the inside alone. */
+  easel_document_fill (doc, WHITE);
+  easel_raster_polygon (doc, sq, 4, 1, EASEL_FILL_OUTLINE, BLACK, RED);
+  CHECK (count_not (doc, WHITE) == 36);
+  CHECK (easel_document_get_pixel (doc, 9, 9) == WHITE);
+
+  /* Outline + fill. */
+  easel_document_fill (doc, WHITE);
+  easel_raster_polygon (doc, sq, 4, 1, EASEL_FILL_OUTLINE_AND_FILL, BLACK, RED);
+  CHECK (easel_document_get_pixel (doc, 9, 9) == RED);
+  CHECK (easel_document_get_pixel (doc, 5, 9) == BLACK);
+
+  /* Triangle: fill stays inside the bounding box, the far corner is empty. */
+  easel_document_fill (doc, WHITE);
+  EaselPoint tri[] = { { 20, 20 }, { 35, 20 }, { 20, 35 } };
+  easel_raster_polygon (doc, tri, 3, 1, EASEL_FILL_SOLID, BLACK, RED);
+  CHECK (easel_document_get_pixel (doc, 22, 22) == BLACK);
+  CHECK (easel_document_get_pixel (doc, 34, 34) == WHITE);
+
+  /* Polygon partly off-image must not crash. */
+  EaselPoint off[] = { { -10, -10 }, { 20, -5 }, { 10, 60 } };
+  easel_raster_polygon (doc, off, 3, 2, EASEL_FILL_SOLID, BLACK, RED);
+
+  /* Curve with straight control points is a straight line. */
+  easel_document_fill (doc, WHITE);
+  easel_raster_curve (doc, (EaselPoint) { 2, 20 }, (EaselPoint) { 10, 20 },
+                      (EaselPoint) { 20, 20 }, (EaselPoint) { 30, 20 }, 1, BLACK);
+  CHECK (count_not (doc, WHITE) == 29);
+
+  /* Bent curve passes through both endpoints and bulges toward the controls. */
+  easel_document_fill (doc, WHITE);
+  easel_raster_curve (doc, (EaselPoint) { 2, 30 }, (EaselPoint) { 2, 2 },
+                      (EaselPoint) { 30, 2 }, (EaselPoint) { 30, 30 }, 1, BLACK);
+  CHECK (easel_document_get_pixel (doc, 2, 30) == BLACK);
+  CHECK (easel_document_get_pixel (doc, 30, 30) == BLACK);
+  int top_row = 0;
+  for (int y = 0; y < 40 && top_row == 0; y++)
+    for (int x = 0; x < 40; x++)
+      if (easel_document_get_pixel (doc, x, y) == BLACK)
+        { top_row = y; break; }
+  CHECK (top_row > 5 && top_row < 14);
+
+  /* Spray stays inside the circle, is deterministic, and paints something. */
+  easel_document_fill (doc, WHITE);
+  uint32_t rng = 12345;
+  easel_raster_spray (doc, 20, 20, 16, BLACK, 400, &rng);
+  int n = count_not (doc, WHITE);
+  CHECK (n > 50 && n < 16 * 16);
+  for (int y = 0; y < 40; y++)
+    for (int x = 0; x < 40; x++)
+      if (easel_document_get_pixel (doc, x, y) != WHITE)
+        CHECK ((x - 19.5) * (x - 19.5) + (y - 19.5) * (y - 19.5) <= 8.6 * 8.6);
+  EaselDocument *doc2 = easel_document_new (40, 40, WHITE);
+  uint32_t rng2 = 12345;
+  easel_raster_spray (doc2, 20, 20, 16, BLACK, 400, &rng2);
+  CHECK (count_not (doc2, WHITE) == n);
+  easel_document_free (doc2);
+
+  /* Spray off the edge is safe. */
+  easel_raster_spray (doc, -3, -3, 24, BLACK, 500, &rng);
+
+  easel_document_free (doc);
+}
+
 int
 main (void)
 {
@@ -332,6 +406,7 @@ main (void)
   test_eraser ();
   test_flood_fill ();
   test_shapes ();
+  test_polygon_curve_spray ();
 
   if (failures != 0)
     {
