@@ -1,0 +1,27 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Easel (gdb)",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/src/easel",
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "build",
+      "MIMode": "gdb",
+      "externalConsole": false,
+      "setupCommands": [{ "text": "-enable-pretty-printing", "ignoreFailures": true }]
+    },
+    {
+      "name": "Canvas tests (gdb)",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/tests/test-canvas",
+      "cwd": "${workspaceFolder}",
+      "environment": [{ "name": "GSK_RENDERER", "value": "cairo" }],
+      "preLaunchTask": "build",
+      "MIMode": "gdb",
+      "externalConsole": false
+    }
+  ]
+}

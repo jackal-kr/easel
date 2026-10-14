@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(meson setup:*)",
+      "Bash(meson compile:*)",
+      "Bash(meson test:*)",
+      "Bash(ninja:*)",
+      "Bash(glib-compile-schemas:*)",
+      "Bash(desktop-file-validate:*)",
+      "Bash(appstreamcli validate:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)"
+    ],
+    "ask": [
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git reset:*)",
+      "Bash(rm:*)"
+    ]
+  }
+}

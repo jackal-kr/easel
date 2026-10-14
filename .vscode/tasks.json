@@ -1,0 +1,36 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build",
+      "type": "shell",
+      "command": "ninja -C build",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": {
+        "base": "$gcc",
+        "fileLocation": ["relative", "${workspaceFolder}/build"]
+      }
+    },
+    {
+      "label": "test",
+      "type": "shell",
+      "command": "GSK_RENDERER=cairo meson test -C build --print-errorlogs",
+      "group": { "kind": "test", "isDefault": true },
+      "dependsOn": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "run",
+      "type": "shell",
+      "command": "./build/src/easel",
+      "dependsOn": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "reconfigure",
+      "type": "shell",
+      "command": "meson setup --reconfigure build",
+      "problemMatcher": []
+    }
+  ]
+}

@@ -1,65 +1,60 @@
 # Easel
 
-Native GNOME paint app: Windows XP Paint's functionality and workflow, built only from
-GNOME components (GTK 4 + libadwaita). Not an XP visual clone. App ID `io.github.jackal_kr.Easel`,
-license GPL-3.0-or-later. Owner goes by JOD; prefers direct, concise answers and small
-incremental steps.
+Native GNOME paint app: Windows XP Paint's functionality and workflow, built only from GNOME
+components (GTK 4 + libadwaita), C, Meson. Not an XP visual clone. App ID
+`io.github.jackal_kr.Easel`, GPL-3.0-or-later. Owner: JOD (prefers direct, concise answers, small
+incremental steps, no token waste).
 
-## Build / run / test
-    meson setup build        # once
-    ninja -C build
-    ./build/src/easel
-    meson test -C build --print-errorlogs
-Environment: Ubuntu 26.04, GTK 4.22, libadwaita 1.9, Cairo 1.18, GCC 15, Meson 1.10.
+## Commands
+    meson setup build                      # once
+    ninja -C build                         # must stay warning-free
+    meson test -C build --print-errorlogs  # core tests always; canvas tests need a display (skip, exit 77, otherwise)
+    ./build/src/easel                      # run (GSettings schema is found in build/data)
+Canvas tests headless-safe: `GSK_RENDERER=cairo meson test -C build`.
+Env: Ubuntu 26.04, GTK 4.22, libadwaita 1.9 (AdwShortcutsDialog needs >= 1.8), GCC 15, Meson 1.10.
 
-## Architecture rules
-- `src/core/` is pure C (libc only): document pixel buffer, rasterizer, later tools/selection/
-  history/file I/O. It must never include GTK, GLib or Cairo. Everything in it gets a test in `tests/`.
-- `src/ui/` is GTK/libadwaita: window, canvas widget, toolbox, colorbox. UI translates input into
-  core calls; drawing logic never lives in widgets.
-- Pixels: `uint32_t` 0xAARRGGBB premultiplied (matches Cairo ARGB32 and
-  GDK_MEMORY_B8G8R8A8_PREMULTIPLIED on little-endian). One buffer per document.
-- Display: GPU via GSK (`gtk_snapshot_append_scaled_texture`, nearest filter). Editing: CPU.
-  One image pixel = one device pixel at zoom 1 (HiDPI aware).
-- Hard-edged tools by default (no antialiasing): pencil/line/fill/ellipse match XP pixel behavior.
-- No XP limits: undo is unbounded within a memory budget (default 256 MB), tile-based
-  copy-on-write history (not built yet). Whole-image ops store one snapshot.
-- Menus are one GMenu (`data/menus.ui`) with XP's items. Unimplemented actions are simply
-  absent, so GTK shows them disabled; implement the action to enable the item.
-- Keep it simple: no threads, caches or fancy rendering until a measurement justifies them.
+## How we work (engineering mode)
+1. **Spec first** for anything non-trivial: `docs/specs/NNNN-title.md` from `_template.md` (use the
+   `spec-first` skill). Behavior, acceptance criteria, test plan, out of scope. Get it agreed, then build.
+2. **Small slices**, each leaving build + tests green. Use the `verify-change` skill before saying "done".
+3. **Tests with the change**: core logic in `tests/test_raster.c`; widget-level behavior through
+   `canvas_press/drag/release` in `tests/test_canvas.c`. A bug fix starts with a failing test when feasible.
+4. **Decisions** that a future reader would question go in `docs/decisions/NNNN-*.md` (short ADRs).
+5. **Git**: never commit or push unless asked. Commit messages: imperative summary, body explains why.
+   One logical change per commit. Don't commit `build/` or `.scratch/`.
+6. Update `docs/roadmap.md` when scope or status changes; keep this file for rules, not status.
 
-## Scope: 16 XP tools
-Free-Form Select, Select, Eraser (right button = color eraser), Fill, Pick Color, Magnifier,
-Pencil, Brush, Airbrush, Text, Line, Curve, Rectangle, Polygon, Ellipse, Rounded Rectangle.
-Menus: File, Edit, View, Image, Colors, Help. Cut: Send, Page Setup.
+## Architecture (details: docs/architecture.md)
+- `src/core/` pure C, libc only (no GTK/GLib/Cairo): document, raster, history, syncbuf, transform,
+  clip. Everything here has tests in `tests/test_raster.c`.
+- `src/ui/` GTK/libadwaita. UI turns input into core calls; drawing logic never lives in widgets.
+  Canvas is split: `canvas.c` (widget, render, input), `canvas-selection.c`, `canvas-text.c`,
+  `canvas-shapes.c`, `canvas-transform.c`; shared internals in `canvas-private.h` (`canvas_` prefix).
+- Tools are defined once in `ui/tool.c` (name, icon, hint, flags). Shared constants/colors: `ui/config.h`.
+- Pixels `uint32_t` 0xAARRGGBB premultiplied. Hard-edged by default (no antialiasing), 1 image px = 1 device px at 100%.
+- Undo: rect-based history with a "saved" marker; `EaselSyncBuf` keeps a shadow copy as undo base.
+- Settings: GSettings schema `io.github.jackal_kr.Easel` (`data/*.gschema.xml`); read via `ui/settings.h`.
+- Keep it simple: no threads/caches/fancy rendering until a measurement justifies them.
 
-## Behavior reference (learned from jspaint, MIT, https://github.com/1j01/jspaint)
-We study behavior and write our own C; no code is copied. Keep this credit in About.
-- Brush shapes: circle, square, two diagonals, horizontal, vertical; stamp bitmap along a Bresenham line.
-- Airbrush: timer (5 ms); each tick sprays 6 + r/5 random single pixels inside radius r.
-- Flood fill: scanline with explicit stack; return early when fill color equals target color.
-- Rounded rectangle corner radius is capped at 8 px.
-- Hidden XP behaviors to include: Ctrl = third color slot; Shift-drag smears a selection,
-  Shift-click stamps it; numpad +/- resizes brush; Ctrl+G grid at 4x+; second mouse button cancels
-  the current stroke; pasting a larger image expands the canvas.
-- XP palette: 28 colors, 14x2 (implemented in `ui/colorbox.c`).
+## Conventions
+- GNU-ish C style, 2-space indent, space before `(`, return type on its own line, `//` avoided
+  in favor of `/* */`. Match the surrounding file; do not reformat untouched code.
+- Warnings are bugs (`-Wshadow -Wmissing-prototypes` etc. are on). Non-static functions need prototypes.
+- Public UI API prefix `easel_<module>_`; canvas-internal shared functions `canvas_`.
+- Menus: `data/menus.ui` GMenus; actions registered in `window.c`; absent action = disabled item.
+- User-visible strings are English now; i18n is a planned packaging step (see roadmap) — keep strings in
+  one place per dialog, don't build sentences by concatenation.
+- No XP limits: undo is bounded only by a memory budget (Preferences, default 512 MB).
 
-## Milestones
-M1 shell + canvas + pencil + palette (done) -> M2 all 16 tools and options ->
-M3 file I/O, tile undo/redo, zoom + grid, Attributes dialog, canvas resize handles ->
-M4 selection, clipboard, text, Image-menu transforms -> M5 tests, Flatpak, GSettings, i18n,
-accessibility (palette is a single drawing area, needs keyboard access), icons, metainfo.
+## Behavior reference
+Behavior studied from jspaint (MIT, https://github.com/1j01/jspaint); we write our own C, no code
+copied; credit stays in About. Hidden XP behaviors to keep: Ctrl = third color slot; Shift-drag smears a
+selection, Shift-click stamps; numpad +/- resizes brush; Ctrl+G grid at 4x+; second mouse button cancels a
+stroke; pasting a larger image expands the canvas; rounded-rect radius capped at 8; airbrush 5 ms timer.
 
-## Known M1 gaps
-- Tool icons: `edit-select-lasso-symbolic` and `color-fill-symbolic` are missing from the theme
-  (text fallback shown); other stock icons are stand-ins and several tools need custom symbolic SVGs.
-- Canvas redraws and re-uploads the whole texture per change. Fine at 800x600; measure before optimizing.
-- Pointer events use frame-rate samples joined by lines; sub-frame history not used yet.
-
-## Status notes (M2 slice 1)
-- Done: Eraser (+color eraser), Fill, Pick Color, Pencil, Brush (12 shapes/sizes) with options panel.
-- UI: per-tool cursors (src/ui/cursors.c, classic-Paint layout, own art), hover footprint preview for
-  pencil/brush, toolbox switches 2<->3 columns by window height (own layout in EaselToolbox; options
-  stack is width-homogeneous so the toolbox never changes width).
-- Slice 2 done: Line, Rectangle, Rounded Rectangle, Ellipse (live preview via pixel backup, Shift constrain, shared line width + fill style).
-- Next: slice 3 (Polygon, Curve, Airbrush, Magnifier).
+## Gotchas learned
+- Anything pending (floating selection, text being typed, unfinished curve) reaches the history only when
+  put down. Call `easel_canvas_flush()` before asking "is it modified?" or saving/closing.
+- The canvas takes keyboard focus; the viewport has scroll-to-focus off, or the view jumps to the corner.
+- `EaselSyncBuf` copies only the stale rect; any new code that writes pixels must go through `mark_dirty`.
+- Right button draws with the background color; right-click on a selection/text box opens a context menu instead.
