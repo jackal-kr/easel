@@ -5,6 +5,8 @@
 #include <gtk/gtk.h>
 
 #include "core/document.h"
+#include "core/raster.h"
+#include "ui/tool.h"
 
 G_BEGIN_DECLS
 
@@ -17,12 +19,16 @@ EaselDocument *easel_canvas_get_document (EaselCanvas *self);
 
 void easel_canvas_set_foreground (EaselCanvas *self, uint32_t argb);
 void easel_canvas_set_background (EaselCanvas *self, uint32_t argb);
-void easel_canvas_set_brush_size (EaselCanvas *self, int size);
+void easel_canvas_set_tool (EaselCanvas *self, EaselTool tool);
+void easel_canvas_set_tool_size (EaselCanvas *self, int size);
+void easel_canvas_set_brush_shape (EaselCanvas *self, EaselBrushShape shape);
 
 /* Call after changing the document from outside the canvas. */
 void easel_canvas_invalidate (EaselCanvas *self);
 
-/* Signal "pointer-moved" (int x, int y): image coordinates, or -1,-1 when the
- * pointer leaves the canvas. */
+/* Signals:
+ *  "pointer-moved" (int x, int y): image coordinates, or -1,-1 when the
+ *                  pointer leaves the canvas.
+ *  "color-picked"  (guint argb, gboolean foreground): Pick Color released. */
 
 G_END_DECLS

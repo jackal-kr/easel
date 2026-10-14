@@ -1,16 +1,54 @@
-/* Hard-edged (non-antialiased) drawing primitives, XP Paint style. */
+/* Hard-edged (non-antialiased) drawing primitives, XP Paint style.
+ * Every function returns the clipped bounding box it touched (width 0 when
+ * nothing was drawn) so the UI can invalidate only that region. */
 #pragma once
 
 #include "core/document.h"
 
 #define EASEL_MAX_BRUSH 256
 
-/* Stamps a round brush of diameter `size` (clamped to 1..EASEL_MAX_BRUSH)
- * centred on (cx, cy). Returns the clipped bounding box that was touched
- * (width 0 if nothing was). */
-EaselRect easel_raster_stamp (EaselDocument *doc, int cx, int cy, int size, uint32_t color);
+typedef enum
+{
+  EASEL_BRUSH_CIRCLE,
+  EASEL_BRUSH_SQUARE,
+  EASEL_BRUSH_SLASH,     /* "/" diagonal line */
+  EASEL_BRUSH_BACKSLASH, /* "\" diagonal line */
+} EaselBrushShape;
 
-/* Bresenham line from (x0,y0) to (x1,y1) with the round brush stamped at
- * every step. Both endpoints are drawn. Returns the touched bounding box. */
+typedef struct
+{
+  EaselBrushShape shape;
+  int             size; /* clamped to 1..EASEL_MAX_BRUSH */
+  uint32_t        color;
+} EaselBrush;
+
+/* Eraser: a size x size square. Normally it paints `background`; with
+ * color_only it only replaces pixels equal to `from_color` (the classic
+ * right-button "color eraser"). */
+typedef struct
+{
+  int      size;
+  uint32_t background;
+  bool     color_only;
+  uint32_t from_color;
+} EaselEraser;
+
+/* Is pixel (i, j) of the size x size footprint box part of the brush shape?
+ * Box origin is (cx - size/2, cy - size/2) for a stamp centred on (cx, cy).
+ * The UI uses this to preview exactly what a stamp will paint. */
+bool easel_brush_covers (EaselBrushShape shape, int size, int i, int j);
+
+/* One brush footprint centred on (cx, cy). */
+EaselRect easel_raster_stamp (EaselDocument *doc, int cx, int cy, const EaselBrush *brush);
+
+/* Bresenham line with the brush stamped at every step; both ends included. */
 EaselRect easel_raster_stroke (EaselDocument *doc, int x0, int y0, int x1, int y1,
-                               int size, uint32_t color);
+                               const EaselBrush *brush);
+
+EaselRect easel_raster_erase (EaselDocument *doc, int cx, int cy, const EaselEraser *eraser);
+EaselRect easel_raster_erase_stroke (EaselDocument *doc, int x0, int y0, int x1, int y1,
+                                     const EaselEraser *eraser);
+
+/* 4-connected flood fill of the exact colour found at (x, y). Does nothing if
+ * the point is outside the image or already has `color`. */
+EaselRect easel_raster_flood_fill (EaselDocument *doc, int x, int y, uint32_t color);

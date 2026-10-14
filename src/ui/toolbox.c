@@ -16,17 +16,17 @@ static const ToolDef tools[EASEL_N_TOOLS] = {
   [EASEL_TOOL_SELECT] = { "Select", "edit-select-all-symbolic", "Se",
     "Selects a rectangular part of the picture to move, copy, or edit.", FALSE },
   [EASEL_TOOL_ERASER] = { "Eraser", "edit-clear-all-symbolic", "Er",
-    "Erases a portion of the picture. Right button: replaces the foreground color with the background color.", FALSE },
+    "Erases a portion of the picture. Right button: replaces the foreground color with the background color.", TRUE },
   [EASEL_TOOL_FILL] = { "Fill With Color", "color-fill-symbolic", "Fl",
-    "Fills an area with the current drawing color.", FALSE },
+    "Fills an area with the foreground color (left button) or the background color (right button).", TRUE },
   [EASEL_TOOL_PICK_COLOR] = { "Pick Color", "color-select-symbolic", "Pk",
-    "Picks up a color from the picture for drawing.", FALSE },
+    "Picks up a color from the picture for drawing. Left button: foreground. Right button: background.", TRUE },
   [EASEL_TOOL_MAGNIFIER] = { "Magnifier", "zoom-in-symbolic", "Mg",
     "Changes the magnification.", FALSE },
   [EASEL_TOOL_PENCIL] = { "Pencil", "document-edit-symbolic", "Pe",
     "Draws a free-form line. Left button: foreground color. Right button: background color.", TRUE },
   [EASEL_TOOL_BRUSH] = { "Brush", "applications-graphics-symbolic", "Br",
-    "Draws using a brush with the selected shape and size.", FALSE },
+    "Draws using a brush with the selected shape and size.", TRUE },
   [EASEL_TOOL_AIRBRUSH] = { "Airbrush", "weather-showers-symbolic", "Ai",
     "Draws using an airbrush of the selected size.", FALSE },
   [EASEL_TOOL_TEXT] = { "Text", "insert-text-symbolic", "Tx",
@@ -45,21 +45,59 @@ static const ToolDef tools[EASEL_N_TOOLS] = {
     "Draws a rounded rectangle with the selected fill style.", FALSE },
 };
 
-static const int sizes[] = { 1, 2, 3, 4, 6, 8, 12, 16 };
+/* Size choices. Brush and eraser sizes are the classic ones; pencil sizes
+ * are an Easel extension (classic Paint's pencil is always 1 px). */
+static const int pencil_sizes[] = { 1, 2, 3, 4, 6, 8, 12, 16 };
+static const int eraser_sizes[] = { 4, 6, 8, 10 };
+static const int circle_sizes[] = { 7, 4, 1 };
+static const int other_sizes[] = { 8, 5, 2 };
+
+static const struct { EaselBrushShape shape; const char *name; } brush_shapes[] = {
+  { EASEL_BRUSH_CIRCLE, "Round" },
+  { EASEL_BRUSH_SQUARE, "Square" },
+  { EASEL_BRUSH_SLASH, "Forward diagonal" },
+  { EASEL_BRUSH_BACKSLASH, "Backward diagonal" },
+};
+
+typedef enum { OPTION_PENCIL, OPTION_BRUSH, OPTION_ERASER } OptionKind;
 
 struct _EaselToolbox
 {
-  GtkBox parent_instance;
+  GtkWidget parent_instance;
 
+  GtkWidget *scroller;
   GtkWidget *tool_buttons[EASEL_N_TOOLS];
-  EaselTool  tool;
-  int        brush_size;
+  GtkWidget *tool_grid;
+  GtkWidget *brush_grid;
+  GtkWidget *brush_buttons[12];
+  GtkWidget *options_stack;
+  int        columns;           /* tool grid columns: 2, or 3 in short windows */
+  gboolean   relayout_pending;
+
+  EaselTool       tool;
+  EaselTool       previous_tool;
+  int             pencil_size;
+  int             eraser_size;
+  int             brush_size;
+  EaselBrushShape brush_shape;
 };
 
-G_DEFINE_FINAL_TYPE (EaselToolbox, easel_toolbox, GTK_TYPE_BOX)
+G_DEFINE_FINAL_TYPE (EaselToolbox, easel_toolbox, GTK_TYPE_WIDGET)
 
-enum { SIGNAL_TOOL_CHANGED, SIGNAL_BRUSH_SIZE_CHANGED, N_SIGNALS };
+enum { SIGNAL_TOOL_CHANGED, SIGNAL_OPTIONS_CHANGED, N_SIGNALS };
 static guint signals[N_SIGNALS];
+
+static const char *
+options_page_for (EaselTool tool)
+{
+  switch (tool)
+    {
+    case EASEL_TOOL_PENCIL: return "pencil";
+    case EASEL_TOOL_BRUSH:  return "brush";
+    case EASEL_TOOL_ERASER: return "eraser";
+    default:                return "none";
+    }
+}
 
 static void
 on_tool_toggled (GtkToggleButton *button, EaselToolbox *self)
@@ -67,18 +105,187 @@ on_tool_toggled (GtkToggleButton *button, EaselToolbox *self)
   if (!gtk_toggle_button_get_active (button))
     return;
 
-  self->tool = (EaselTool) GPOINTER_TO_INT (g_object_get_data (G_OBJECT (button), "easel-tool"));
+  EaselTool tool = (EaselTool) GPOINTER_TO_INT (g_object_get_data (G_OBJECT (button), "easel-tool"));
+  if (tool != self->tool)
+    {
+      self->previous_tool = self->tool;
+      self->tool = tool;
+    }
+
+  gtk_stack_set_visible_child_name (GTK_STACK (self->options_stack), options_page_for (tool));
   g_signal_emit (self, signals[SIGNAL_TOOL_CHANGED], 0);
 }
 
 static void
-on_size_toggled (GtkToggleButton *button, EaselToolbox *self)
+on_option_toggled (GtkToggleButton *button, EaselToolbox *self)
 {
   if (!gtk_toggle_button_get_active (button))
     return;
 
-  self->brush_size = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (button), "easel-size"));
-  g_signal_emit (self, signals[SIGNAL_BRUSH_SIZE_CHANGED], 0);
+  OptionKind kind = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (button), "easel-kind"));
+  int size = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (button), "easel-size"));
+  EaselBrushShape shape = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (button), "easel-shape"));
+
+  switch (kind)
+    {
+    case OPTION_PENCIL:
+      self->pencil_size = size;
+      break;
+    case OPTION_ERASER:
+      self->eraser_size = size;
+      break;
+    case OPTION_BRUSH:
+      self->brush_size = size;
+      self->brush_shape = shape;
+      break;
+    }
+  g_signal_emit (self, signals[SIGNAL_OPTIONS_CHANGED], 0);
+}
+
+typedef struct
+{
+  EaselBrushShape shape;
+  int             size;
+} Preview;
+
+/* Draws what the brush footprint looks like, 2x magnified, using the real
+ * engine so the preview can never disagree with what gets drawn. */
+static void
+draw_preview (GtkDrawingArea *area, cairo_t *cr, int width, int height, gpointer data)
+{
+  const Preview *p = data;
+  enum { CELLS = 12, ZOOM = 2 };
+  EaselDocument *doc = easel_document_new (CELLS, CELLS, EASEL_RGB (255, 255, 255));
+  GdkRGBA color;
+
+  if (doc == NULL)
+    return;
+
+  EaselBrush brush = { p->shape, p->size, EASEL_RGB (0, 0, 0) };
+  easel_raster_stamp (doc, CELLS / 2, CELLS / 2, &brush);
+
+  gtk_widget_get_color (GTK_WIDGET (area), &color);
+  gdk_cairo_set_source_rgba (cr, &color);
+
+  double ox = (width - CELLS * ZOOM) / 2.0;
+  double oy = (height - CELLS * ZOOM) / 2.0;
+  for (int y = 0; y < CELLS; y++)
+    for (int x = 0; x < CELLS; x++)
+      if (easel_document_get_pixel (doc, x, y) != EASEL_RGB (255, 255, 255))
+        cairo_rectangle (cr, ox + x * ZOOM, oy + y * ZOOM, ZOOM, ZOOM);
+  cairo_fill (cr);
+
+  easel_document_free (doc);
+}
+
+static GtkWidget *
+make_option_button (EaselToolbox *self, OptionKind kind, EaselBrushShape shape, int size,
+                    const char *shape_name, gboolean with_preview)
+{
+  GtkWidget *button = gtk_toggle_button_new ();
+  g_autofree char *tip = shape_name != NULL
+                           ? g_strdup_printf ("%s, %d px", shape_name, size)
+                           : g_strdup_printf ("%d px", size);
+
+  if (with_preview)
+    {
+      Preview *preview = g_new (Preview, 1);
+      preview->shape = shape;
+      preview->size = size;
+
+      GtkWidget *area = gtk_drawing_area_new ();
+      gtk_drawing_area_set_content_width (GTK_DRAWING_AREA (area), 24);
+      gtk_drawing_area_set_content_height (GTK_DRAWING_AREA (area), 24);
+      gtk_drawing_area_set_draw_func (GTK_DRAWING_AREA (area), draw_preview, preview, g_free);
+      gtk_button_set_child (GTK_BUTTON (button), area);
+    }
+  else
+    {
+      g_autofree char *label = g_strdup_printf ("%d", size);
+      gtk_button_set_label (GTK_BUTTON (button), label);
+      gtk_widget_add_css_class (button, "numeric");
+    }
+
+  gtk_widget_add_css_class (button, "flat");
+  gtk_widget_set_tooltip_text (button, tip);
+  gtk_accessible_update_property (GTK_ACCESSIBLE (button), GTK_ACCESSIBLE_PROPERTY_LABEL, tip, -1);
+  g_object_set_data (G_OBJECT (button), "easel-kind", GINT_TO_POINTER (kind));
+  g_object_set_data (G_OBJECT (button), "easel-size", GINT_TO_POINTER (size));
+  g_object_set_data (G_OBJECT (button), "easel-shape", GINT_TO_POINTER (shape));
+  g_signal_connect (button, "toggled", G_CALLBACK (on_option_toggled), self);
+  return button;
+}
+
+static GtkWidget *
+make_options_grid (void)
+{
+  GtkWidget *grid = gtk_grid_new ();
+  gtk_grid_set_row_spacing (GTK_GRID (grid), 2);
+  gtk_grid_set_column_spacing (GTK_GRID (grid), 2);
+  gtk_grid_set_column_homogeneous (GTK_GRID (grid), TRUE);
+  return grid;
+}
+
+/* Adds `button` to `grid` and into the radio group led by `*leader`. */
+static void
+add_option (GtkWidget *grid, GtkWidget **leader, GtkWidget *button, int col, int row, gboolean active)
+{
+  if (*leader == NULL)
+    *leader = button;
+  else
+    gtk_toggle_button_set_group (GTK_TOGGLE_BUTTON (button), GTK_TOGGLE_BUTTON (*leader));
+  gtk_grid_attach (GTK_GRID (grid), button, col, row, 1, 1);
+  if (active)
+    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (button), TRUE);
+}
+
+static GtkWidget *
+build_pencil_options (EaselToolbox *self)
+{
+  GtkWidget *grid = make_options_grid (), *leader = NULL;
+
+  for (guint i = 0; i < G_N_ELEMENTS (pencil_sizes); i++)
+    add_option (grid, &leader,
+                make_option_button (self, OPTION_PENCIL, EASEL_BRUSH_CIRCLE, pencil_sizes[i], NULL, FALSE),
+                (int) (i % 2), (int) (i / 2), pencil_sizes[i] == self->pencil_size);
+  return grid;
+}
+
+static GtkWidget *
+build_eraser_options (EaselToolbox *self)
+{
+  GtkWidget *grid = make_options_grid (), *leader = NULL;
+
+  for (guint i = 0; i < G_N_ELEMENTS (eraser_sizes); i++)
+    add_option (grid, &leader,
+                make_option_button (self, OPTION_ERASER, EASEL_BRUSH_SQUARE, eraser_sizes[i], NULL, TRUE),
+                (int) (i % 2), (int) (i / 2), eraser_sizes[i] == self->eraser_size);
+  return grid;
+}
+
+/* One row per shape, three sizes per row, like the classic 12-cell chooser. */
+static GtkWidget *
+build_brush_options (EaselToolbox *self)
+{
+  GtkWidget *grid = make_options_grid (), *leader = NULL;
+
+  self->brush_grid = grid;
+  for (guint row = 0; row < G_N_ELEMENTS (brush_shapes); row++)
+    {
+      EaselBrushShape shape = brush_shapes[row].shape;
+      const int *sizes = shape == EASEL_BRUSH_CIRCLE ? circle_sizes : other_sizes;
+
+      for (int col = 0; col < 3; col++)
+        {
+          int n = (int) row * 3 + col;
+          GtkWidget *b = make_option_button (self, OPTION_BRUSH, shape, sizes[col],
+                                             brush_shapes[row].name, TRUE);
+          self->brush_buttons[n] = b;
+          add_option (grid, &leader, b, n % 2, n / 2,
+                      shape == self->brush_shape && sizes[col] == self->brush_size);
+        }
+    }
+  return grid;
 }
 
 static GtkWidget *
@@ -104,14 +311,116 @@ make_tool_button (EaselTool id, GtkIconTheme *theme)
   return button;
 }
 
+#define MARGIN          6
+#define SECTION_SPACING 12
+#define GRID_SPACING    2
+
+/* Height the content needs with the tool grid in `cols` columns. */
+static int
+needed_height (EaselToolbox *self, int cols)
+{
+  int button_h = 0, option_h = 0;
+  int rows = (EASEL_N_TOOLS + cols - 1) / cols;
+  /* Tallest options page: brush (12 cells over `cols` columns) or pencil (4 rows).
+   * Computed, not measured, so the answer does not depend on the current layout. */
+  int option_rows = MAX (4, (12 + cols - 1) / cols);
+
+  gtk_widget_measure (self->tool_buttons[0], GTK_ORIENTATION_VERTICAL, -1,
+                      &button_h, NULL, NULL, NULL);
+  gtk_widget_measure (self->brush_buttons[0], GTK_ORIENTATION_VERTICAL, -1,
+                      &option_h, NULL, NULL, NULL);
+  int options_h = option_rows * option_h + (option_rows - 1) * GRID_SPACING;
+
+  return rows * button_h + (rows - 1) * GRID_SPACING + SECTION_SPACING + options_h + 2 * MARGIN;
+}
+
+static void
+apply_columns (EaselToolbox *self, int cols)
+{
+  GtkLayoutManager *manager = gtk_widget_get_layout_manager (self->tool_grid);
+
+  for (int i = 0; i < EASEL_N_TOOLS; i++)
+    {
+      GtkGridLayoutChild *child = GTK_GRID_LAYOUT_CHILD (
+        gtk_layout_manager_get_layout_child (manager, self->tool_buttons[i]));
+      gtk_grid_layout_child_set_column (child, i % cols);
+      gtk_grid_layout_child_set_row (child, i / cols);
+    }
+
+  /* Brush options follow the tool columns (flowing, 12 cells). */
+  GtkLayoutManager *bm = gtk_widget_get_layout_manager (self->brush_grid);
+  for (int i = 0; i < 12; i++)
+    {
+      GtkGridLayoutChild *child = GTK_GRID_LAYOUT_CHILD (
+        gtk_layout_manager_get_layout_child (bm, self->brush_buttons[i]));
+      gtk_grid_layout_child_set_column (child, i % cols);
+      gtk_grid_layout_child_set_row (child, i / cols);
+    }
+  self->columns = cols;
+}
+
+static void
+relayout_idle (gpointer data)
+{
+  EaselToolbox *self = data;
+  int height = gtk_widget_get_height (GTK_WIDGET (self));
+  int cols = height >= needed_height (self, 2) ? 2 : 3;
+
+  self->relayout_pending = FALSE;
+  if (cols != self->columns)
+    apply_columns (self, cols);
+  g_object_unref (self);
+}
+
+static void
+easel_toolbox_measure (GtkWidget *widget, GtkOrientation orientation, int for_size,
+                       int *minimum, int *natural, int *minimum_baseline, int *natural_baseline)
+{
+  EaselToolbox *self = EASEL_TOOLBOX (widget);
+  gtk_widget_measure (self->scroller, orientation, for_size,
+                      minimum, natural, minimum_baseline, natural_baseline);
+}
+
+/* Two columns when the window is tall enough to show everything, three when
+ * it is not (the scroller is only the last resort for very short windows).
+ * The change is deferred to an idle so we never re-layout inside allocation.
+ * (This widget does its own layout: a GtkBox's layout manager would bypass
+ * this vfunc.) */
+static void
+easel_toolbox_size_allocate (GtkWidget *widget, int width, int height, int baseline)
+{
+  EaselToolbox *self = EASEL_TOOLBOX (widget);
+
+  gtk_widget_allocate (self->scroller, width, height, baseline, NULL);
+
+  int wanted = height >= needed_height (self, 2) ? 2 : 3;
+  if (wanted != self->columns && !self->relayout_pending)
+    {
+      self->relayout_pending = TRUE;
+      g_idle_add_once (relayout_idle, g_object_ref (self));
+    }
+}
+
+static void
+easel_toolbox_dispose (GObject *object)
+{
+  EaselToolbox *self = EASEL_TOOLBOX (object);
+  g_clear_pointer (&self->scroller, gtk_widget_unparent);
+  G_OBJECT_CLASS (easel_toolbox_parent_class)->dispose (object);
+}
+
 static void
 easel_toolbox_class_init (EaselToolboxClass *klass)
 {
+  G_OBJECT_CLASS (klass)->dispose = easel_toolbox_dispose;
+  GTK_WIDGET_CLASS (klass)->measure = easel_toolbox_measure;
+  GTK_WIDGET_CLASS (klass)->size_allocate = easel_toolbox_size_allocate;
+
   signals[SIGNAL_TOOL_CHANGED] =
     g_signal_new ("tool-changed", G_TYPE_FROM_CLASS (klass), G_SIGNAL_RUN_LAST,
                   0, NULL, NULL, NULL, G_TYPE_NONE, 0);
-  signals[SIGNAL_BRUSH_SIZE_CHANGED] =
-    g_signal_new ("brush-size-changed", G_TYPE_FROM_CLASS (klass), G_SIGNAL_RUN_LAST,
+  signals[SIGNAL_OPTIONS_CHANGED] =
+    g_signal_new ("options-changed", G_TYPE_FROM_CLASS (klass), G_SIGNAL_RUN_LAST,
                   0, NULL, NULL, NULL, G_TYPE_NONE, 0);
 }
 
@@ -120,22 +429,28 @@ easel_toolbox_init (EaselToolbox *self)
 {
   GtkIconTheme *theme = gtk_icon_theme_get_for_display (gdk_display_get_default ());
 
-  self->tool = EASEL_TOOL_PENCIL;
-  self->brush_size = sizes[0];
+  /* Classic defaults. */
+  self->tool = self->previous_tool = EASEL_TOOL_PENCIL;
+  self->pencil_size = 1;
+  self->eraser_size = 8;
+  self->brush_size = 4;
+  self->brush_shape = EASEL_BRUSH_CIRCLE;
 
-  gtk_orientable_set_orientation (GTK_ORIENTABLE (self), GTK_ORIENTATION_VERTICAL);
-  gtk_box_set_spacing (GTK_BOX (self), 12);
+  self->columns = 2;
+
   gtk_widget_add_css_class (GTK_WIDGET (self), "easel-toolbox");
-  gtk_widget_set_margin_start (GTK_WIDGET (self), 6);
-  gtk_widget_set_margin_end (GTK_WIDGET (self), 6);
-  gtk_widget_set_margin_top (GTK_WIDGET (self), 6);
-  gtk_widget_set_margin_bottom (GTK_WIDGET (self), 6);
+
+  /* Options pages first: selecting the initial tool below switches page. */
+  self->options_stack = gtk_stack_new ();
+  gtk_stack_set_hhomogeneous (GTK_STACK (self->options_stack), TRUE);
+  gtk_stack_add_named (GTK_STACK (self->options_stack), gtk_box_new (GTK_ORIENTATION_VERTICAL, 0), "none");
+  gtk_stack_add_named (GTK_STACK (self->options_stack), build_pencil_options (self), "pencil");
+  gtk_stack_add_named (GTK_STACK (self->options_stack), build_brush_options (self), "brush");
+  gtk_stack_add_named (GTK_STACK (self->options_stack), build_eraser_options (self), "eraser");
 
   /* Tool grid: one radio group, Pencil selected. */
-  GtkWidget *grid = gtk_grid_new ();
-  gtk_grid_set_row_spacing (GTK_GRID (grid), 2);
-  gtk_grid_set_column_spacing (GTK_GRID (grid), 2);
-
+  GtkWidget *grid = make_options_grid ();
+  gtk_grid_set_column_homogeneous (GTK_GRID (grid), TRUE);
   for (int i = 0; i < EASEL_N_TOOLS; i++)
     {
       GtkWidget *button = make_tool_button ((EaselTool) i, theme);
@@ -147,34 +462,25 @@ easel_toolbox_init (EaselToolbox *self)
       gtk_grid_attach (GTK_GRID (grid), button, i % 2, i / 2, 1, 1);
     }
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (self->tool_buttons[EASEL_TOOL_PENCIL]), TRUE);
-  gtk_box_append (GTK_BOX (self), grid);
 
-  /* Options: stroke size. Later this becomes a stack that follows the tool. */
-  GtkWidget *size_grid = gtk_grid_new ();
-  gtk_grid_set_row_spacing (GTK_GRID (size_grid), 2);
-  gtk_grid_set_column_spacing (GTK_GRID (size_grid), 2);
-  gtk_widget_set_tooltip_text (size_grid, "Stroke size in pixels");
+  self->tool_grid = grid;
 
-  GtkWidget *first = NULL;
-  for (guint i = 0; i < G_N_ELEMENTS (sizes); i++)
-    {
-      g_autofree char *label = g_strdup_printf ("%d", sizes[i]);
-      g_autofree char *tip = g_strdup_printf ("%d px", sizes[i]);
-      GtkWidget *button = gtk_toggle_button_new_with_label (label);
+  GtkWidget *content = gtk_box_new (GTK_ORIENTATION_VERTICAL, SECTION_SPACING);
+  gtk_widget_set_margin_start (content, MARGIN);
+  gtk_widget_set_margin_end (content, MARGIN);
+  gtk_widget_set_margin_top (content, MARGIN);
+  gtk_widget_set_margin_bottom (content, MARGIN);
+  gtk_box_append (GTK_BOX (content), grid);
+  gtk_box_append (GTK_BOX (content), self->options_stack);
 
-      gtk_widget_add_css_class (button, "flat");
-      gtk_widget_add_css_class (button, "numeric");
-      gtk_widget_set_tooltip_text (button, tip);
-      g_object_set_data (G_OBJECT (button), "easel-size", GINT_TO_POINTER (sizes[i]));
-      if (first == NULL)
-        first = button;
-      else
-        gtk_toggle_button_set_group (GTK_TOGGLE_BUTTON (button), GTK_TOGGLE_BUTTON (first));
-      g_signal_connect (button, "toggled", G_CALLBACK (on_size_toggled), self);
-      gtk_grid_attach (GTK_GRID (size_grid), button, (int) (i % 2), (int) (i / 2), 1, 1);
-    }
-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (first), TRUE);
-  gtk_box_append (GTK_BOX (self), size_grid);
+  /* Never cut anything off: scroll vertically if even three columns do not fit. */
+  GtkWidget *scroller = gtk_scrolled_window_new ();
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scroller), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+  gtk_scrolled_window_set_propagate_natural_width (GTK_SCROLLED_WINDOW (scroller), TRUE);
+  gtk_scrolled_window_set_child (GTK_SCROLLED_WINDOW (scroller), content);
+  gtk_widget_set_vexpand (scroller, TRUE);
+  gtk_widget_set_parent (scroller, GTK_WIDGET (self));
+  self->scroller = scroller;
 }
 
 GtkWidget *
@@ -190,16 +496,45 @@ easel_toolbox_get_tool (EaselToolbox *self)
   return self->tool;
 }
 
-int
-easel_toolbox_get_brush_size (EaselToolbox *self)
-{
-  g_return_val_if_fail (EASEL_IS_TOOLBOX (self), 1);
-  return self->brush_size;
-}
-
 const char *
 easel_toolbox_get_tool_hint (EaselToolbox *self)
 {
   g_return_val_if_fail (EASEL_IS_TOOLBOX (self), "");
   return tools[self->tool].hint;
+}
+
+int
+easel_toolbox_get_tool_size (EaselToolbox *self)
+{
+  g_return_val_if_fail (EASEL_IS_TOOLBOX (self), 1);
+
+  switch (self->tool)
+    {
+    case EASEL_TOOL_PENCIL: return self->pencil_size;
+    case EASEL_TOOL_BRUSH:  return self->brush_size;
+    case EASEL_TOOL_ERASER: return self->eraser_size;
+    default:                return 1;
+    }
+}
+
+EaselBrushShape
+easel_toolbox_get_brush_shape (EaselToolbox *self)
+{
+  g_return_val_if_fail (EASEL_IS_TOOLBOX (self), EASEL_BRUSH_CIRCLE);
+  return self->brush_shape;
+}
+
+void
+easel_toolbox_select_tool (EaselToolbox *self, EaselTool tool)
+{
+  g_return_if_fail (EASEL_IS_TOOLBOX (self));
+  g_return_if_fail (tool >= 0 && tool < EASEL_N_TOOLS);
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (self->tool_buttons[tool]), TRUE);
+}
+
+void
+easel_toolbox_select_previous_tool (EaselToolbox *self)
+{
+  g_return_if_fail (EASEL_IS_TOOLBOX (self));
+  easel_toolbox_select_tool (self, self->previous_tool);
 }

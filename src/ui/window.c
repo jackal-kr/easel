@@ -43,16 +43,38 @@ on_colors_changed (EaselColorBox *box, EaselWindow *self)
   easel_canvas_set_background (self->canvas, easel_color_box_get_background (box));
 }
 
+/* Pushes the toolbox's current tool and options to the canvas. */
+static void
+sync_canvas_tool (EaselWindow *self)
+{
+  easel_canvas_set_tool (self->canvas, easel_toolbox_get_tool (self->toolbox));
+  easel_canvas_set_tool_size (self->canvas, easel_toolbox_get_tool_size (self->toolbox));
+  easel_canvas_set_brush_shape (self->canvas, easel_toolbox_get_brush_shape (self->toolbox));
+}
+
 static void
 on_tool_changed (EaselToolbox *toolbox, EaselWindow *self)
 {
   gtk_label_set_text (self->hint_label, easel_toolbox_get_tool_hint (toolbox));
+  sync_canvas_tool (self);
 }
 
 static void
-on_brush_size_changed (EaselToolbox *toolbox, EaselWindow *self)
+on_options_changed (EaselToolbox *toolbox, EaselWindow *self)
 {
-  easel_canvas_set_brush_size (self->canvas, easel_toolbox_get_brush_size (toolbox));
+  sync_canvas_tool (self);
+}
+
+/* Pick Color sets the chosen colour and then hands control back to the tool
+ * that was active before, as classic Paint does. */
+static void
+on_color_picked (EaselCanvas *canvas, guint argb, gboolean foreground, EaselWindow *self)
+{
+  if (foreground)
+    easel_color_box_set_foreground (self->colorbox, argb);
+  else
+    easel_color_box_set_background (self->colorbox, argb);
+  easel_toolbox_select_previous_tool (self->toolbox);
 }
 
 static void
@@ -199,7 +221,8 @@ easel_window_init (EaselWindow *self)
   g_signal_connect (self->canvas, "pointer-moved", G_CALLBACK (on_pointer_moved), self);
   g_signal_connect (self->colorbox, "colors-changed", G_CALLBACK (on_colors_changed), self);
   g_signal_connect (self->toolbox, "tool-changed", G_CALLBACK (on_tool_changed), self);
-  g_signal_connect (self->toolbox, "brush-size-changed", G_CALLBACK (on_brush_size_changed), self);
+  g_signal_connect (self->toolbox, "options-changed", G_CALLBACK (on_options_changed), self);
+  g_signal_connect (self->canvas, "color-picked", G_CALLBACK (on_color_picked), self);
 
   g_action_map_add_action_entries (G_ACTION_MAP (self), window_actions,
                                    G_N_ELEMENTS (window_actions), self);
@@ -208,7 +231,7 @@ easel_window_init (EaselWindow *self)
   add_visibility_action (self, "show-statusbar", self->status_bar);
 
   on_colors_changed (self->colorbox, self);
-  on_brush_size_changed (self->toolbox, self);
+  sync_canvas_tool (self);
 }
 
 EaselWindow *

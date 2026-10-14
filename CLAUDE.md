@@ -55,3 +55,11 @@ accessibility (palette is a single drawing area, needs keyboard access), icons, 
   (text fallback shown); other stock icons are stand-ins and several tools need custom symbolic SVGs.
 - Canvas redraws and re-uploads the whole texture per change. Fine at 800x600; measure before optimizing.
 - Pointer events use frame-rate samples joined by lines; sub-frame history not used yet.
+
+## Status notes (M2 slice 1)
+- Done: Eraser (+color eraser), Fill, Pick Color, Pencil, Brush (12 shapes/sizes) with options panel.
+- UI: per-tool cursors (src/ui/cursors.c, classic-Paint layout, own art), hover footprint preview for
+  pencil/brush, toolbox switches 2<->3 columns by window height (own layout in EaselToolbox; options
+  stack is width-homogeneous so the toolbox never changes width).
+- Next: slice 2 (Line, Rectangle, Rounded Rectangle, Ellipse with live preview, Shift = perfect shape),
+  slice 3 (Polygon, Curve, Airbrush, Magnifier).
