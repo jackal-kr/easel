@@ -202,8 +202,10 @@ void
 canvas_grad_render (EaselCanvas *self)
 {
   gboolean primary = self->grad_button == GDK_BUTTON_PRIMARY;
+  /* Starts in the chosen colour and fades to transparent, so a second
+   * gradient lays over the first instead of replacing it. */
   uint32_t c0 = primary ? self->foreground : self->background;
-  uint32_t c1 = primary ? self->background : self->foreground;
+  uint32_t c1 = 0;
 
   canvas_restore_shape_area (self);
   EaselRect now = easel_raster_gradient (self->doc, self->grad_region, self->grad_masked ? self->sel_mask : NULL,

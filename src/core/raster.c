@@ -630,12 +630,20 @@ easel_raster_gradient (EaselDocument *doc, EaselRect region, const uint8_t *mask
 
         /* Blend each of the four channels (A, R, G, B) on its own. Because
          * pixels are premultiplied, blending the raw values is correct. */
-        uint32_t out = 0;
+        uint32_t src = 0;
         for (int sh = 0; sh <= 24; sh += 8)
           {
             double a = (c0 >> sh) & 0xFF, b = (c1 >> sh) & 0xFF;
-            out |= (uint32_t) (a + (b - a) * t + 0.5) << sh;
+            src |= (uint32_t) (a + (b - a) * t + 0.5) << sh;
           }
+
+        /* Lay the result over what is already there ("source over"), so a
+         * gradient that fades out lets the picture underneath show through. */
+        uint32_t dst = doc->pixels[(size_t) y * doc->width + x];
+        uint32_t keep = 255 - (src >> 24);
+        uint32_t out = 0;
+        for (int sh = 0; sh <= 24; sh += 8)
+          out |= (uint32_t) MIN (255u, ((src >> sh) & 0xFF) + (((dst >> sh) & 0xFF) * keep + 127) / 255) << sh;
         doc->pixels[(size_t) y * doc->width + x] = out;
       }
   return (EaselRect) { left, top, right - left, bottom - top };

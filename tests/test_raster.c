@@ -695,6 +695,13 @@ test_gradient (void)
   r = easel_raster_gradient (d, (EaselRect) { 0, 0, 11, 3 }, NULL, 4, 4, 4, 4,
                              EASEL_GRADIENT_RADIAL, 0, 0);
   CHECK (r.width == 0);                                 /* zero-length drag draws nothing */
+
+  /* A gradient that fades out lets the picture under it show through. */
+  easel_document_fill (d, 0xFF0000FFu);
+  easel_raster_gradient (d, (EaselRect) { 0, 0, 11, 3 }, NULL, 0, 1, 10, 1,
+                         EASEL_GRADIENT_LINEAR, 0xFFFF0000u, 0);
+  CHECK (d->pixels[0] == 0xFFFF0000u);                  /* solid start */
+  CHECK (d->pixels[10] == 0xFF0000FFu);                 /* old picture back at the end */
   easel_document_free (d);
 }
 

@@ -30,7 +30,7 @@ Panels can be hidden from the View menu or from Preferences.
 | Eraser | Erases to the background color or, in *Transparent* mode, to transparency. **Right button** replaces only the foreground color with the background (color eraser). |
 | Fill | Fills an area (left: foreground, right: background). |
 | Pick Color | Takes a color from the picture (left: foreground, right: background). |
-| Gradient | Blend from foreground to background; drag to set direction and length, Enter to apply, Esc to cancel. |
+| Gradient | Fades from the foreground color (right button: background) to transparent, so a second gradient lays over the first; drag to set direction and length, Enter to apply, Esc to cancel. |
 | Pencil / Brush / Airbrush | Freehand drawing with the chosen size (and brush shape). |
 | Text | Drag a box, type. Choose font, size and style; right-click the box for Cut/Copy/Paste. Opaque keeps a background, transparent lets the picture show through. |
 | Line / Curve | Line: drag. Curve: drag a line, then drag to bend it (up to two bends). |
