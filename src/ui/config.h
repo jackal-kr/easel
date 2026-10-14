@@ -10,7 +10,7 @@
 #define EASEL_DEFAULT_FONT "Arial 11"
 
 /* Pixels kept for undo before the oldest steps are dropped. */
-#define EASEL_UNDO_LIMIT_BYTES ((size_t) 512 << 20)
+#define EASEL_UNDO_LIMIT_MB 512 /* default; Preferences can change it */
 
 /* Timers, in milliseconds. */
 #define EASEL_CARET_BLINK_MS    530

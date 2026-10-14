@@ -220,14 +220,19 @@ make_file_dialog (void)
   gtk_file_filter_add_mime_type (pictures, "image/jpeg");
   gtk_file_filter_add_mime_type (pictures, "image/bmp");
   gtk_file_filter_add_mime_type (pictures, "image/tiff");
+  gtk_file_filter_add_mime_type (pictures, "image/webp");
+  gtk_file_filter_add_mime_type (pictures, "image/gif"); /* open only */
   g_list_store_append (filters, pictures);
   g_object_unref (pictures);
 
   static const struct { const char *name, *mime; } each[] = {
     { "PNG", "image/png" }, { "JPEG", "image/jpeg" }, { "BMP", "image/bmp" }, { "TIFF", "image/tiff" },
+    { "WebP", "image/webp" },
   };
   for (guint i = 0; i < G_N_ELEMENTS (each); i++)
     {
+      if (g_str_equal (each[i].name, "WebP") && !easel_file_can_write ("webp"))
+        continue;
       GtkFileFilter *f = gtk_file_filter_new ();
       gtk_file_filter_set_name (f, each[i].name);
       gtk_file_filter_add_mime_type (f, each[i].mime);
@@ -455,7 +460,11 @@ on_close_request (GtkWindow *window, gpointer user_data)
 {
   EaselWindow *self = EASEL_WINDOW (window);
 
-  if (self->closing || !self->modified)
+  if (self->closing)
+    return FALSE;
+  /* A floating selection or unfinished text only counts once put down. */
+  easel_canvas_flush (self->canvas);
+  if (!self->modified)
     return FALSE;
   confirm_discard (self, close_confirmed);
   return TRUE; /* hold the window until the user has answered */
@@ -1138,6 +1147,11 @@ easel_window_init (EaselWindow *self)
 
   GtkWidget *scroller = gtk_scrolled_window_new ();
   gtk_scrolled_window_set_child (GTK_SCROLLED_WINDOW (scroller), workspace);
+  /* The canvas takes keyboard focus (also when a menu closes); the view must
+   * not jump to the picture's corner each time that happens. */
+  GtkWidget *viewport = gtk_widget_get_ancestor (workspace, GTK_TYPE_VIEWPORT);
+  if (viewport != NULL)
+    gtk_viewport_set_scroll_to_focus (GTK_VIEWPORT (viewport), FALSE);
   gtk_widget_set_hexpand (scroller, TRUE);
   gtk_widget_set_vexpand (scroller, TRUE);
 

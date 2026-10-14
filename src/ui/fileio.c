@@ -5,7 +5,7 @@
 
 static const struct { const char *ext; const char *type; } formats[] = {
   { "png", "png" }, { "jpg", "jpeg" }, { "jpeg", "jpeg" }, { "bmp", "bmp" },
-  { "tif", "tiff" }, { "tiff", "tiff" },
+  { "tif", "tiff" }, { "tiff", "tiff" }, { "webp", "webp" },
 };
 
 static const char *
@@ -18,6 +18,19 @@ type_for_name (const char *name)
       if (g_ascii_strcasecmp (dot + 1, formats[i].ext) == 0)
         return formats[i].type;
   return NULL;
+}
+
+gboolean
+easel_file_can_write (const char *type)
+{
+  for (GSList *l = gdk_pixbuf_get_formats (); l != NULL; l = l->next)
+    {
+      g_autofree char *name = gdk_pixbuf_format_get_name (l->data);
+
+      if (g_str_equal (name, type))
+        return gdk_pixbuf_format_is_writable (l->data);
+    }
+  return FALSE;
 }
 
 gboolean
@@ -67,11 +80,11 @@ easel_file_save (const EaselDocument *doc, GFile *file, GError **error)
 {
   g_autofree char *name = g_file_get_basename (file);
   const char *type = type_for_name (name);
-  if (type == NULL)
+  if (type == NULL || !easel_file_can_write (type))
     type = "png";
 
   /* PNG and TIFF keep transparency; JPEG and BMP are flattened onto white. */
-  gboolean alpha = g_str_equal (type, "png") || g_str_equal (type, "tiff");
+  gboolean alpha = g_str_equal (type, "png") || g_str_equal (type, "tiff") || g_str_equal (type, "webp");
   int channels = alpha ? 4 : 3;
   g_autoptr (GdkPixbuf) pixbuf = gdk_pixbuf_new (GDK_COLORSPACE_RGB, alpha, 8, doc->width, doc->height);
   if (pixbuf == NULL)
@@ -116,9 +129,9 @@ easel_file_save (const EaselDocument *doc, GFile *file, GError **error)
   if (out == NULL)
     return FALSE;
 
-  gboolean ok = g_str_equal (type, "jpeg")
+  gboolean ok = g_str_equal (type, "jpeg") || g_str_equal (type, "webp")
                   ? gdk_pixbuf_save_to_stream (pixbuf, G_OUTPUT_STREAM (out), type, NULL, error,
-                                               "quality", "95", NULL)
+                                               "quality", g_str_equal (type, "jpeg") ? "95" : "90", NULL)
                   : gdk_pixbuf_save_to_stream (pixbuf, G_OUTPUT_STREAM (out), type, NULL, error, NULL);
   if (!ok)
     return FALSE;

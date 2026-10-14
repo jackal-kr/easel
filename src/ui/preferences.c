@@ -236,6 +236,9 @@ build_drawing (AdwPreferencesDialog *dialog, GSettings *s)
   g_signal_connect (zoom, "notify::selected", G_CALLBACK (on_int_choice_selected), s);
   adw_preferences_group_add (tools, zoom);
 
+  AdwPreferencesGroup *undo = add_group (page, "Undo", "Applied the next time Easel starts.");
+  add_spin (undo, s, "undo-limit-mb", "Undo memory", "Megabytes of history kept; older steps are forgotten first", 16, 8192);
+
   AdwPreferencesGroup *text = add_group (page, "Text", "Applied the next time Easel starts.");
   GtkWidget *row = adw_action_row_new ();
   g_autofree char *font = g_settings_get_string (s, "default-font");

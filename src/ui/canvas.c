@@ -1,4 +1,5 @@
 #include "ui/canvas-private.h"
+#include "ui/settings.h"
 
 G_DEFINE_FINAL_TYPE (EaselCanvas, easel_canvas, GTK_TYPE_WIDGET)
 
@@ -1287,7 +1288,7 @@ easel_canvas_init (EaselCanvas *self)
   self->sel_opaque = TRUE;
   self->eraser_opaque = TRUE;
   self->ctx_pending = -1;
-  self->history = easel_history_new (EASEL_UNDO_LIMIT_BYTES);
+  self->history = easel_history_new ((size_t) CLAMP (easel_pref_int ("undo-limit-mb", EASEL_UNDO_LIMIT_MB), 16, 8192) << 20);
   self->spray_rng = 2463534242u;
   self->fill_style = EASEL_FILL_OUTLINE;
   self->hover_x = self->hover_y = -1;

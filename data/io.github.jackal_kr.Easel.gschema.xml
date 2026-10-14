@@ -75,6 +75,13 @@
       <summary>Zoom a Magnifier click applies</summary>
     </key>
 
+    <key name="undo-limit-mb" type="i">
+      <range min="16" max="8192"/>
+      <default>512</default>
+      <summary>Memory the undo history may use, in megabytes</summary>
+      <description>Older steps are forgotten once the history grows past this.</description>
+    </key>
+
     <!-- Palette -->
     <key name="palette" type="as">
       <default>[]</default>
