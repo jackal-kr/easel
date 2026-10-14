@@ -496,3 +496,66 @@ easel_raster_spray (EaselDocument *doc, int cx, int cy, int diameter, uint32_t c
     return (EaselRect) { 0, 0, 0, 0 };
   return (EaselRect) { x0, y0, x1 - x0, y1 - y0 };
 }
+
+uint8_t *
+easel_raster_polygon_mask (const EaselPoint *pts, int n, EaselRect box)
+{
+  if (n < 1 || box.width <= 0 || box.height <= 0)
+    return NULL;
+
+  uint8_t *mask = calloc ((size_t) box.width * box.height, 1);
+  double *xs = malloc ((size_t) (n > 0 ? n : 1) * sizeof *xs);
+  if (mask == NULL || xs == NULL)
+    {
+      free (mask);
+      free (xs);
+      return NULL;
+    }
+
+  /* Inside: even-odd scanline fill at pixel centres. */
+  for (int row = 0; row < box.height; row++)
+    {
+      double cy = box.y + row + 0.5;
+      int count = 0;
+
+      for (int i = 0; i < n; i++)
+        {
+          EaselPoint a = pts[i], b = pts[(i + 1) % n];
+          double ay = a.y + 0.5, by = b.y + 0.5;
+          if ((ay <= cy) == (by <= cy))
+            continue;
+          xs[count++] = a.x + 0.5 + ((cy - ay) / (by - ay)) * (b.x - a.x);
+        }
+      qsort (xs, (size_t) count, sizeof *xs, compare_double);
+      for (int k = 0; k + 1 < count; k += 2)
+        {
+          int from = MAX ((int) ceil (xs[k] - 0.5) - box.x, 0);
+          int to = MIN ((int) ceil (xs[k + 1] - 0.5) - 1 - box.x, box.width - 1);
+          for (int x = from; x <= to; x++)
+            mask[(size_t) row * box.width + x] = 1;
+        }
+    }
+  free (xs);
+
+  /* Edges: the drawn outline belongs to the selection too. */
+  for (int i = 0; i < n; i++)
+    {
+      EaselPoint a = pts[i], b = pts[(i + 1) % n];
+      int dx = abs (b.x - a.x), dy = -abs (b.y - a.y);
+      int sx = a.x < b.x ? 1 : -1, sy = a.y < b.y ? 1 : -1;
+      int err = dx + dy, x = a.x, y = a.y;
+
+      for (;;)
+        {
+          int mx = x - box.x, my = y - box.y;
+          if (mx >= 0 && my >= 0 && mx < box.width && my < box.height)
+            mask[(size_t) my * box.width + mx] = 1;
+          if (x == b.x && y == b.y)
+            break;
+          int e2 = 2 * err;
+          if (e2 >= dy) { err += dy; x += sx; }
+          if (e2 <= dx) { err += dx; y += sy; }
+        }
+    }
+  return mask;
+}

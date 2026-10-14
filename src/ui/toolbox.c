@@ -12,7 +12,7 @@ typedef struct
 /* Order matches the classic two-column layout, row by row. */
 static const ToolDef tools[EASEL_N_TOOLS] = {
   [EASEL_TOOL_FREE_FORM_SELECT] = { "Free-Form Select", "edit-select-lasso-symbolic", "FS",
-    "Selects a free-form part of the picture to move, copy, or edit.", FALSE },
+    "Selects a free-form part of the picture to move, copy, or edit.", TRUE },
   [EASEL_TOOL_SELECT] = { "Select", "edit-select-all-symbolic", "Se",
     "Selects a rectangular part of the picture to move, copy, or edit.", TRUE },
   [EASEL_TOOL_ERASER] = { "Eraser", "edit-clear-all-symbolic", "Er",

@@ -67,6 +67,9 @@ struct _EaselCanvas
   GdkTexture *sel_texture;   /* sel_clip as shown on screen */
   gboolean    sel_creating, sel_moving;
   int         sel_grab_x, sel_grab_y;
+  uint8_t    *sel_mask;      /* free-form shape inside sel_rect, NULL for a rectangle */
+  GArray     *sel_path;      /* free-form outline (EaselPoint), NULL for a rectangle */
+  int         sel_path_x, sel_path_y; /* sel_rect origin when the outline was made */
   gboolean    sel_opaque;    /* Draw Opaque: background-coloured pixels are kept */
 
   /* Undo */
@@ -363,10 +366,30 @@ draw_selection (EaselCanvas *self, GtkSnapshot *snapshot, double s)
       gtk_snapshot_append_scaled_texture (snapshot, self->sel_texture, GSK_SCALING_FILTER_NEAREST, &at);
     }
 
-  graphene_rect_t box = GRAPHENE_RECT_INIT ((float) (r.x * s) + 0.5f, (float) (r.y * s) + 0.5f,
-                                            (float) (r.width * s) - 1, (float) (r.height * s) - 1);
   GskPathBuilder *builder = gsk_path_builder_new ();
-  gsk_path_builder_add_rect (builder, &box);
+  if (self->sel_path != NULL)
+    {
+      int ox = self->sel_creating ? 0 : r.x - self->sel_path_x;
+      int oy = self->sel_creating ? 0 : r.y - self->sel_path_y;
+
+      for (guint i = 0; i < self->sel_path->len; i++)
+        {
+          EaselPoint q = g_array_index (self->sel_path, EaselPoint, i);
+          float qx = (float) ((q.x + ox + 0.5) * s), qy = (float) ((q.y + oy + 0.5) * s);
+          if (i == 0)
+            gsk_path_builder_move_to (builder, qx, qy);
+          else
+            gsk_path_builder_line_to (builder, qx, qy);
+        }
+      if (!self->sel_creating)
+        gsk_path_builder_close (builder);
+    }
+  else
+    {
+      graphene_rect_t box = GRAPHENE_RECT_INIT ((float) (r.x * s) + 0.5f, (float) (r.y * s) + 0.5f,
+                                                (float) (r.width * s) - 1, (float) (r.height * s) - 1);
+      gsk_path_builder_add_rect (builder, &box);
+    }
   GskPath *path = gsk_path_builder_free_to_path (builder);
 
   const GdkRGBA white = { 1, 1, 1, 1 }, black = { 0, 0, 0, 1 };
@@ -651,7 +674,7 @@ sel_lift (EaselCanvas *self, gboolean copy)
   if (self->sel_clip != NULL || !self->sel_active)
     return;
 
-  self->sel_clip = easel_clip_copy_from (self->doc, self->sel_rect, NULL);
+  self->sel_clip = easel_clip_copy_from (self->doc, self->sel_rect, self->sel_mask);
   if (self->sel_clip == NULL)
     return;
   g_free (self->sel_base);
@@ -659,7 +682,7 @@ sel_lift (EaselCanvas *self, gboolean copy)
   self->sel_edit = (EaselRect) { 0, 0, 0, 0 };
   if (!copy)
     {
-      self->sel_edit = easel_clip_erase (self->doc, self->sel_rect, NULL, hole_color (self));
+      self->sel_edit = easel_clip_erase (self->doc, self->sel_rect, self->sel_mask, hole_color (self));
       mark_dirty (self, self->sel_edit);
     }
   sel_refresh_texture (self);
@@ -671,6 +694,8 @@ sel_discard (EaselCanvas *self)
   g_clear_pointer (&self->sel_clip, easel_clip_free);
   g_clear_pointer (&self->sel_base, g_free);
   g_clear_object (&self->sel_texture);
+  g_clear_pointer (&self->sel_mask, g_free);
+  g_clear_pointer (&self->sel_path, g_array_unref);
   self->sel_active = self->sel_creating = self->sel_moving = FALSE;
   self->sel_edit = (EaselRect) { 0, 0, 0, 0 };
   gtk_widget_queue_draw (GTK_WIDGET (self));
@@ -706,6 +731,12 @@ sel_rect_between (EaselCanvas *self, int x0, int y0, int x1, int y1)
   int bottom = CLAMP (MAX (y0, y1), 0, self->doc->height - 1);
 
   return (EaselRect) { left, top, right - left + 1, bottom - top + 1 };
+}
+
+static gboolean
+is_select_tool (EaselTool tool)
+{
+  return tool == EASEL_TOOL_SELECT || tool == EASEL_TOOL_FREE_FORM_SELECT;
 }
 
 static gboolean
@@ -869,6 +900,7 @@ on_drag_begin (GtkGestureDrag *gesture, double x, double y, EaselCanvas *self)
   switch (self->tool)
     {
     case EASEL_TOOL_SELECT:
+    case EASEL_TOOL_FREE_FORM_SELECT:
       self->drawing = TRUE;
       if (sel_contains (self, self->last_x, self->last_y))
         {
@@ -882,6 +914,13 @@ on_drag_begin (GtkGestureDrag *gesture, double x, double y, EaselCanvas *self)
           sel_commit (self);
           self->sel_creating = TRUE;
           self->sel_rect = sel_rect_between (self, self->last_x, self->last_y, self->last_x, self->last_y);
+          if (self->tool == EASEL_TOOL_FREE_FORM_SELECT)
+            {
+              EaselPoint p = { self->sel_rect.x, self->sel_rect.y };
+              self->sel_path = g_array_new (FALSE, FALSE, sizeof (EaselPoint));
+              g_array_append_val (self->sel_path, p);
+              self->sel_path_x = self->sel_path_y = 0;
+            }
         }
       gtk_widget_queue_draw (GTK_WIDGET (self));
       break;
@@ -1053,12 +1092,27 @@ on_drag_update (GtkGestureDrag *gesture, double offset_x, double offset_y, Easel
       self->seq_moved = TRUE;
       seq_render (self, FALSE, FALSE, 0, 0);
     }
-  else if (self->tool == EASEL_TOOL_SELECT)
+  else if (is_select_tool (self->tool))
     {
       if (self->sel_moving)
         {
           self->sel_rect.x = x - self->sel_grab_x;
           self->sel_rect.y = y - self->sel_grab_y;
+        }
+      else if (self->sel_creating && self->sel_path != NULL)
+        {
+          EaselPoint p = { CLAMP (x, 0, self->doc->width - 1), CLAMP (y, 0, self->doc->height - 1) };
+          EaselPoint last = g_array_index (self->sel_path, EaselPoint, self->sel_path->len - 1);
+
+          if (p.x != last.x || p.y != last.y)
+            g_array_append_val (self->sel_path, p);
+          int x0 = p.x, y0 = p.y, x1 = p.x, y1 = p.y;
+          for (guint i = 0; i < self->sel_path->len; i++)
+            {
+              EaselPoint q = g_array_index (self->sel_path, EaselPoint, i);
+              x0 = MIN (x0, q.x); y0 = MIN (y0, q.y); x1 = MAX (x1, q.x); y1 = MAX (y1, q.y);
+            }
+          self->sel_rect = (EaselRect) { x0, y0, x1 - x0 + 1, y1 - y0 + 1 };
         }
       else if (self->sel_creating)
         self->sel_rect = sel_rect_between (self, self->start_ix, self->start_iy, x, y);
@@ -1094,9 +1148,27 @@ on_drag_end (GtkGestureDrag *gesture, double offset_x, double offset_y, EaselCan
   self->drawing = FALSE;
   gtk_widget_queue_draw (GTK_WIDGET (self)); /* hover preview comes back */
 
-  if (self->tool == EASEL_TOOL_SELECT)
+  if (is_select_tool (self->tool))
     {
-      if (self->sel_creating)
+      if (self->sel_creating && self->sel_path != NULL)
+        {
+          self->sel_creating = FALSE;
+          if (self->sel_path->len >= 3)
+            {
+              self->sel_mask = easel_raster_polygon_mask ((EaselPoint *) (void *) self->sel_path->data,
+                                                          (int) self->sel_path->len, self->sel_rect);
+              self->sel_path_x = self->sel_rect.x;
+              self->sel_path_y = self->sel_rect.y;
+              self->sel_active = self->sel_mask != NULL;
+            }
+          if (!self->sel_active)
+            {
+              g_clear_pointer (&self->sel_path, g_array_unref);
+              gtk_widget_queue_draw (GTK_WIDGET (self));
+            }
+          sel_notify (self);
+        }
+      else if (self->sel_creating)
         {
           int x, y;
           to_image (self, self->start_x + offset_x, self->start_y + offset_y, &x, &y);
@@ -1220,7 +1292,7 @@ static void
 on_motion (GtkEventControllerMotion *controller, double x, double y, EaselCanvas *self)
 {
   /* Over a selection the pointer offers to move it. */
-  if (self->tool == EASEL_TOOL_SELECT && self->resize_handle == 0 && self->handle_hover == 0)
+  if (is_select_tool (self->tool) && self->resize_handle == 0 && self->handle_hover == 0)
     {
       int ix, iy;
       to_image (self, x, y, &ix, &iy);
@@ -1701,7 +1773,7 @@ selection_pixels (EaselCanvas *self)
         }
       return c;
     }
-  return easel_clip_copy_from (self->doc, self->sel_rect, NULL);
+  return easel_clip_copy_from (self->doc, self->sel_rect, self->sel_mask);
 }
 
 void
@@ -1737,7 +1809,7 @@ easel_canvas_clear_selection (EaselCanvas *self)
   else
     {
       begin_edit (self);
-      mark_dirty (self, easel_clip_erase (self->doc, self->sel_rect, NULL, hole_color (self)));
+      mark_dirty (self, easel_clip_erase (self->doc, self->sel_rect, self->sel_mask, hole_color (self)));
       finish_edit (self);
       sel_discard (self);
     }

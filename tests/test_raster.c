@@ -575,6 +575,41 @@ test_clip (void)
   easel_document_free (doc);
 }
 
+static void
+test_polygon_mask (void)
+{
+  EaselPoint tri[] = { { 0, 0 }, { 9, 0 }, { 0, 9 } };
+  EaselRect box = { 0, 0, 10, 10 };
+  uint8_t *m = easel_raster_polygon_mask (tri, 3, box);
+  int n = 0;
+
+  CHECK (m != NULL);
+  for (int i = 0; i < 100; i++)
+    n += m[i];
+  CHECK (n >= 45 && n <= 60);            /* about half the box */
+  CHECK (m[0] == 1 && m[9] == 1 && m[90] == 1);
+  CHECK (m[99] == 0);                    /* far corner is outside */
+  free (m);
+
+  /* A box that starts away from the origin. */
+  EaselPoint sq[] = { { 20, 30 }, { 24, 30 }, { 24, 33 }, { 20, 33 } };
+  m = easel_raster_polygon_mask (sq, 4, (EaselRect) { 20, 30, 5, 4 });
+  n = 0;
+  for (int i = 0; i < 20; i++)
+    n += m[i];
+  CHECK (n == 20);
+  free (m);
+
+  /* A bare line (two points) still selects its pixels. */
+  EaselPoint ln[] = { { 0, 0 }, { 4, 4 } };
+  m = easel_raster_polygon_mask (ln, 2, (EaselRect) { 0, 0, 5, 5 });
+  n = 0;
+  for (int i = 0; i < 25; i++)
+    n += m[i];
+  CHECK (n == 5);
+  free (m);
+}
+
 int
 main (void)
 {
@@ -589,6 +624,7 @@ main (void)
   test_history ();
   test_resize ();
   test_clip ();
+  test_polygon_mask ();
 
   if (failures != 0)
     {

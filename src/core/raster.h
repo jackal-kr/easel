@@ -96,3 +96,7 @@ EaselRect easel_raster_curve (EaselDocument *doc, EaselPoint p0, EaselPoint c1, 
  * generator state `*rng` must be non-zero and is advanced. */
 EaselRect easel_raster_spray (EaselDocument *doc, int cx, int cy, int diameter, uint32_t color,
                               int count, uint32_t *rng);
+
+/* Free-form selection shape: one byte per pixel of `box` (1 = inside the
+ * closed polygon, edges included). Caller frees. NULL on failure. */
+uint8_t *easel_raster_polygon_mask (const EaselPoint *pts, int n, EaselRect box);
