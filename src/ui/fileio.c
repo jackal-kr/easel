@@ -1,4 +1,5 @@
 #include "ui/fileio.h"
+#include <glib/gi18n.h>
 
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <string.h>
@@ -54,7 +55,7 @@ easel_file_load (GFile *file, GError **error)
   EaselDocument *doc = easel_document_new (w, h, EASEL_RGB (255, 255, 255));
   if (doc == NULL)
     {
-      g_set_error (error, G_IO_ERROR, G_IO_ERROR_NO_SPACE, "The picture is too large (%d × %d)", w, h);
+      g_set_error (error, G_IO_ERROR, G_IO_ERROR_NO_SPACE, _("The picture is too large (%d × %d)"), w, h);
       return NULL;
     }
 
@@ -89,7 +90,7 @@ easel_file_save (const EaselDocument *doc, GFile *file, GError **error)
   g_autoptr (GdkPixbuf) pixbuf = gdk_pixbuf_new (GDK_COLORSPACE_RGB, alpha, 8, doc->width, doc->height);
   if (pixbuf == NULL)
     {
-      g_set_error (error, G_IO_ERROR, G_IO_ERROR_NO_SPACE, "Not enough memory to save the picture");
+      g_set_error (error, G_IO_ERROR, G_IO_ERROR_NO_SPACE, _("Not enough memory to save the picture"));
       return FALSE;
     }
 

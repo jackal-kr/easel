@@ -10,8 +10,8 @@ Refactor stages 1-3: shared constants, enums, shadow undo base, texture buffer p
 
 ## Next (see docs/specs)
 1. ~~**0001 Packaging**~~ — done locally: icon, `.desktop`, metainfo, install rules, `.deb`, Flatpak. Left: screenshots for metainfo, Flathub submission, release automation.
-2. **0002 i18n** — gettext wiring, extract strings, `po/`.
-3. **0003 Accessibility** — accessible names/roles for canvas, palette, toolbox; keyboard access to palette and canvas drawing.
+2. **0002 i18n (done: pl, uk; check with tools/check-i18n.sh)** — gettext wiring, extract strings, `po/`.
+3. **0003 Accessibility (done, Orca check pending)** — accessible names/roles for canvas, palette, toolbox; keyboard access to palette and canvas drawing.
 4. CI (needs libadwaita >= 1.8 — container or Flatpak SDK; the Flatpak build could run in CI).
 
 ## Ideas / backlog

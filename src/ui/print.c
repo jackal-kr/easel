@@ -1,6 +1,7 @@
 #include "ui/print.h"
 
 #include <adwaita.h>
+#include <glib/gi18n.h>
 
 #include "ui/config.h"
 
@@ -59,7 +60,7 @@ easel_print_picture (GtkWindow *parent, EaselCanvas *canvas)
   if (error != NULL)
     {
       /* "done" releases op. */
-      AdwDialog *dialog = adw_alert_dialog_new ("Could not print the picture", error->message);
+      AdwDialog *dialog = adw_alert_dialog_new (_("Could not print the picture"), error->message);
 
       adw_alert_dialog_add_response (ADW_ALERT_DIALOG (dialog), "ok", "_OK");
       adw_dialog_present (dialog, GTK_WIDGET (parent));

@@ -1,4 +1,5 @@
 #include "ui/toolbox.h"
+#include <glib/gi18n.h>
 
 #include "ui/config.h"
 #include "ui/settings.h"
@@ -12,10 +13,10 @@ static const int circle_sizes[] = { 7, 4, 1 };
 static const int other_sizes[] = { 8, 5, 2 };
 
 static const struct { EaselBrushShape shape; const char *name; } brush_shapes[] = {
-  { EASEL_BRUSH_CIRCLE, "Round" },
-  { EASEL_BRUSH_SQUARE, "Square" },
-  { EASEL_BRUSH_SLASH, "Forward diagonal" },
-  { EASEL_BRUSH_BACKSLASH, "Backward diagonal" },
+  { EASEL_BRUSH_CIRCLE, N_("Round") },
+  { EASEL_BRUSH_SQUARE, N_("Square") },
+  { EASEL_BRUSH_SLASH, N_("Forward diagonal") },
+  { EASEL_BRUSH_BACKSLASH, N_("Backward diagonal") },
 };
 
 typedef enum { OPTION_PENCIL, OPTION_BRUSH, OPTION_ERASER, OPTION_LINE, OPTION_FILL,
@@ -27,9 +28,9 @@ static const int zoom_levels[] = EASEL_MAGNIFIER_LEVELS;
 
 static const int line_widths[] = { 1, 2, 3, 4, 5 };
 static const struct { EaselFillStyle style; const char *name; } fill_styles[] = {
-  { EASEL_FILL_OUTLINE, "Outline" },
-  { EASEL_FILL_OUTLINE_AND_FILL, "Outline and fill" },
-  { EASEL_FILL_SOLID, "Fill, no outline" },
+  { EASEL_FILL_OUTLINE, N_("Outline") },
+  { EASEL_FILL_OUTLINE_AND_FILL, N_("Outline and fill") },
+  { EASEL_FILL_SOLID, N_("Fill, no outline") },
 };
 
 struct _EaselToolbox
@@ -343,11 +344,11 @@ make_option_button (EaselToolbox *self, OptionKind kind, EaselBrushShape shape, 
   g_autofree char *tip = kind == OPTION_OPAQUE || kind == OPTION_TEXT_OPAQUE || kind == OPTION_ERASER_OPAQUE || kind == OPTION_GRADIENT
                            ? g_strdup (shape_name)
                            : kind == OPTION_ZOOM
-                           ? g_strdup_printf ("%d×", size)
+                           ? g_strdup_printf (_("%d×"), size)
                            : kind == OPTION_FILL
                            ? g_strdup (shape_name)
-                           : (shape_name != NULL ? g_strdup_printf ("%s, %d px", shape_name, size)
-                                                 : g_strdup_printf ("%d px", size));
+                           : (shape_name != NULL ? g_strdup_printf (_("%s, %d px"), shape_name, size)
+                                                 : g_strdup_printf (_("%d px"), size));
 
   if (with_preview)
     {
@@ -453,8 +454,8 @@ static GtkWidget *
 build_opaque_options (EaselToolbox *self, OptionKind kind, GtkWidget *grid, int first_row)
 {
   GtkWidget *leader = NULL;
-  static const char *const select_names[] = { "Transparent: hide background color", "Opaque: keep the selection's background" };
-  static const char *const eraser_names[] = { "Transparent: erase to transparency", "Opaque: erase to the background color" };
+  const char *const select_names[] = { _("Transparent: hide background color"), _("Opaque: keep the selection's background") };
+  const char *const eraser_names[] = { _("Transparent: erase to transparency"), _("Opaque: erase to the background color") };
   gboolean current = kind == OPTION_OPAQUE ? self->opaque
                    : kind == OPTION_ERASER_OPAQUE ? self->eraser_opaque : self->text_opaque;
   const char *const *names = kind == OPTION_ERASER_OPAQUE ? eraser_names : select_names;
@@ -506,7 +507,7 @@ on_font_button_clicked (GtkButton *button, EaselToolbox *self)
   GtkFontDialog *dialog = gtk_font_dialog_new ();
   PangoFontDescription *current = pango_font_description_from_string (self->font);
 
-  gtk_font_dialog_set_title (dialog, "Font");
+  gtk_font_dialog_set_title (dialog, _("Font"));
   gtk_font_dialog_choose_font (dialog, GTK_WINDOW (gtk_widget_get_root (GTK_WIDGET (self))), current, NULL,
                                on_font_chosen, g_object_ref (self));
   pango_font_description_free (current);
@@ -571,23 +572,23 @@ build_text_options (EaselToolbox *self)
   gtk_widget_set_margin_bottom (rule, 4);
   gtk_grid_attach (GTK_GRID (grid), rule, 0, 2, 2, 1);
 
-  gtk_grid_attach (GTK_GRID (grid), make_style_button (self, 0, "format-text-bold-symbolic", "Bold"), 0, 3, 1, 1);
-  gtk_grid_attach (GTK_GRID (grid), make_style_button (self, 1, "format-text-italic-symbolic", "Italic"), 1, 3, 1, 1);
-  gtk_grid_attach (GTK_GRID (grid), make_style_button (self, 2, "format-text-underline-symbolic", "Underline"), 0, 4, 1, 1);
-  gtk_grid_attach (GTK_GRID (grid), make_style_button (self, 3, "format-text-strikethrough-symbolic", "Strikethrough"), 1, 4, 1, 1);
+  gtk_grid_attach (GTK_GRID (grid), make_style_button (self, 0, "format-text-bold-symbolic", _("Bold")), 0, 3, 1, 1);
+  gtk_grid_attach (GTK_GRID (grid), make_style_button (self, 1, "format-text-italic-symbolic", _("Italic")), 1, 3, 1, 1);
+  gtk_grid_attach (GTK_GRID (grid), make_style_button (self, 2, "format-text-underline-symbolic", _("Underline")), 0, 4, 1, 1);
+  gtk_grid_attach (GTK_GRID (grid), make_style_button (self, 3, "format-text-strikethrough-symbolic", _("Strikethrough")), 1, 4, 1, 1);
 
   rule = gtk_separator_new (GTK_ORIENTATION_HORIZONTAL);
   gtk_widget_set_margin_top (rule, 4);
   gtk_widget_set_margin_bottom (rule, 4);
   gtk_grid_attach (GTK_GRID (grid), rule, 0, 5, 2, 1);
 
-  self->font_button = gtk_button_new_with_label ("Font…");
+  self->font_button = gtk_button_new_with_label (_("Font…"));
   gtk_widget_set_tooltip_text (self->font_button, self->font);
   g_signal_connect (self->font_button, "clicked", G_CALLBACK (on_font_button_clicked), self);
   gtk_grid_attach (GTK_GRID (grid), self->font_button, 0, 6, 2, 1);
 
-  GtkWidget *smooth = gtk_toggle_button_new_with_label ("Smooth");
-  gtk_widget_set_tooltip_text (smooth, "Smooth text edges (anti-aliasing)");
+  GtkWidget *smooth = gtk_toggle_button_new_with_label (_("Smooth"));
+  gtk_widget_set_tooltip_text (smooth, _("Smooth text edges (anti-aliasing)"));
   g_signal_connect (smooth, "toggled", G_CALLBACK (on_smooth_toggled), self);
   gtk_grid_attach (GTK_GRID (grid), smooth, 0, 7, 2, 1);
   return grid;
@@ -609,7 +610,7 @@ static GtkWidget *
 build_gradient_options (EaselToolbox *self)
 {
   GtkWidget *grid = make_options_grid (), *leader = NULL;
-  static const char *const names[] = { "Linear", "Radial", "Reflected" };
+  const char *const names[] = { _("Linear"), _("Radial"), _("Reflected") };
 
   for (int i = 0; i < 3; i++)
     add_option (grid, &leader,
@@ -638,7 +639,7 @@ build_shape_options (EaselToolbox *self, int form)
   for (guint i = 0; i < G_N_ELEMENTS (fill_styles); i++)
     {
       GtkWidget *b = make_option_button (self, OPTION_FILL, EASEL_BRUSH_CIRCLE, (int) fill_styles[i].style,
-                                         fill_styles[i].name, TRUE, form);
+                                         _(fill_styles[i].name), TRUE, form);
       self->fill_buttons[form][i] = b;
       add_option (grid, &leader, b, (int) (i % 2), (int) (i / 2), fill_styles[i].style == self->fill_style);
     }
@@ -661,7 +662,7 @@ build_brush_options (EaselToolbox *self)
         {
           int n = (int) row * 3 + col;
           GtkWidget *b = make_option_button (self, OPTION_BRUSH, shape, sizes[col],
-                                             brush_shapes[row].name, TRUE, 0);
+                                             _(brush_shapes[row].name), TRUE, 0);
           self->brush_buttons[n] = b;
           add_option (grid, &leader, b, n % 2, n / 2,
                       shape == self->brush_shape && sizes[col] == self->brush_size);
@@ -685,9 +686,9 @@ make_tool_button (EaselTool id, GtkIconTheme *theme)
     }
 
   gtk_widget_add_css_class (button, "flat");
-  gtk_widget_set_tooltip_text (button, def->name);
+  gtk_widget_set_tooltip_text (button, _(def->name));
   gtk_accessible_update_property (GTK_ACCESSIBLE (button), GTK_ACCESSIBLE_PROPERTY_LABEL,
-                                  def->name, -1);
+                                  _(def->name), -1);
   g_object_set_data (G_OBJECT (button), "easel-tool", GINT_TO_POINTER (id));
   return button;
 }
@@ -915,7 +916,7 @@ const char *
 easel_toolbox_get_tool_hint (EaselToolbox *self)
 {
   g_return_val_if_fail (EASEL_IS_TOOLBOX (self), "");
-  return easel_tool_info (self->tool)->hint;
+  return _(easel_tool_info (self->tool)->hint);
 }
 
 int

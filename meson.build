@@ -6,6 +6,7 @@ project('easel', 'c',
 )
 
 gnome = import('gnome')
+i18n = import('i18n')
 cc = meson.get_compiler('c')
 
 app_id = 'io.github.jackal_kr.Easel'
@@ -25,10 +26,13 @@ add_project_arguments(
   ]),
   '-DEASEL_VERSION="@0@"'.format(meson.project_version()),
   '-DEASEL_DOCDIR="@0@"'.format(get_option('prefix') / get_option('datadir') / 'doc' / 'easel'),
+  '-DGETTEXT_PACKAGE="easel"',
+  '-DLOCALEDIR="@0@"'.format(get_option('prefix') / get_option('localedir')),
   '-DEASEL_APP_ID="@0@"'.format(app_id),
   language: 'c',
 )
 
+subdir('po')
 subdir('data')
 subdir('src')
 subdir('tests')

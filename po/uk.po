@@ -1,0 +1,1181 @@
+# Ukrainian translations for easel package.
+# Copyright (C) 2026 THE easel'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the easel package.
+# JOD (Oleksiy Degtyar), 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: easel\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-14 17:10+0200\n"
+"PO-Revision-Date: 2026-10-14 17:06+0200\n"
+"Last-Translator: JOD (Oleksiy Degtyar)\n"
+"Language-Team: none\n"
+"Language: uk\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+
+#: data/io.github.jackal_kr.Easel.desktop.in:3
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:4
+msgid "Easel"
+msgstr "Easel"
+
+#: data/io.github.jackal_kr.Easel.desktop.in:4
+msgid "Paint Program"
+msgstr "Програма для малювання"
+
+#: data/io.github.jackal_kr.Easel.desktop.in:5
+msgid "Draw and edit pictures, in the spirit of classic Paint"
+msgstr "Малюйте й редагуйте зображення в дусі класичного Paint"
+
+#: data/io.github.jackal_kr.Easel.desktop.in:12
+msgid "paint;draw;picture;image;bitmap;mspaint;"
+msgstr "малювання;зображення;картинка;растрове;paint;mspaint;"
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:5
+msgid "A simple paint program in the spirit of classic Paint"
+msgstr "Проста програма для малювання в дусі класичного Paint"
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:9
+msgid "JOD (Oleksiy Degtyar)"
+msgstr "JOD (Oleksiy Degtyar)"
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:12
+msgid ""
+"Easel is a native GNOME paint program with the functionality and workflow of "
+"the old Microsoft Paint of Windows XP, built with GTK 4 and libadwaita."
+msgstr ""
+"Easel — це рідна для GNOME програма для малювання з можливостями й робочим "
+"процесом старого Microsoft Paint з Windows XP, створена на GTK 4 і "
+"libadwaita."
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:17
+msgid ""
+"All the classic tools: pencil, brush, airbrush, eraser, fill, text, line, "
+"curve, shapes and selections"
+msgstr ""
+"Усі класичні інструменти: олівець, пензель, аерограф, гумка, заливка, текст, "
+"лінія, крива, фігури та виділення"
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:18
+msgid "Unlimited-step undo and redo, zoom, pixel grid and thumbnail"
+msgstr ""
+"Необмежене скасування й повторення, масштаб, піксельна сітка та мініатюра"
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:19
+msgid "Open and save PNG, JPEG, BMP, TIFF and WebP"
+msgstr "Відкриття й збереження PNG, JPEG, BMP, TIFF та WebP"
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:20
+msgid "Light and dark style, keyboard shortcuts, Preferences"
+msgstr "Світлий і темний стиль, клавіатурні скорочення, налаштування"
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:40
+msgid "First public version."
+msgstr "Перша публічна версія."
+
+#: data/menus.ui:7 src/main.c:65
+msgid "Flip/Rotate…"
+msgstr "Віддзеркалити/повернути…"
+
+#: data/menus.ui:8
+msgid "Stretch/Skew…"
+msgstr "Розтягнути/нахилити…"
+
+#: data/menus.ui:9 data/menus.ui:39 src/main.c:65
+msgid "Invert Colors"
+msgstr "Інвертувати кольори"
+
+#: data/menus.ui:10 src/main.c:65
+msgid "Attributes…"
+msgstr "Атрибути…"
+
+#: data/menus.ui:13 src/main.c:66
+msgid "Clear Image"
+msgstr "Очистити зображення"
+
+#: data/menus.ui:14
+msgid "Draw Opaque"
+msgstr "Малювати непрозоро"
+
+#: data/menus.ui:21 data/menus.ui:45 data/menus.ui:86 src/main.c:59
+msgid "Cut"
+msgstr "Вирізати"
+
+#: data/menus.ui:22 data/menus.ui:46 data/menus.ui:87 src/main.c:59
+msgid "Copy"
+msgstr "Копіювати"
+
+#: data/menus.ui:23 data/menus.ui:47 data/menus.ui:88 src/main.c:59
+msgid "Paste"
+msgstr "Вставити"
+
+#: data/menus.ui:26 data/menus.ui:89 src/main.c:60
+msgid "Clear Selection"
+msgstr "Очистити виділення"
+
+#: data/menus.ui:27 data/menus.ui:51 data/menus.ui:90 src/main.c:59
+msgid "Select All"
+msgstr "Вибрати все"
+
+#: data/menus.ui:28 data/menus.ui:93
+msgid "Copy To…"
+msgstr "Копіювати до…"
+
+#: data/menus.ui:31
+msgid "Flip Horizontal"
+msgstr "Віддзеркалити горизонтально"
+
+#: data/menus.ui:32
+msgid "Flip Vertical"
+msgstr "Віддзеркалити вертикально"
+
+#: data/menus.ui:34
+msgid "Rotate"
+msgstr "Повернути"
+
+#: data/menus.ui:35
+msgid "90° Right"
+msgstr "90° праворуч"
+
+#: data/menus.ui:36
+msgid "180°"
+msgstr "180°"
+
+#: data/menus.ui:37
+msgid "90° Left"
+msgstr "90° ліворуч"
+
+#: data/menus.ui:48
+msgid "Delete"
+msgstr "Видалити"
+
+#: data/menus.ui:60 src/main.c:62
+msgid "Normal Size"
+msgstr "Звичайний розмір"
+
+#: data/menus.ui:61 src/main.c:62
+msgid "Large Size"
+msgstr "Великий розмір"
+
+#: data/menus.ui:62
+msgid "Custom Zoom…"
+msgstr "Власний масштаб…"
+
+#: data/menus.ui:65 src/main.c:63
+msgid "Show Grid"
+msgstr "Показати сітку"
+
+#: data/menus.ui:66
+msgid "Show Thumbnail"
+msgstr "Показати мініатюру"
+
+#: data/menus.ui:69
+msgid "Tool Box"
+msgstr "Панель інструментів"
+
+#: data/menus.ui:70
+msgid "Color Box"
+msgstr "Панель кольорів"
+
+#: data/menus.ui:71
+msgid "Status Bar"
+msgstr "Рядок стану"
+
+#: data/menus.ui:72
+msgid "Frame Time"
+msgstr "Час кадру"
+
+#: data/menus.ui:78 src/main.c:55
+msgid "New"
+msgstr "Створити"
+
+#: data/menus.ui:79 src/main.c:55
+msgid "Save As…"
+msgstr "Зберегти як…"
+
+#: data/menus.ui:80 src/main.c:56
+msgid "Print…"
+msgstr "Друкувати…"
+
+#: data/menus.ui:84 src/main.c:71
+msgid "Edit"
+msgstr "Редагування"
+
+#: data/menus.ui:94
+msgid "Paste From…"
+msgstr "Вставити з…"
+
+#: data/menus.ui:97 src/ui/preferences.c:292 src/ui/preferences.c:295
+msgid "Preferences"
+msgstr "Налаштування"
+
+#: data/menus.ui:98 src/main.c:68
+msgid "Keyboard Shortcuts"
+msgstr "Клавіатурні скорочення"
+
+#: data/menus.ui:99
+msgid "Help"
+msgstr "Довідка"
+
+#: data/menus.ui:100
+msgid "About Easel"
+msgstr "Про Easel"
+
+#: src/main.c:20
+msgid "Microsoft Paint in Windows XP, the original that inspired Easel"
+msgstr "Microsoft Paint у Windows XP — оригінал, що надихнув Easel"
+
+#: src/main.c:30
+msgid ""
+"A simple paint program in the spirit of classic Microsoft Paint, built for "
+"GNOME."
+msgstr ""
+"Проста програма для малювання в дусі класичного Microsoft Paint, створена "
+"для GNOME."
+
+#: src/main.c:33
+msgid "Inspired by"
+msgstr "Натхнення"
+
+#: src/main.c:55
+msgid "Open…"
+msgstr "Відкрити…"
+
+#: src/main.c:55
+msgid "Save"
+msgstr "Зберегти"
+
+#: src/main.c:56
+msgid "Quit"
+msgstr "Вийти"
+
+#: src/main.c:58 src/ui/preferences.c:240
+msgid "Undo"
+msgstr "Скасувати"
+
+#: src/main.c:58
+msgid "Redo"
+msgstr "Повторити"
+
+#: src/main.c:58
+msgid "Redo (alternative)"
+msgstr "Повторити (альтернативно)"
+
+#: src/main.c:62
+msgid "Zoom with the wheel"
+msgstr "Масштабування колесом миші"
+
+#: src/main.c:66
+msgid "Swap Foreground/Background"
+msgstr "Поміняти основний колір і колір тла"
+
+#: src/main.c:68
+msgid "Cancel the current drawing or selection"
+msgstr "Скасувати поточне малювання або виділення"
+
+#: src/main.c:70
+msgid "File"
+msgstr "Файл"
+
+#: src/main.c:72 src/ui/window.c:1204
+msgid "View"
+msgstr "Вигляд"
+
+#: src/main.c:73
+msgid "Image and Colors"
+msgstr "Зображення та кольори"
+
+#: src/main.c:74
+msgid "General"
+msgstr "Загальні"
+
+#: src/main.c:100
+msgid "Help Not Found"
+msgstr "Довідку не знайдено"
+
+#: src/main.c:100
+msgid "The help file is not installed."
+msgstr "Файл довідки не встановлено."
+
+#: src/ui/colorbox.c:36
+msgid "Black"
+msgstr "Чорний"
+
+#: src/ui/colorbox.c:36
+msgid "Dark Gray"
+msgstr "Темно-сірий"
+
+#: src/ui/colorbox.c:36
+msgid "Dark Red"
+msgstr "Темно-червоний"
+
+#: src/ui/colorbox.c:36
+msgid "Olive"
+msgstr "Оливковий"
+
+#: src/ui/colorbox.c:36
+msgid "Dark Green"
+msgstr "Темно-зелений"
+
+#: src/ui/colorbox.c:36
+msgid "Teal"
+msgstr "Бірюзовий"
+
+#: src/ui/colorbox.c:36
+msgid "Dark Blue"
+msgstr "Темно-синій"
+
+#: src/ui/colorbox.c:37
+msgid "Purple"
+msgstr "Пурпуровий"
+
+#: src/ui/colorbox.c:37
+msgid "Dark Khaki"
+msgstr "Темний хакі"
+
+#: src/ui/colorbox.c:37
+msgid "Dark Teal"
+msgstr "Темно-бірюзовий"
+
+#: src/ui/colorbox.c:37
+msgid "Azure"
+msgstr "Блакитний"
+
+#: src/ui/colorbox.c:37
+msgid "Navy Blue"
+msgstr "Морський синій"
+
+#: src/ui/colorbox.c:37
+msgid "Violet"
+msgstr "Фіолетовий"
+
+#: src/ui/colorbox.c:37
+msgid "Brown"
+msgstr "Коричневий"
+
+#: src/ui/colorbox.c:38
+msgid "White"
+msgstr "Білий"
+
+#: src/ui/colorbox.c:38
+msgid "Light Gray"
+msgstr "Світло-сірий"
+
+#: src/ui/colorbox.c:38
+msgid "Red"
+msgstr "Червоний"
+
+#: src/ui/colorbox.c:38
+msgid "Yellow"
+msgstr "Жовтий"
+
+#: src/ui/colorbox.c:38
+msgid "Lime"
+msgstr "Лаймовий"
+
+#: src/ui/colorbox.c:38
+msgid "Cyan"
+msgstr "Ціан"
+
+#: src/ui/colorbox.c:38
+msgid "Blue"
+msgstr "Синій"
+
+#: src/ui/colorbox.c:38
+msgid "Magenta"
+msgstr "Маджента"
+
+#: src/ui/colorbox.c:39
+msgid "Light Yellow"
+msgstr "Світло-жовтий"
+
+#: src/ui/colorbox.c:39
+msgid "Spring Green"
+msgstr "Весняна зелень"
+
+#: src/ui/colorbox.c:39
+msgid "Light Cyan"
+msgstr "Світло-ціан"
+
+#: src/ui/colorbox.c:39
+msgid "Periwinkle"
+msgstr "Барвінковий"
+
+#: src/ui/colorbox.c:39
+msgid "Rose"
+msgstr "Рожевий"
+
+#: src/ui/colorbox.c:39
+msgid "Orange"
+msgstr "Помаранчевий"
+
+#: src/ui/colorbox.c:64
+#, c-format
+msgid "%s (#%06X)"
+msgstr "%s (#%06X)"
+
+#: src/ui/colorbox.c:95
+#, c-format
+msgid "Foreground: %s. Background: %s."
+msgstr "Основний: %s. Тло: %s."
+
+#: src/ui/colorbox.c:98
+#, c-format
+msgid "Color %d of %d: %s. Foreground: %s. Background: %s."
+msgstr "Колір %d з %d: %s. Основний: %s. Тло: %s."
+
+#: src/ui/colorbox.c:102
+msgid "Foreground and background colors"
+msgstr "Основний колір і колір тла"
+
+#: src/ui/colorbox.c:105
+msgid "Color palette"
+msgstr "Палітра кольорів"
+
+#: src/ui/colorbox.c:268
+msgid "Edit Color"
+msgstr "Змінити колір"
+
+#: src/ui/colorbox.c:268
+msgid "Foreground Color"
+msgstr "Основний колір"
+
+#: src/ui/colorbox.c:268
+msgid "Background Color"
+msgstr "Колір тла"
+
+#: src/ui/colorbox.c:327 src/ui/colorbox.c:362
+#, c-format
+msgid "Foreground color: %s"
+msgstr "Основний колір: %s"
+
+#: src/ui/colorbox.c:332 src/ui/colorbox.c:361
+#, c-format
+msgid "Background color: %s"
+msgstr "Колір тла: %s"
+
+#: src/ui/colorbox.c:388
+#, c-format
+msgid "Color %d of %d: %s"
+msgstr "Колір %d з %d: %s"
+
+#: src/ui/colorbox.c:445
+msgid "Foreground and background colors. Click a square to choose a color."
+msgstr "Основний колір і колір тла. Клацніть квадрат, щоб вибрати колір."
+
+#: src/ui/colorbox.c:454
+msgid "Swap foreground and background (Ctrl+Shift+X)"
+msgstr "Поміняти основний колір і колір тла (Ctrl+Shift+X)"
+
+#: src/ui/colorbox.c:456
+msgid "Swap foreground and background"
+msgstr "Поміняти основний колір і колір тла"
+
+#: src/ui/colorbox.c:463
+msgid ""
+"Left-click: foreground. Right-click: background. Double-click: edit this "
+"color. Keyboard: Tab to focus, arrows, Enter / Shift+Enter, F2."
+msgstr ""
+"Ліва кнопка: основний колір. Права кнопка: колір тла. Подвійне клацання: "
+"змінити цей колір. Клавіатура: Tab — фокус, стрілки, Enter / Shift+Enter, F2."
+
+#: src/ui/dialogs.c:13 src/ui/window.c:367
+msgid "_Cancel"
+msgstr "_Скасувати"
+
+#: src/ui/dialogs.c:13
+msgid "_OK"
+msgstr "_OK"
+
+#: src/ui/dialogs.c:92
+msgid "Attributes"
+msgstr "Атрибути"
+
+#: src/ui/dialogs.c:101 src/ui/preferences.c:197
+msgid "Width"
+msgstr "Ширина"
+
+#: src/ui/dialogs.c:102 src/ui/preferences.c:198
+msgid "Height"
+msgstr "Висота"
+
+#: src/ui/dialogs.c:105
+msgid "Pixels"
+msgstr "Пікселі"
+
+#: src/ui/dialogs.c:105
+msgid "Inches"
+msgstr "Дюйми"
+
+#: src/ui/dialogs.c:105
+msgid "Centimeters"
+msgstr "Сантиметри"
+
+#: src/ui/dialogs.c:106
+msgid "Units"
+msgstr "Одиниці"
+
+#: src/ui/dialogs.c:114
+msgid "Colors"
+msgstr "Кольори"
+
+#: src/ui/dialogs.c:114
+msgid "Black and white"
+msgstr "Чорно-біле"
+
+#: src/ui/dialogs.c:115
+msgid "Color mode"
+msgstr "Режим кольору"
+
+#: src/ui/dialogs.c:122
+msgid "_Default Size"
+msgstr "_Типовий розмір"
+
+#: src/ui/dialogs.c:129
+msgid ""
+"New area is filled with the background color; a smaller size crops the "
+"picture. Black and white converts the picture and cannot be reverted except "
+"with Undo."
+msgstr ""
+"Нова область заповнюється кольором тла; менший розмір обрізає зображення. "
+"Чорно-біле перетворює зображення, і це можна скасувати лише командою "
+"«Скасувати»."
+
+#: src/ui/dialogs.c:154
+msgid "Custom Zoom"
+msgstr "Власний масштаб"
+
+#: src/ui/dialogs.c:163
+msgid "Zoom to"
+msgstr "Масштаб"
+
+#: src/ui/dialogs.c:198
+msgid "Flip horizontal"
+msgstr "Віддзеркалити горизонтально"
+
+#: src/ui/dialogs.c:198
+msgid "Flip vertical"
+msgstr "Віддзеркалити вертикально"
+
+#: src/ui/dialogs.c:198
+msgid "Rotate 90° clockwise"
+msgstr "Повернути на 90° за годинниковою стрілкою"
+
+#: src/ui/dialogs.c:198
+msgid "Rotate 180°"
+msgstr "Повернути на 180°"
+
+#: src/ui/dialogs.c:198
+msgid "Rotate 270° clockwise"
+msgstr "Повернути на 270° за годинниковою стрілкою"
+
+#: src/ui/dialogs.c:202
+msgid "Flip and Rotate"
+msgstr "Віддзеркалення та поворот"
+
+#: src/ui/dialogs.c:253
+msgid "Stretch horizontally (%)"
+msgstr "Розтягнути горизонтально (%)"
+
+#: src/ui/dialogs.c:253
+msgid "Stretch vertically (%)"
+msgstr "Розтягнути вертикально (%)"
+
+#: src/ui/dialogs.c:254
+msgid "Skew horizontally (°)"
+msgstr "Нахилити горизонтально (°)"
+
+#: src/ui/dialogs.c:254
+msgid "Skew vertically (°)"
+msgstr "Нахилити вертикально (°)"
+
+#: src/ui/dialogs.c:260
+msgid "Stretch and Skew"
+msgstr "Розтягнення та нахил"
+
+#: src/ui/dialogs.c:262
+msgid "Stretch"
+msgstr "Розтягнення"
+
+#: src/ui/dialogs.c:263
+msgid "Skew"
+msgstr "Нахил"
+
+#: src/ui/dialogs.c:269
+msgid "Keep aspect ratio"
+msgstr "Зберігати пропорції"
+
+#: src/ui/fileio.c:58
+#, c-format
+msgid "The picture is too large (%d × %d)"
+msgstr "Зображення завелике (%d × %d)"
+
+#: src/ui/fileio.c:93
+#, c-format
+msgid "Not enough memory to save the picture"
+msgstr "Недостатньо пам’яті для збереження зображення"
+
+#: src/ui/preferences.c:162
+msgid "Appearance"
+msgstr "Зовнішній вигляд"
+
+#: src/ui/preferences.c:163
+msgid "Style"
+msgstr "Стиль"
+
+#: src/ui/preferences.c:164
+msgid "Follow system"
+msgstr "Як у системі"
+
+#: src/ui/preferences.c:164
+msgid "Light"
+msgstr "Світлий"
+
+#: src/ui/preferences.c:164
+msgid "Dark"
+msgstr "Темний"
+
+#: src/ui/preferences.c:167
+msgid "Color scheme"
+msgstr "Колірна схема"
+
+#: src/ui/preferences.c:172
+msgid "Workspace color"
+msgstr "Колір робочої області"
+
+#: src/ui/preferences.c:173
+msgid "The area around the picture. Reset follows the theme."
+msgstr "Область навколо зображення. Скидання повертає колір теми."
+
+#: src/ui/preferences.c:176
+msgid "Use the theme color"
+msgstr "Використати колір теми"
+
+#: src/ui/preferences.c:182
+msgid "Panels"
+msgstr "Панелі"
+
+#: src/ui/preferences.c:182
+msgid "Which parts of the window are shown. Also changed from the View menu."
+msgstr "Які частини вікна показано. Також змінюється в меню «Вигляд»."
+
+#: src/ui/preferences.c:183
+msgid "Tool box"
+msgstr "Панель інструментів"
+
+#: src/ui/preferences.c:184
+msgid "Color box"
+msgstr "Панель кольорів"
+
+#: src/ui/preferences.c:185
+msgid "Status bar"
+msgstr "Рядок стану"
+
+#: src/ui/preferences.c:186
+msgid "Frame time"
+msgstr "Час кадру"
+
+#: src/ui/preferences.c:186
+msgid "Shown in the status bar"
+msgstr "Показується в рядку стану"
+
+#: src/ui/preferences.c:193
+msgid "New Picture"
+msgstr "Нове зображення"
+
+#: src/ui/preferences.c:194
+msgid "Default picture"
+msgstr "Типове зображення"
+
+#: src/ui/preferences.c:194
+msgid "Used when Easel starts and for File → New."
+msgstr "Використовується під час запуску Easel і для команди Файл → Створити."
+
+#: src/ui/preferences.c:201
+msgid "Background color"
+msgstr "Колір тла"
+
+#: src/ui/preferences.c:220
+msgid "Drawing"
+msgstr "Малювання"
+
+#: src/ui/preferences.c:221
+msgid "Tool defaults"
+msgstr "Типові налаштування інструментів"
+
+#: src/ui/preferences.c:221 src/ui/preferences.c:240 src/ui/preferences.c:243
+msgid "Applied the next time Easel starts."
+msgstr "Застосовується під час наступного запуску Easel."
+
+#: src/ui/preferences.c:223
+msgid "Line width"
+msgstr "Товщина лінії"
+
+#: src/ui/preferences.c:223
+msgid "Line, Curve and shape tools"
+msgstr "Інструменти «Лінія», «Крива» та фігури"
+
+#: src/ui/preferences.c:234
+msgid "Magnifier click"
+msgstr "Клацання лупи"
+
+#: src/ui/preferences.c:241
+msgid "Undo memory"
+msgstr "Пам’ять скасування"
+
+#: src/ui/preferences.c:241
+msgid "Megabytes of history kept; older steps are forgotten first"
+msgstr "Мегабайти збереженої історії; найстаріші кроки забуваються першими"
+
+#: src/ui/preferences.c:243 src/ui/tool.c:41
+msgid "Text"
+msgstr "Текст"
+
+#: src/ui/preferences.c:254 src/ui/toolbox.c:510
+msgid "Font"
+msgstr "Шрифт"
+
+#: src/ui/preferences.c:257
+msgid "Opaque background"
+msgstr "Непрозоре тло"
+
+#: src/ui/preferences.c:257
+msgid "Otherwise the picture shows through the text"
+msgstr "Інакше зображення проглядає крізь текст"
+
+#: src/ui/preferences.c:258
+msgid "Smooth edges"
+msgstr "Згладжені краї"
+
+#: src/ui/preferences.c:258
+msgid "Antialiased text instead of hard pixels"
+msgstr "Текст зі згладжуванням замість чітких пікселів"
+
+#: src/ui/preferences.c:271 src/ui/preferences.c:272
+msgid "Palette"
+msgstr "Палітра"
+
+#: src/ui/preferences.c:273
+msgid "Colors you change with Edit Colors are kept between runs."
+msgstr "Кольори, змінені командою «Змінити колір», зберігаються між запусками."
+
+#: src/ui/preferences.c:275
+msgid "Reset"
+msgstr "Скинути"
+
+#: src/ui/preferences.c:277
+msgid "Classic palette"
+msgstr "Класична палітра"
+
+#: src/ui/preferences.c:278
+msgid "Go back to the original 28 colors"
+msgstr "Повернутися до початкових 28 кольорів"
+
+#: src/ui/preferences.c:296
+msgid "The settings schema is not installed, so preferences cannot be saved."
+msgstr "Схему налаштувань не встановлено, тому налаштування не можна зберегти."
+
+#. "done" releases op.
+#: src/ui/print.c:63
+msgid "Could not print the picture"
+msgstr "Не вдалося надрукувати зображення"
+
+#: src/ui/tool.c:8
+msgid "Gradient"
+msgstr "Градієнт"
+
+#: src/ui/tool.c:9
+msgid ""
+"Fills with a blend from the foreground to the background color. Drag to set "
+"direction and length."
+msgstr ""
+"Заливає плавним переходом від основного кольору до кольору тла. Перетягніть, "
+"щоб задати напрям і довжину."
+
+#: src/ui/tool.c:11
+msgid "Pan"
+msgstr "Переміщення"
+
+#: src/ui/tool.c:12
+msgid "Click and drag to navigate the image."
+msgstr "Клацніть і перетягніть, щоб переміщати зображення."
+
+#: src/ui/tool.c:14
+msgid "Free-Form Select"
+msgstr "Довільне виділення"
+
+#: src/ui/tool.c:15
+msgid "Selects a free-form part of the picture to move, copy, or edit."
+msgstr ""
+"Виділяє довільну частину зображення для переміщення, копіювання чи "
+"редагування."
+
+#: src/ui/tool.c:17
+msgid "Select"
+msgstr "Виділення"
+
+#: src/ui/tool.c:18
+msgid "Selects a rectangular part of the picture to move, copy, or edit."
+msgstr ""
+"Виділяє прямокутну частину зображення для переміщення, копіювання чи "
+"редагування."
+
+#: src/ui/tool.c:20
+msgid "Eraser"
+msgstr "Гумка"
+
+#: src/ui/tool.c:21
+msgid ""
+"Erases a portion of the picture. Right button: replaces the foreground color "
+"with the background color."
+msgstr ""
+"Стирає частину зображення. Права кнопка: замінює основний колір кольором тла."
+
+#: src/ui/tool.c:23
+msgid "Fill With Color"
+msgstr "Заливка кольором"
+
+#: src/ui/tool.c:24
+msgid ""
+"Fills an area with the foreground color (left button) or the background "
+"color (right button)."
+msgstr ""
+"Заливає область основним кольором (ліва кнопка) або кольором тла (права "
+"кнопка)."
+
+#: src/ui/tool.c:26
+msgid "Pick Color"
+msgstr "Піпетка"
+
+#: src/ui/tool.c:27
+msgid ""
+"Picks up a color from the picture for drawing. Left button: foreground. "
+"Right button: background."
+msgstr ""
+"Бере колір із зображення для малювання. Ліва кнопка: основний колір. Права "
+"кнопка: колір тла."
+
+#: src/ui/tool.c:29
+msgid "Magnifier"
+msgstr "Лупа"
+
+#: src/ui/tool.c:30
+msgid "Changes the magnification."
+msgstr "Змінює масштаб."
+
+#: src/ui/tool.c:32
+msgid "Pencil"
+msgstr "Олівець"
+
+#: src/ui/tool.c:33
+msgid ""
+"Draws a free-form line. Left button: foreground color. Right button: "
+"background color."
+msgstr ""
+"Малює довільну лінію. Ліва кнопка: основний колір. Права кнопка: колір тла."
+
+#: src/ui/tool.c:35
+msgid "Brush"
+msgstr "Пензель"
+
+#: src/ui/tool.c:36
+msgid "Draws using a brush with the selected shape and size."
+msgstr "Малює пензлем вибраної форми та розміру."
+
+#: src/ui/tool.c:38
+msgid "Airbrush"
+msgstr "Аерограф"
+
+#: src/ui/tool.c:39
+msgid "Draws using an airbrush of the selected size."
+msgstr "Малює аерографом вибраного розміру."
+
+#: src/ui/tool.c:42
+msgid "Inserts text into the picture."
+msgstr "Вставляє текст у зображення."
+
+#: src/ui/tool.c:44
+msgid "Line"
+msgstr "Лінія"
+
+#: src/ui/tool.c:45
+msgid "Draws a straight line with the selected line width."
+msgstr "Малює пряму лінію вибраної товщини."
+
+#: src/ui/tool.c:47
+msgid "Curve"
+msgstr "Крива"
+
+#: src/ui/tool.c:48
+msgid "Draws a curved line with the selected line width."
+msgstr "Малює криву вибраної товщини."
+
+#: src/ui/tool.c:50
+msgid "Rectangle"
+msgstr "Прямокутник"
+
+#: src/ui/tool.c:51
+msgid "Draws a rectangle with the selected fill style."
+msgstr "Малює прямокутник із вибраним стилем заповнення."
+
+#: src/ui/tool.c:53
+msgid "Polygon"
+msgstr "Багатокутник"
+
+#: src/ui/tool.c:54
+msgid "Draws a polygon with the selected fill style."
+msgstr "Малює багатокутник із вибраним стилем заповнення."
+
+#: src/ui/tool.c:56
+msgid "Ellipse"
+msgstr "Еліпс"
+
+#: src/ui/tool.c:57
+msgid "Draws an ellipse with the selected fill style."
+msgstr "Малює еліпс із вибраним стилем заповнення."
+
+#: src/ui/tool.c:59
+msgid "Rounded Rectangle"
+msgstr "Прямокутник із округленими кутами"
+
+#: src/ui/tool.c:60
+msgid "Draws a rounded rectangle with the selected fill style."
+msgstr "Малює прямокутник із округленими кутами та вибраним стилем заповнення."
+
+#: src/ui/toolbox.c:16
+msgid "Round"
+msgstr "Круглий"
+
+#: src/ui/toolbox.c:17
+msgid "Square"
+msgstr "Квадратний"
+
+#: src/ui/toolbox.c:18
+msgid "Forward diagonal"
+msgstr "Пряма похила"
+
+#: src/ui/toolbox.c:19
+msgid "Backward diagonal"
+msgstr "Зворотна похила"
+
+#: src/ui/toolbox.c:31
+msgid "Outline"
+msgstr "Контур"
+
+#: src/ui/toolbox.c:32
+msgid "Outline and fill"
+msgstr "Контур і заливка"
+
+#: src/ui/toolbox.c:33
+msgid "Fill, no outline"
+msgstr "Заливка без контуру"
+
+#: src/ui/toolbox.c:347
+#, c-format
+msgid "%d×"
+msgstr "%d×"
+
+#: src/ui/toolbox.c:350
+#, c-format
+msgid "%s, %d px"
+msgstr "%s, %d px"
+
+#: src/ui/toolbox.c:351
+#, c-format
+msgid "%d px"
+msgstr "%d px"
+
+#: src/ui/toolbox.c:457
+msgid "Transparent: hide background color"
+msgstr "Прозоро: приховати колір тла"
+
+#: src/ui/toolbox.c:457
+msgid "Opaque: keep the selection's background"
+msgstr "Непрозоро: зберегти тло виділення"
+
+#: src/ui/toolbox.c:458
+msgid "Transparent: erase to transparency"
+msgstr "Прозоро: стирати до прозорості"
+
+#: src/ui/toolbox.c:458
+msgid "Opaque: erase to the background color"
+msgstr "Непрозоро: стирати до кольору тла"
+
+#: src/ui/toolbox.c:575
+msgid "Bold"
+msgstr "Напівжирний"
+
+#: src/ui/toolbox.c:576
+msgid "Italic"
+msgstr "Курсив"
+
+#: src/ui/toolbox.c:577
+msgid "Underline"
+msgstr "Підкреслений"
+
+#: src/ui/toolbox.c:578
+msgid "Strikethrough"
+msgstr "Закреслений"
+
+#: src/ui/toolbox.c:585
+msgid "Font…"
+msgstr "Шрифт…"
+
+#: src/ui/toolbox.c:590
+msgid "Smooth"
+msgstr "Згладжування"
+
+#: src/ui/toolbox.c:591
+msgid "Smooth text edges (anti-aliasing)"
+msgstr "Згладжувати краї тексту"
+
+#: src/ui/toolbox.c:613
+msgid "Linear"
+msgstr "Лінійний"
+
+#: src/ui/toolbox.c:613
+msgid "Radial"
+msgstr "Радіальний"
+
+#: src/ui/toolbox.c:613
+msgid "Reflected"
+msgstr "Дзеркальний"
+
+#: src/ui/window.c:90
+#, c-format
+msgid "%d × %d pixels, zoom %d%%, tool: %s"
+msgstr "%d × %d пікселів, масштаб %d%%, інструмент: %s"
+
+#: src/ui/window.c:94
+msgid "Picture"
+msgstr "Малюнок"
+
+#: src/ui/window.c:106
+#, c-format
+msgid "Tool: %s"
+msgstr "Інструмент: %s"
+
+#: src/ui/window.c:163 src/ui/window.c:362
+msgid "Untitled"
+msgstr "Без назви"
+
+#: src/ui/window.c:180 src/ui/window.c:504 src/ui/window.c:1090
+#, c-format
+msgid "%d × %d px"
+msgstr "%d × %d px"
+
+#: src/ui/window.c:240
+msgid "Pictures"
+msgstr "Зображення"
+
+#: src/ui/window.c:278
+msgid "Could not save the picture"
+msgstr "Не вдалося зберегти зображення"
+
+#: src/ui/window.c:317
+msgid "Save As"
+msgstr "Зберегти як"
+
+#: src/ui/window.c:363
+#, c-format
+msgid "Save changes to “%s” before closing?"
+msgstr "Зберегти зміни в «%s» перед закриттям?"
+
+#: src/ui/window.c:364
+msgid "Save Changes?"
+msgstr "Зберегти зміни?"
+
+#: src/ui/window.c:367
+msgid "_Discard"
+msgstr "_Відхилити"
+
+#: src/ui/window.c:367
+msgid "_Save"
+msgstr "_Зберегти"
+
+#: src/ui/window.c:413
+msgid "Open"
+msgstr "Відкрити"
+
+#: src/ui/window.c:426 src/ui/window.c:638
+msgid "Could not open the picture"
+msgstr "Не вдалося відкрити зображення"
+
+#: src/ui/window.c:606
+msgid "Could not save the selection"
+msgstr "Не вдалося зберегти виділення"
+
+#: src/ui/window.c:620
+msgid "Copy To"
+msgstr "Копіювати до"
+
+#: src/ui/window.c:661
+msgid "Paste From"
+msgstr "Вставити з"
+
+#: src/ui/window.c:894
+msgid "Thumbnail"
+msgstr "Мініатюра"
+
+#: src/ui/window.c:971
+#, c-format
+msgid "Paint %.2f ms · %.0f fps"
+msgstr "Малювання %.2f мс · %.0f к/с"
+
+#: src/ui/window.c:1000 src/ui/window.c:1002
+msgid "Zoom out"
+msgstr "Зменшити"
+
+#: src/ui/window.c:1001 src/ui/window.c:1003
+msgid "Zoom in"
+msgstr "Збільшити"
+
+#: src/ui/window.c:1028 src/ui/window.c:1029
+msgid "Main Menu"
+msgstr "Головне меню"
+
+#: src/ui/window.c:1086 src/ui/window.c:1087
+msgid "Pointer position"
+msgstr "Позиція вказівника"
+
+#: src/ui/window.c:1095 src/ui/window.c:1096
+msgid "Zoom"
+msgstr "Масштаб"
+
+#: src/ui/window.c:1102 src/ui/window.c:1103
+msgid "Image size"
+msgstr "Розмір зображення"
+
+#: src/ui/window.c:1110 src/ui/window.c:1111
+msgid "Time to paint the last frame, and frames per second while drawing"
+msgstr ""
+"Час малювання останнього кадру та кількість кадрів за секунду під час "
+"малювання"
+
+#: src/ui/window.c:1205
+msgid "Image"
+msgstr "Зображення"
+
+#: src/ui/window.c:1206
+msgid "New (Ctrl+N)"
+msgstr "Створити (Ctrl+N)"
+
+#: src/ui/window.c:1207
+msgid "Open (Ctrl+O)"
+msgstr "Відкрити (Ctrl+O)"
+
+#: src/ui/window.c:1208
+msgid "Save (Ctrl+S)"
+msgstr "Зберегти (Ctrl+S)"
+
+#: src/ui/window.c:1211
+msgid "Undo (Ctrl+Z)"
+msgstr "Скасувати (Ctrl+Z)"
+
+#: src/ui/window.c:1212
+msgid "Redo (Ctrl+Y)"
+msgstr "Повторити (Ctrl+Y)"

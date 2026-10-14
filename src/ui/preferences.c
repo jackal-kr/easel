@@ -1,6 +1,7 @@
 #include "ui/preferences.h"
 
 #include <adwaita.h>
+#include <glib/gi18n.h>
 
 #include "ui/config.h"
 #include "ui/settings.h"
@@ -158,46 +159,46 @@ add_group (AdwPreferencesPage *page, const char *title, const char *description)
 static void
 build_appearance (AdwPreferencesDialog *dialog, GSettings *s)
 {
-  AdwPreferencesPage *page = make_page ("Appearance", "applications-graphics-symbolic");
-  AdwPreferencesGroup *style = add_group (page, "Style", NULL);
-  static const char *const labels[] = { "Follow system", "Light", "Dark", NULL };
+  AdwPreferencesPage *page = make_page (_("Appearance"), "applications-graphics-symbolic");
+  AdwPreferencesGroup *style = add_group (page, _("Style"), NULL);
+  const char *const labels[] = { _("Follow system"), _("Light"), _("Dark"), NULL };
   static const char *const values[] = { "system", "light", "dark", NULL };
 
-  add_choice (style, s, "color-scheme", "Color scheme", labels, values);
+  add_choice (style, s, "color-scheme", _("Color scheme"), labels, values);
 
   GtkWidget *row = adw_action_row_new ();
   ColorData *cd;
   GtkWidget *reset = gtk_button_new_from_icon_name ("edit-undo-symbolic");
-  adw_preferences_row_set_title (ADW_PREFERENCES_ROW (row), "Workspace color");
-  adw_action_row_set_subtitle (ADW_ACTION_ROW (row), "The area around the picture. Reset follows the theme.");
+  adw_preferences_row_set_title (ADW_PREFERENCES_ROW (row), _("Workspace color"));
+  adw_action_row_set_subtitle (ADW_ACTION_ROW (row), _("The area around the picture. Reset follows the theme."));
   gtk_widget_add_css_class (reset, "flat");
   gtk_widget_set_valign (reset, GTK_ALIGN_CENTER);
-  gtk_widget_set_tooltip_text (reset, "Use the theme color");
+  gtk_widget_set_tooltip_text (reset, _("Use the theme color"));
   g_signal_connect (reset, "clicked", G_CALLBACK (on_workspace_reset), s);
   adw_action_row_add_suffix (ADW_ACTION_ROW (row), reset);
   adw_action_row_add_suffix (ADW_ACTION_ROW (row), make_color_button (s, "workspace-color", 0xFFE6E6E6, &cd));
   adw_preferences_group_add (style, row);
 
-  AdwPreferencesGroup *panels = add_group (page, "Panels", "Which parts of the window are shown. Also changed from the View menu.");
-  add_switch (panels, s, "show-toolbox", "Tool box", NULL);
-  add_switch (panels, s, "show-colorbox", "Color box", NULL);
-  add_switch (panels, s, "show-statusbar", "Status bar", NULL);
-  add_switch (panels, s, "show-frame-time", "Frame time", "Shown in the status bar");
+  AdwPreferencesGroup *panels = add_group (page, _("Panels"), _("Which parts of the window are shown. Also changed from the View menu."));
+  add_switch (panels, s, "show-toolbox", _("Tool box"), NULL);
+  add_switch (panels, s, "show-colorbox", _("Color box"), NULL);
+  add_switch (panels, s, "show-statusbar", _("Status bar"), NULL);
+  add_switch (panels, s, "show-frame-time", _("Frame time"), _("Shown in the status bar"));
   adw_preferences_dialog_add (dialog, page);
 }
 
 static void
 build_new_picture (AdwPreferencesDialog *dialog, GSettings *s)
 {
-  AdwPreferencesPage *page = make_page ("New Picture", "document-new-symbolic");
-  AdwPreferencesGroup *group = add_group (page, "Default picture", "Used when Easel starts and for File → New.");
+  AdwPreferencesPage *page = make_page (_("New Picture"), "document-new-symbolic");
+  AdwPreferencesGroup *group = add_group (page, _("Default picture"), _("Used when Easel starts and for File → New."));
   ColorData *cd;
 
-  add_spin (group, s, "default-width", "Width", "pixels", 1, EASEL_MAX_DIMENSION);
-  add_spin (group, s, "default-height", "Height", "pixels", 1, EASEL_MAX_DIMENSION);
+  add_spin (group, s, "default-width", _("Width"), "pixels", 1, EASEL_MAX_DIMENSION);
+  add_spin (group, s, "default-height", _("Height"), "pixels", 1, EASEL_MAX_DIMENSION);
 
   GtkWidget *row = adw_action_row_new ();
-  adw_preferences_row_set_title (ADW_PREFERENCES_ROW (row), "Background color");
+  adw_preferences_row_set_title (ADW_PREFERENCES_ROW (row), _("Background color"));
   adw_action_row_add_suffix (ADW_ACTION_ROW (row), make_color_button (s, "default-background", 0xFFFFFFFF, &cd));
   adw_preferences_group_add (group, row);
   adw_preferences_dialog_add (dialog, page);
@@ -216,10 +217,10 @@ on_font_set (GObject *button, GParamSpec *pspec, GSettings *s)
 static void
 build_drawing (AdwPreferencesDialog *dialog, GSettings *s)
 {
-  AdwPreferencesPage *page = make_page ("Drawing", "document-edit-symbolic");
-  AdwPreferencesGroup *tools = add_group (page, "Tool defaults", "Applied the next time Easel starts.");
+  AdwPreferencesPage *page = make_page (_("Drawing"), "document-edit-symbolic");
+  AdwPreferencesGroup *tools = add_group (page, _("Tool defaults"), _("Applied the next time Easel starts."));
 
-  add_spin (tools, s, "line-width", "Line width", "Line, Curve and shape tools", 1, 5);
+  add_spin (tools, s, "line-width", _("Line width"), _("Line, Curve and shape tools"), 1, 5);
 
   GtkWidget *zoom = adw_combo_row_new ();
   static const char *const zoom_labels[] = { "1×", "2×", "4×", "6×", "8×", NULL };
@@ -230,16 +231,16 @@ build_drawing (AdwPreferencesDialog *dialog, GSettings *s)
   for (guint i = 0; i < G_N_ELEMENTS (zoom_values); i++)
     if (zoom_values[i] == current)
       selected = i;
-  adw_preferences_row_set_title (ADW_PREFERENCES_ROW (zoom), "Magnifier click");
+  adw_preferences_row_set_title (ADW_PREFERENCES_ROW (zoom), _("Magnifier click"));
   adw_combo_row_set_model (ADW_COMBO_ROW (zoom), G_LIST_MODEL (gtk_string_list_new (zoom_labels)));
   adw_combo_row_set_selected (ADW_COMBO_ROW (zoom), selected);
   g_signal_connect (zoom, "notify::selected", G_CALLBACK (on_int_choice_selected), s);
   adw_preferences_group_add (tools, zoom);
 
-  AdwPreferencesGroup *undo = add_group (page, "Undo", "Applied the next time Easel starts.");
-  add_spin (undo, s, "undo-limit-mb", "Undo memory", "Megabytes of history kept; older steps are forgotten first", 16, 8192);
+  AdwPreferencesGroup *undo = add_group (page, _("Undo"), _("Applied the next time Easel starts."));
+  add_spin (undo, s, "undo-limit-mb", _("Undo memory"), _("Megabytes of history kept; older steps are forgotten first"), 16, 8192);
 
-  AdwPreferencesGroup *text = add_group (page, "Text", "Applied the next time Easel starts.");
+  AdwPreferencesGroup *text = add_group (page, _("Text"), _("Applied the next time Easel starts."));
   GtkWidget *row = adw_action_row_new ();
   g_autofree char *font = g_settings_get_string (s, "default-font");
   g_autoptr (GtkFontDialog) dialog_font = gtk_font_dialog_new ();
@@ -250,11 +251,11 @@ build_drawing (AdwPreferencesDialog *dialog, GSettings *s)
   pango_font_description_free (desc);
   gtk_widget_set_valign (button, GTK_ALIGN_CENTER);
   g_signal_connect (button, "notify::font-desc", G_CALLBACK (on_font_set), s);
-  adw_preferences_row_set_title (ADW_PREFERENCES_ROW (row), "Font");
+  adw_preferences_row_set_title (ADW_PREFERENCES_ROW (row), _("Font"));
   adw_action_row_add_suffix (ADW_ACTION_ROW (row), button);
   adw_preferences_group_add (text, row);
-  add_switch (text, s, "text-opaque", "Opaque background", "Otherwise the picture shows through the text");
-  add_switch (text, s, "text-smooth", "Smooth edges", "Antialiased text instead of hard pixels");
+  add_switch (text, s, "text-opaque", _("Opaque background"), _("Otherwise the picture shows through the text"));
+  add_switch (text, s, "text-smooth", _("Smooth edges"), _("Antialiased text instead of hard pixels"));
   adw_preferences_dialog_add (dialog, page);
 }
 
@@ -267,14 +268,14 @@ on_palette_reset (GtkButton *button, GSettings *s)
 static void
 build_palette (AdwPreferencesDialog *dialog, GSettings *s)
 {
-  AdwPreferencesPage *page = make_page ("Palette", "color-select-symbolic");
-  AdwPreferencesGroup *group = add_group (page, "Palette",
-                                          "Colors you change with Edit Colors are kept between runs.");
+  AdwPreferencesPage *page = make_page (_("Palette"), "color-select-symbolic");
+  AdwPreferencesGroup *group = add_group (page, _("Palette"),
+                                          _("Colors you change with Edit Colors are kept between runs."));
   GtkWidget *row = adw_action_row_new ();
-  GtkWidget *reset = gtk_button_new_with_label ("Reset");
+  GtkWidget *reset = gtk_button_new_with_label (_("Reset"));
 
-  adw_preferences_row_set_title (ADW_PREFERENCES_ROW (row), "Classic palette");
-  adw_action_row_set_subtitle (ADW_ACTION_ROW (row), "Go back to the original 28 colors");
+  adw_preferences_row_set_title (ADW_PREFERENCES_ROW (row), _("Classic palette"));
+  adw_action_row_set_subtitle (ADW_ACTION_ROW (row), _("Go back to the original 28 colors"));
   gtk_widget_set_valign (reset, GTK_ALIGN_CENTER);
   g_signal_connect (reset, "clicked", G_CALLBACK (on_palette_reset), s);
   adw_action_row_add_suffix (ADW_ACTION_ROW (row), reset);
@@ -288,11 +289,11 @@ easel_preferences_present (GtkWidget *parent)
   GSettings *s = easel_settings ();
   AdwPreferencesDialog *dialog = ADW_PREFERENCES_DIALOG (adw_preferences_dialog_new ());
 
-  adw_dialog_set_title (ADW_DIALOG (dialog), "Preferences");
+  adw_dialog_set_title (ADW_DIALOG (dialog), _("Preferences"));
   if (s == NULL)
     {
-      AdwPreferencesPage *page = make_page ("Preferences", "emblem-system-symbolic");
-      AdwPreferencesGroup *group = add_group (page, NULL, "The settings schema is not installed, so preferences cannot be saved.");
+      AdwPreferencesPage *page = make_page (_("Preferences"), "emblem-system-symbolic");
+      AdwPreferencesGroup *group = add_group (page, NULL, _("The settings schema is not installed, so preferences cannot be saved."));
       (void) group;
       adw_preferences_dialog_add (dialog, page);
     }

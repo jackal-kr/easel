@@ -10,6 +10,7 @@ Build-Depends: debhelper-compat (= 13),
                libgtk-4-dev (>= 4.14),
                libadwaita-1-dev (>= 1.8),
                libgdk-pixbuf-2.0-dev,
+               gettext,
                desktop-file-utils,
                appstream
 Standards-Version: 4.7.0

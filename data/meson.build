@@ -23,10 +23,22 @@ install_data('icons/hicolor/scalable/apps/@0@.svg'.format(app_id),
   install_dir: get_option('datadir') / 'icons' / 'hicolor' / 'scalable' / 'apps')
 install_data('icons/hicolor/symbolic/apps/@0@-symbolic.svg'.format(app_id),
   install_dir: get_option('datadir') / 'icons' / 'hicolor' / 'symbolic' / 'apps')
-desktop_file = files('@0@.desktop'.format(app_id))
-install_data(desktop_file, install_dir: get_option('datadir') / 'applications')
-metainfo_file = files('@0@.metainfo.xml'.format(app_id))
-install_data(metainfo_file, install_dir: get_option('datadir') / 'metainfo')
+desktop_file = i18n.merge_file(
+  input: '@0@.desktop.in'.format(app_id),
+  output: '@0@.desktop'.format(app_id),
+  type: 'desktop',
+  po_dir: meson.project_source_root() / 'po',
+  install: true,
+  install_dir: get_option('datadir') / 'applications',
+)
+metainfo_file = i18n.merge_file(
+  input: '@0@.metainfo.xml.in'.format(app_id),
+  output: '@0@.metainfo.xml'.format(app_id),
+  type: 'xml',
+  po_dir: meson.project_source_root() / 'po',
+  install: true,
+  install_dir: get_option('datadir') / 'metainfo',
+)
 
 desktop_validate = find_program('desktop-file-validate', required: false)
 if desktop_validate.found()

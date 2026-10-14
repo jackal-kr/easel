@@ -33,6 +33,8 @@ need required meson meson "build system"
 need required ninja ninja-build "build backend"
 need required pkg-config pkgconf "finds libraries"
 need required glib-compile-schemas libglib2.0-dev-bin "compiles the settings schema"
+need required xgettext gettext "extracts translatable strings"
+need required msgfmt gettext "compiles translations"
 
 echo "Libraries (development files)"
 lib gtk4 4.14 libgtk-4-dev

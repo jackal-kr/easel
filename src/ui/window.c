@@ -1,4 +1,5 @@
 #include "ui/window.h"
+#include <glib/gi18n.h>
 
 #include <math.h>
 
@@ -81,11 +82,31 @@ sync_canvas_tool (EaselWindow *self)
   easel_canvas_set_gradient_style (self->canvas, easel_toolbox_get_gradient_style (self->toolbox));
 }
 
+/* What a screen reader says about the picture: its size, zoom and the tool in hand. */
+static void
+update_canvas_a11y (EaselWindow *self)
+{
+  EaselDocument *doc = easel_canvas_get_document (self->canvas);
+  g_autofree char *text = g_strdup_printf (_("%d × %d pixels, zoom %d%%, tool: %s"), doc->width, doc->height,
+                                           easel_canvas_get_zoom (self->canvas),
+                                           _(easel_tool_info (easel_toolbox_get_tool (self->toolbox))->name));
+
+  gtk_accessible_update_property (GTK_ACCESSIBLE (self->canvas), GTK_ACCESSIBLE_PROPERTY_LABEL, _("Picture"),
+                                  GTK_ACCESSIBLE_PROPERTY_DESCRIPTION, text, -1);
+}
+
 static void
 on_tool_changed (EaselToolbox *toolbox, EaselWindow *self)
 {
   gtk_label_set_text (self->hint_label, easel_toolbox_get_tool_hint (toolbox));
   sync_canvas_tool (self);
+  update_canvas_a11y (self);
+  if (gtk_widget_get_mapped (GTK_WIDGET (self)))
+    {
+      g_autofree char *said = g_strdup_printf (_("Tool: %s"),
+                                               _(easel_tool_info (easel_toolbox_get_tool (toolbox))->name));
+      gtk_accessible_announce (GTK_ACCESSIBLE (self->hint_label), said, GTK_ACCESSIBLE_ANNOUNCEMENT_PRIORITY_LOW);
+    }
 }
 
 static void
@@ -139,7 +160,7 @@ action_redo (GSimpleAction *action, GVariant *parameter, gpointer user_data)
 static void
 update_title (EaselWindow *self)
 {
-  g_autofree char *name = self->file != NULL ? g_file_get_basename (self->file) : g_strdup ("Untitled");
+  g_autofree char *name = self->file != NULL ? g_file_get_basename (self->file) : g_strdup (_("Untitled"));
   g_autofree char *title = g_strdup_printf ("%s%s - Easel", self->modified ? "*" : "", name);
 
   gtk_window_set_title (GTK_WINDOW (self), title);
@@ -156,7 +177,7 @@ static void
 update_size_label (EaselWindow *self)
 {
   EaselDocument *doc = easel_canvas_get_document (self->canvas);
-  g_autofree char *text = g_strdup_printf ("%d × %d px", doc->width, doc->height);
+  g_autofree char *text = g_strdup_printf (_("%d × %d px"), doc->width, doc->height);
 
   gtk_label_set_text (self->size_label, text);
 }
@@ -166,6 +187,7 @@ on_history_changed (EaselCanvas *canvas, EaselWindow *self)
 {
   set_modified (self, !easel_canvas_is_saved (canvas));
   update_size_label (self);
+  update_canvas_a11y (self);
   g_simple_action_set_enabled (G_SIMPLE_ACTION (g_action_map_lookup_action (G_ACTION_MAP (self), "undo")),
                                easel_canvas_can_undo (canvas));
   g_simple_action_set_enabled (G_SIMPLE_ACTION (g_action_map_lookup_action (G_ACTION_MAP (self), "redo")),
@@ -215,7 +237,7 @@ make_file_dialog (void)
   GListStore *filters = g_list_store_new (GTK_TYPE_FILE_FILTER);
   GtkFileFilter *pictures = gtk_file_filter_new ();
 
-  gtk_file_filter_set_name (pictures, "Pictures");
+  gtk_file_filter_set_name (pictures, _("Pictures"));
   gtk_file_filter_add_mime_type (pictures, "image/png");
   gtk_file_filter_add_mime_type (pictures, "image/jpeg");
   gtk_file_filter_add_mime_type (pictures, "image/bmp");
@@ -253,7 +275,7 @@ save_to (EaselWindow *self, GFile *file)
   easel_canvas_flush (self->canvas); /* a floating selection is part of the picture */
   if (!easel_file_save (easel_canvas_get_document (self->canvas), file, &error))
     {
-      show_error (self, "Could not save the picture", error);
+      show_error (self, _("Could not save the picture"), error);
       return FALSE;
     }
   g_set_object (&self->file, file);
@@ -292,7 +314,7 @@ save_as (EaselWindow *self, ContinueFunc next)
 {
   GtkFileDialog *dialog = make_file_dialog ();
 
-  gtk_file_dialog_set_title (dialog, "Save As");
+  gtk_file_dialog_set_title (dialog, _("Save As"));
   if (self->file != NULL)
     gtk_file_dialog_set_initial_file (dialog, self->file);
   else
@@ -337,12 +359,12 @@ confirm_discard (EaselWindow *self, ContinueFunc next)
       return;
     }
 
-  g_autofree char *name = self->file != NULL ? g_file_get_basename (self->file) : g_strdup ("Untitled");
-  g_autofree char *body = g_strdup_printf ("Save changes to “%s” before closing?", name);
-  AdwDialog *dialog = adw_alert_dialog_new ("Save Changes?", body);
+  g_autofree char *name = self->file != NULL ? g_file_get_basename (self->file) : g_strdup (_("Untitled"));
+  g_autofree char *body = g_strdup_printf (_("Save changes to “%s” before closing?"), name);
+  AdwDialog *dialog = adw_alert_dialog_new (_("Save Changes?"), body);
 
   adw_alert_dialog_add_responses (ADW_ALERT_DIALOG (dialog),
-                                  "cancel", "_Cancel", "discard", "_Discard", "save", "_Save", NULL);
+                                  "cancel", _("_Cancel"), "discard", _("_Discard"), "save", _("_Save"), NULL);
   adw_alert_dialog_set_response_appearance (ADW_ALERT_DIALOG (dialog), "discard",
                                             ADW_RESPONSE_DESTRUCTIVE);
   adw_alert_dialog_set_response_appearance (ADW_ALERT_DIALOG (dialog), "save",
@@ -388,7 +410,7 @@ do_open (EaselWindow *self)
 {
   GtkFileDialog *dialog = make_file_dialog ();
 
-  gtk_file_dialog_set_title (dialog, "Open");
+  gtk_file_dialog_set_title (dialog, _("Open"));
   gtk_file_dialog_open (dialog, GTK_WINDOW (self), NULL, on_open_done, g_object_ref (self));
   g_object_unref (dialog);
 }
@@ -401,7 +423,7 @@ load_file (EaselWindow *self, GFile *file)
   EaselDocument *doc = easel_file_load (file, &error);
 
   if (doc == NULL)
-    show_error (self, "Could not open the picture", error);
+    show_error (self, _("Could not open the picture"), error);
   else
     show_document (self, doc, file);
 }
@@ -479,7 +501,7 @@ on_resize_preview (EaselCanvas *canvas, int w, int h, EaselWindow *self)
       update_size_label (self);
       return;
     }
-  g_autofree char *text = g_strdup_printf ("%d × %d px", w, h);
+  g_autofree char *text = g_strdup_printf (_("%d × %d px"), w, h);
   gtk_label_set_text (self->size_label, text);
 }
 
@@ -493,6 +515,7 @@ on_zoom_changed (EaselCanvas *canvas, EaselWindow *self)
 {
   g_autofree char *text = g_strdup_printf ("%d%%", easel_canvas_get_zoom (canvas));
   gtk_label_set_text (self->zoom_label, text);
+  update_canvas_a11y (self);
   if (self->menu_zoom_label != NULL)
     gtk_label_set_text (self->menu_zoom_label, text);
   /* As in XP, the pixel grid only exists from 4x up, so the item is off below that. */
@@ -580,7 +603,7 @@ on_copy_to_done (GObject *source, GAsyncResult *result, gpointer data)
               target = g_file_get_child (parent, with_ext);
             }
           if (!easel_file_save (doc, target, &error))
-            show_error (self, "Could not save the selection", error);
+            show_error (self, _("Could not save the selection"), error);
           easel_document_free (doc);
         }
       easel_clip_free (clip);
@@ -594,7 +617,7 @@ action_copy_to (GSimpleAction *action, GVariant *parameter, gpointer user_data)
   EaselWindow *self = user_data;
   GtkFileDialog *dialog = make_file_dialog ();
 
-  gtk_file_dialog_set_title (dialog, "Copy To");
+  gtk_file_dialog_set_title (dialog, _("Copy To"));
   gtk_file_dialog_set_initial_name (dialog, "Selection.png");
   gtk_file_dialog_save (dialog, GTK_WINDOW (self), NULL, on_copy_to_done, g_object_ref (self));
   g_object_unref (dialog);
@@ -612,7 +635,7 @@ on_paste_from_done (GObject *source, GAsyncResult *result, gpointer data)
       EaselDocument *doc = easel_file_load (file, &error);
 
       if (doc == NULL)
-        show_error (self, "Could not open the picture", error);
+        show_error (self, _("Could not open the picture"), error);
       else
         {
           EaselClip *clip = easel_clip_new (doc->width, doc->height);
@@ -635,7 +658,7 @@ action_paste_from (GSimpleAction *action, GVariant *parameter, gpointer user_dat
   EaselWindow *self = user_data;
   GtkFileDialog *dialog = make_file_dialog ();
 
-  gtk_file_dialog_set_title (dialog, "Paste From");
+  gtk_file_dialog_set_title (dialog, _("Paste From"));
   gtk_file_dialog_open (dialog, GTK_WINDOW (self), NULL, on_paste_from_done, g_object_ref (self));
   g_object_unref (dialog);
 }
@@ -868,7 +891,7 @@ on_thumbnail_change_state (GSimpleAction *action, GVariant *value, gpointer user
           self->thumb_area = gtk_drawing_area_new ();
           gtk_drawing_area_set_draw_func (GTK_DRAWING_AREA (self->thumb_area), draw_thumbnail, self, NULL);
           self->thumb_window = gtk_window_new ();
-          gtk_window_set_title (GTK_WINDOW (self->thumb_window), "Thumbnail");
+          gtk_window_set_title (GTK_WINDOW (self->thumb_window), _("Thumbnail"));
           gtk_window_set_transient_for (GTK_WINDOW (self->thumb_window), GTK_WINDOW (self));
           gtk_window_set_resizable (GTK_WINDOW (self->thumb_window), FALSE);
           gtk_window_set_child (GTK_WINDOW (self->thumb_window), self->thumb_area);
@@ -945,7 +968,7 @@ frame_tick (gpointer data)
   EaselWindow *self = data;
   GdkFrameClock *clock = gtk_widget_get_frame_clock (GTK_WIDGET (self->canvas));
   double fps = clock != NULL ? gdk_frame_clock_get_fps (clock) : 0;
-  g_autofree char *text = g_strdup_printf ("Paint %.2f ms · %.0f fps",
+  g_autofree char *text = g_strdup_printf (_("Paint %.2f ms · %.0f fps"),
                                            easel_canvas_get_paint_time (self->canvas) / 1000.0, fps);
 
   gtk_label_set_text (self->frame_label, text);
@@ -974,8 +997,10 @@ make_zoom_row (EaselWindow *self)
   gtk_actionable_set_action_name (GTK_ACTIONABLE (in), "win.zoom-in");
   gtk_widget_add_css_class (out, "flat");
   gtk_widget_add_css_class (in, "flat");
-  gtk_widget_set_tooltip_text (out, "Zoom out");
-  gtk_widget_set_tooltip_text (in, "Zoom in");
+  gtk_widget_set_tooltip_text (out, _("Zoom out"));
+  gtk_widget_set_tooltip_text (in, _("Zoom in"));
+  gtk_accessible_update_property (GTK_ACCESSIBLE (out), GTK_ACCESSIBLE_PROPERTY_LABEL, _("Zoom out"), -1);
+  gtk_accessible_update_property (GTK_ACCESSIBLE (in), GTK_ACCESSIBLE_PROPERTY_LABEL, _("Zoom in"), -1);
 
   self->menu_zoom_label = GTK_LABEL (gtk_label_new ("100%"));
   gtk_widget_add_css_class (GTK_WIDGET (self->menu_zoom_label), "numeric");
@@ -1000,7 +1025,8 @@ build_menu_button (EaselWindow *self)
   GtkWidget *button = gtk_menu_button_new ();
   gtk_menu_button_set_icon_name (GTK_MENU_BUTTON (button), "open-menu-symbolic");
   gtk_menu_button_set_popover (GTK_MENU_BUTTON (button), popover);
-  gtk_widget_set_tooltip_text (button, "Main Menu");
+  gtk_widget_set_tooltip_text (button, _("Main Menu"));
+  gtk_accessible_update_property (GTK_ACCESSIBLE (button), GTK_ACCESSIBLE_PROPERTY_LABEL, _("Main Menu"), -1);
   return button;
 }
 
@@ -1033,6 +1059,7 @@ make_header_button (const char *icon, const char *action, const char *tooltip)
   GtkWidget *b = gtk_button_new_from_icon_name (icon);
   gtk_actionable_set_action_name (GTK_ACTIONABLE (b), action);
   gtk_widget_set_tooltip_text (b, tooltip);
+  gtk_accessible_update_property (GTK_ACCESSIBLE (b), GTK_ACCESSIBLE_PROPERTY_LABEL, tooltip, -1);
   return b;
 }
 
@@ -1056,28 +1083,32 @@ build_status_bar (EaselWindow *self, const EaselDocument *doc)
   gtk_label_set_width_chars (self->position_label, 10);
   gtk_widget_add_css_class (GTK_WIDGET (self->position_label), "caption");
   gtk_widget_add_css_class (GTK_WIDGET (self->position_label), "numeric");
-  gtk_widget_set_tooltip_text (GTK_WIDGET (self->position_label), "Pointer position");
+  gtk_widget_set_tooltip_text (GTK_WIDGET (self->position_label), _("Pointer position"));
+  gtk_accessible_update_property (GTK_ACCESSIBLE (self->position_label), GTK_ACCESSIBLE_PROPERTY_DESCRIPTION, _("Pointer position"), -1);
   gtk_box_append (GTK_BOX (bar), GTK_WIDGET (self->position_label));
 
-  g_autofree char *size_text = g_strdup_printf ("%d × %d px", doc->width, doc->height);
+  g_autofree char *size_text = g_strdup_printf (_("%d × %d px"), doc->width, doc->height);
   self->zoom_label = GTK_LABEL (gtk_label_new ("100%"));
   gtk_label_set_width_chars (self->zoom_label, 5);
   gtk_widget_add_css_class (GTK_WIDGET (self->zoom_label), "caption");
   gtk_widget_add_css_class (GTK_WIDGET (self->zoom_label), "numeric");
-  gtk_widget_set_tooltip_text (GTK_WIDGET (self->zoom_label), "Zoom");
+  gtk_widget_set_tooltip_text (GTK_WIDGET (self->zoom_label), _("Zoom"));
+  gtk_accessible_update_property (GTK_ACCESSIBLE (self->zoom_label), GTK_ACCESSIBLE_PROPERTY_DESCRIPTION, _("Zoom"), -1);
   gtk_box_append (GTK_BOX (bar), GTK_WIDGET (self->zoom_label));
 
   self->size_label = GTK_LABEL (gtk_label_new (size_text));
   gtk_widget_add_css_class (GTK_WIDGET (self->size_label), "caption");
   gtk_widget_add_css_class (GTK_WIDGET (self->size_label), "numeric");
-  gtk_widget_set_tooltip_text (GTK_WIDGET (self->size_label), "Image size");
+  gtk_widget_set_tooltip_text (GTK_WIDGET (self->size_label), _("Image size"));
+  gtk_accessible_update_property (GTK_ACCESSIBLE (self->size_label), GTK_ACCESSIBLE_PROPERTY_DESCRIPTION, _("Image size"), -1);
   gtk_box_append (GTK_BOX (bar), GTK_WIDGET (self->size_label));
 
   self->frame_label = GTK_LABEL (gtk_label_new (""));
   gtk_label_set_width_chars (self->frame_label, 22);
   gtk_widget_add_css_class (GTK_WIDGET (self->frame_label), "caption");
   gtk_widget_add_css_class (GTK_WIDGET (self->frame_label), "numeric");
-  gtk_widget_set_tooltip_text (GTK_WIDGET (self->frame_label), "Time to paint the last frame, and frames per second while drawing");
+  gtk_widget_set_tooltip_text (GTK_WIDGET (self->frame_label), _("Time to paint the last frame, and frames per second while drawing"));
+  gtk_accessible_update_property (GTK_ACCESSIBLE (self->frame_label), GTK_ACCESSIBLE_PROPERTY_DESCRIPTION, _("Time to paint the last frame, and frames per second while drawing"), -1);
   gtk_widget_set_visible (GTK_WIDGET (self->frame_label), FALSE);
   g_signal_connect (self->frame_label, "notify::visible", G_CALLBACK (on_frame_visible), self);
   gtk_box_append (GTK_BOX (bar), GTK_WIDGET (self->frame_label));
@@ -1170,15 +1201,15 @@ easel_window_init (EaselWindow *self)
   /* Header bar with the main menu, then everything in an AdwToolbarView. */
   AdwHeaderBar *header = ADW_HEADER_BAR (adw_header_bar_new ());
   adw_header_bar_pack_end (header, build_menu_button (self));
-  adw_header_bar_pack_end (header, build_labeled_menu (self, "view_menu", "View", "zoom-fit-best-symbolic", TRUE));
-  adw_header_bar_pack_end (header, build_labeled_menu (self, "image_menu", "Image", "image-x-generic-symbolic", FALSE));
-  adw_header_bar_pack_start (header, make_header_button ("document-new-symbolic", "win.new", "New (Ctrl+N)"));
-  adw_header_bar_pack_start (header, make_header_button ("document-open-symbolic", "win.open", "Open (Ctrl+O)"));
-  adw_header_bar_pack_start (header, make_header_button ("document-save-symbolic", "win.save", "Save (Ctrl+S)"));
+  adw_header_bar_pack_end (header, build_labeled_menu (self, "view_menu", _("View"), "zoom-fit-best-symbolic", TRUE));
+  adw_header_bar_pack_end (header, build_labeled_menu (self, "image_menu", _("Image"), "image-x-generic-symbolic", FALSE));
+  adw_header_bar_pack_start (header, make_header_button ("document-new-symbolic", "win.new", _("New (Ctrl+N)")));
+  adw_header_bar_pack_start (header, make_header_button ("document-open-symbolic", "win.open", _("Open (Ctrl+O)")));
+  adw_header_bar_pack_start (header, make_header_button ("document-save-symbolic", "win.save", _("Save (Ctrl+S)")));
   GtkWidget *history_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
   gtk_widget_add_css_class (history_box, "linked");
-  gtk_box_append (GTK_BOX (history_box), make_header_button ("edit-undo-symbolic", "win.undo", "Undo (Ctrl+Z)"));
-  gtk_box_append (GTK_BOX (history_box), make_header_button ("edit-redo-symbolic", "win.redo", "Redo (Ctrl+Y)"));
+  gtk_box_append (GTK_BOX (history_box), make_header_button ("edit-undo-symbolic", "win.undo", _("Undo (Ctrl+Z)")));
+  gtk_box_append (GTK_BOX (history_box), make_header_button ("edit-redo-symbolic", "win.redo", _("Redo (Ctrl+Y)")));
   adw_header_bar_pack_start (header, history_box);
 
   GtkWidget *view = adw_toolbar_view_new ();

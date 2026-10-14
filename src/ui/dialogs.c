@@ -1,4 +1,5 @@
 #include "ui/dialogs.h"
+#include <glib/gi18n.h>
 
 #include <math.h>
 
@@ -9,7 +10,7 @@
 void
 easel_dialog_add_ok_cancel (AdwAlertDialog *dialog)
 {
-  adw_alert_dialog_add_responses (dialog, "cancel", "_Cancel", "ok", "_OK", NULL);
+  adw_alert_dialog_add_responses (dialog, "cancel", _("_Cancel"), "ok", _("_OK"), NULL);
   adw_alert_dialog_set_response_appearance (dialog, "ok", ADW_RESPONSE_SUGGESTED);
   adw_alert_dialog_set_default_response (dialog, "ok");
   adw_alert_dialog_set_close_response (dialog, "cancel");
@@ -88,7 +89,7 @@ easel_dialog_attributes (GtkWidget *parent, EaselCanvas *canvas)
 {
   EaselDocument *doc = easel_canvas_get_document (canvas);
   AttrState *st = g_new0 (AttrState, 1);
-  AdwDialog *dialog = adw_alert_dialog_new ("Attributes", NULL);
+  AdwDialog *dialog = adw_alert_dialog_new (_("Attributes"), NULL);
 
   st->canvas = canvas;
   st->px_w = doc->width;
@@ -97,12 +98,12 @@ easel_dialog_attributes (GtkWidget *parent, EaselCanvas *canvas)
   GtkWidget *group = adw_preferences_group_new ();
   st->width_row = ADW_SPIN_ROW (adw_spin_row_new_with_range (1, EASEL_MAX_DIMENSION, 1));
   st->height_row = ADW_SPIN_ROW (adw_spin_row_new_with_range (1, EASEL_MAX_DIMENSION, 1));
-  adw_preferences_row_set_title (ADW_PREFERENCES_ROW (st->width_row), "Width");
-  adw_preferences_row_set_title (ADW_PREFERENCES_ROW (st->height_row), "Height");
+  adw_preferences_row_set_title (ADW_PREFERENCES_ROW (st->width_row), _("Width"));
+  adw_preferences_row_set_title (ADW_PREFERENCES_ROW (st->height_row), _("Height"));
 
   st->units_row = ADW_COMBO_ROW (adw_combo_row_new ());
-  const char *const units[] = { "Pixels", "Inches", "Centimeters", NULL };
-  adw_preferences_row_set_title (ADW_PREFERENCES_ROW (st->units_row), "Units");
+  const char *const units[] = { _("Pixels"), _("Inches"), _("Centimeters"), NULL };
+  adw_preferences_row_set_title (ADW_PREFERENCES_ROW (st->units_row), _("Units"));
   adw_combo_row_set_model (st->units_row, G_LIST_MODEL (gtk_string_list_new (units)));
 
   adw_preferences_group_add (ADW_PREFERENCES_GROUP (group), GTK_WIDGET (st->width_row));
@@ -110,22 +111,22 @@ easel_dialog_attributes (GtkWidget *parent, EaselCanvas *canvas)
   adw_preferences_group_add (ADW_PREFERENCES_GROUP (group), GTK_WIDGET (st->units_row));
 
   st->colors_row = ADW_COMBO_ROW (adw_combo_row_new ());
-  const char *const colors[] = { "Colors", "Black and white", NULL };
-  adw_preferences_row_set_title (ADW_PREFERENCES_ROW (st->colors_row), "Color mode");
+  const char *const colors[] = { _("Colors"), _("Black and white"), NULL };
+  adw_preferences_row_set_title (ADW_PREFERENCES_ROW (st->colors_row), _("Color mode"));
   adw_combo_row_set_model (st->colors_row, G_LIST_MODEL (gtk_string_list_new (colors)));
   adw_preferences_group_add (ADW_PREFERENCES_GROUP (group), GTK_WIDGET (st->colors_row));
   attr_show_size (st);
   g_signal_connect (st->units_row, "notify::selected", G_CALLBACK (on_attr_units_changed), st);
 
   GtkWidget *box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 12);
-  GtkWidget *reset = gtk_button_new_with_mnemonic ("_Default Size");
+  GtkWidget *reset = gtk_button_new_with_mnemonic (_("_Default Size"));
   gtk_widget_set_halign (reset, GTK_ALIGN_END);
   g_signal_connect (reset, "clicked", G_CALLBACK (on_attr_default), st);
   gtk_box_append (GTK_BOX (box), group);
   gtk_box_append (GTK_BOX (box), reset);
   adw_alert_dialog_set_extra_child (ADW_ALERT_DIALOG (dialog), box);
   adw_alert_dialog_set_body (ADW_ALERT_DIALOG (dialog),
-                             "New area is filled with the background color; a smaller size crops the picture. Black and white converts the picture and cannot be reverted except with Undo.");
+                             _("New area is filled with the background color; a smaller size crops the picture. Black and white converts the picture and cannot be reverted except with Undo."));
   easel_dialog_add_ok_cancel (ADW_ALERT_DIALOG (dialog));
   g_signal_connect (dialog, "response", G_CALLBACK (on_attr_response), st);
   g_object_set_data_full (G_OBJECT (dialog), "attr-state", st, g_free);
@@ -150,7 +151,7 @@ on_zoom_custom_response (AdwAlertDialog *dialog, const char *response, EaselCanv
 void
 easel_dialog_custom_zoom (GtkWidget *parent, EaselCanvas *canvas)
 {
-  AdwDialog *dialog = adw_alert_dialog_new ("Custom Zoom", NULL);
+  AdwDialog *dialog = adw_alert_dialog_new (_("Custom Zoom"), NULL);
   AdwComboRow *row = ADW_COMBO_ROW (adw_combo_row_new ());
   const char *const labels[] = { "100%", "200%", "400%", "600%", "800%", NULL };
   GtkWidget *group = adw_preferences_group_new ();
@@ -159,7 +160,7 @@ easel_dialog_custom_zoom (GtkWidget *parent, EaselCanvas *canvas)
   for (guint i = 0; i < G_N_ELEMENTS (zoom_choices); i++)
     if (zoom_choices[i] * 100 == easel_canvas_get_zoom (canvas))
       current = i;
-  adw_preferences_row_set_title (ADW_PREFERENCES_ROW (row), "Zoom to");
+  adw_preferences_row_set_title (ADW_PREFERENCES_ROW (row), _("Zoom to"));
   adw_combo_row_set_model (row, G_LIST_MODEL (gtk_string_list_new (labels)));
   adw_combo_row_set_selected (row, current);
   adw_preferences_group_add (ADW_PREFERENCES_GROUP (group), GTK_WIDGET (row));
@@ -193,12 +194,12 @@ on_flip_response (AdwAlertDialog *dialog, const char *response, FlipDialog *fd)
 void
 easel_dialog_flip_rotate (GtkWidget *parent, EaselCanvas *canvas)
 {
-  static const char *const labels[5] = {
-    "Flip horizontal", "Flip vertical", "Rotate 90° clockwise", "Rotate 180°", "Rotate 270° clockwise",
+  const char *const labels[5] = {
+    _("Flip horizontal"), _("Flip vertical"), _("Rotate 90° clockwise"), _("Rotate 180°"), _("Rotate 270° clockwise"),
   };
   FlipDialog *fd = g_new0 (FlipDialog, 1);
   GtkWidget *box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 6);
-  AdwDialog *dialog = adw_alert_dialog_new ("Flip and Rotate", NULL);
+  AdwDialog *dialog = adw_alert_dialog_new (_("Flip and Rotate"), NULL);
 
   fd->canvas = canvas;
   for (int i = 0; i < 5; i++)
@@ -248,24 +249,24 @@ on_stretch_response (AdwAlertDialog *dialog, const char *response, StretchDialog
 void
 easel_dialog_stretch_skew (GtkWidget *parent, EaselCanvas *canvas)
 {
-  static const struct { const char *title; double min, max, value; } rows[4] = {
-    { "Stretch horizontally (%)", 1, 500, 100 }, { "Stretch vertically (%)", 1, 500, 100 },
-    { "Skew horizontally (°)", -89, 89, 0 }, { "Skew vertically (°)", -89, 89, 0 },
+  const struct { const char *title; double min, max, value; } rows[4] = {
+    { _("Stretch horizontally (%)"), 1, 500, 100 }, { _("Stretch vertically (%)"), 1, 500, 100 },
+    { _("Skew horizontally (°)"), -89, 89, 0 }, { _("Skew vertically (°)"), -89, 89, 0 },
   };
   StretchDialog *sd = g_new0 (StretchDialog, 1);
   GtkWidget *stretch_group = adw_preferences_group_new ();
   GtkWidget *skew_group = adw_preferences_group_new ();
   GtkWidget *content = gtk_box_new (GTK_ORIENTATION_VERTICAL, 18);
-  AdwDialog *dialog = adw_alert_dialog_new ("Stretch and Skew", NULL);
+  AdwDialog *dialog = adw_alert_dialog_new (_("Stretch and Skew"), NULL);
 
-  adw_preferences_group_set_title (ADW_PREFERENCES_GROUP (stretch_group), "Stretch");
-  adw_preferences_group_set_title (ADW_PREFERENCES_GROUP (skew_group), "Skew");
+  adw_preferences_group_set_title (ADW_PREFERENCES_GROUP (stretch_group), _("Stretch"));
+  adw_preferences_group_set_title (ADW_PREFERENCES_GROUP (skew_group), _("Skew"));
   gtk_box_append (GTK_BOX (content), stretch_group);
   gtk_box_append (GTK_BOX (content), skew_group);
 
   sd->canvas = canvas;
   sd->lock = adw_switch_row_new ();
-  adw_preferences_row_set_title (ADW_PREFERENCES_ROW (sd->lock), "Keep aspect ratio");
+  adw_preferences_row_set_title (ADW_PREFERENCES_ROW (sd->lock), _("Keep aspect ratio"));
   adw_switch_row_set_active (ADW_SWITCH_ROW (sd->lock), TRUE);
   for (int i = 0; i < 4; i++)
     {

@@ -1,0 +1,13 @@
+# Files with translatable strings (checked by meson's gettext support).
+data/io.github.jackal_kr.Easel.desktop.in
+data/io.github.jackal_kr.Easel.metainfo.xml.in
+data/menus.ui
+src/main.c
+src/ui/colorbox.c
+src/ui/dialogs.c
+src/ui/fileio.c
+src/ui/preferences.c
+src/ui/print.c
+src/ui/tool.c
+src/ui/toolbox.c
+src/ui/window.c

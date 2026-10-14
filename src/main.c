@@ -1,4 +1,6 @@
 #include <adwaita.h>
+#include <glib/gi18n.h>
+#include <locale.h>
 
 #include "ui/preferences.h"
 #include "ui/settings.h"
@@ -14,8 +16,8 @@ static void
 action_about (GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
   GtkApplication *app = user_data;
-  static const char *inspired_by[] = {
-    "Microsoft Paint in Windows XP, the original that inspired Easel",
+  const char *inspired_by[] = {
+    _("Microsoft Paint in Windows XP, the original that inspired Easel"),
     "JS Paint by Isaiah Odhner https://jspaint.app",
     NULL
   };
@@ -25,11 +27,10 @@ action_about (GSimpleAction *action, GVariant *parameter, gpointer user_data)
   adw_about_dialog_set_developer_name (ADW_ABOUT_DIALOG (dialog), "JOD (Oleksiy Degtyar)");
   adw_about_dialog_set_version (ADW_ABOUT_DIALOG (dialog), EASEL_VERSION);
   adw_about_dialog_set_comments (ADW_ABOUT_DIALOG (dialog),
-                                 "A simple paint program in the spirit of classic Microsoft Paint, "
-                                 "built for GNOME.");
+                                 _("A simple paint program in the spirit of classic Microsoft Paint, built for GNOME."));
   adw_about_dialog_set_copyright (ADW_ABOUT_DIALOG (dialog), "© 2026 JOD (Oleksiy Degtyar)");
   adw_about_dialog_set_license_type (ADW_ABOUT_DIALOG (dialog), GTK_LICENSE_GPL_3_0);
-  adw_about_dialog_add_acknowledgement_section (ADW_ABOUT_DIALOG (dialog), "Inspired by",
+  adw_about_dialog_add_acknowledgement_section (ADW_ABOUT_DIALOG (dialog), _("Inspired by"),
                                                 inspired_by);
   adw_dialog_present (dialog, GTK_WIDGET (gtk_application_get_active_window (app)));
 }
@@ -50,27 +51,27 @@ action_shortcuts (GSimpleAction *action, GVariant *parameter, gpointer user_data
   GtkApplication *app = user_data;
   AdwShortcutsDialog *dialog = ADW_SHORTCUTS_DIALOG (adw_shortcuts_dialog_new ());
 
-  static const char *const file[] = {
-    "New", "<Primary>n", "Open…", "<Primary>o", "Save", "<Primary>s", "Save As…", "<Primary><Shift>s",
-    "Print…", "<Primary>p", "Quit", "<Primary>q", NULL };
-  static const char *const edit[] = {
-    "Undo", "<Primary>z", "Redo", "<Primary>y", "Redo (alternative)", "<Primary><Shift>z",
-    "Cut", "<Primary>x", "Copy", "<Primary>c", "Paste", "<Primary>v", "Select All", "<Primary>a",
-    "Clear Selection", "Delete", NULL };
-  static const char *const view[] = {
-    "Normal Size", "<Primary>Page_Down", "Large Size", "<Primary>Page_Up", "Zoom with the wheel", "<Primary>Scroll_Up",
-    "Show Grid", "<Primary>g", NULL };
-  static const char *const image[] = {
-    "Flip/Rotate…", "<Primary>r", "Invert Colors", "<Primary>i", "Attributes…", "<Primary>e",
-    "Clear Image", "<Primary><Shift>n", "Swap Foreground/Background", "<Primary><Shift>x", NULL };
-  static const char *const general[] = {
-    "Keyboard Shortcuts", "<Primary>question", "Cancel the current drawing or selection", "Escape", NULL };
+  const char *const file[] = {
+    _("New"), "<Primary>n", _("Open…"), "<Primary>o", _("Save"), "<Primary>s", _("Save As…"), "<Primary><Shift>s",
+    _("Print…"), "<Primary>p", _("Quit"), "<Primary>q", NULL };
+  const char *const edit[] = {
+    _("Undo"), "<Primary>z", _("Redo"), "<Primary>y", _("Redo (alternative)"), "<Primary><Shift>z",
+    _("Cut"), "<Primary>x", _("Copy"), "<Primary>c", _("Paste"), "<Primary>v", _("Select All"), "<Primary>a",
+    _("Clear Selection"), "Delete", NULL };
+  const char *const view[] = {
+    _("Normal Size"), "<Primary>Page_Down", _("Large Size"), "<Primary>Page_Up", _("Zoom with the wheel"), "<Primary>Scroll_Up",
+    _("Show Grid"), "<Primary>g", NULL };
+  const char *const image[] = {
+    _("Flip/Rotate…"), "<Primary>r", _("Invert Colors"), "<Primary>i", _("Attributes…"), "<Primary>e",
+    _("Clear Image"), "<Primary><Shift>n", _("Swap Foreground/Background"), "<Primary><Shift>x", NULL };
+  const char *const general[] = {
+    _("Keyboard Shortcuts"), "<Primary>question", _("Cancel the current drawing or selection"), "Escape", NULL };
 
-  add_shortcuts (dialog, "File", file);
-  add_shortcuts (dialog, "Edit", edit);
-  add_shortcuts (dialog, "View", view);
-  add_shortcuts (dialog, "Image and Colors", image);
-  add_shortcuts (dialog, "General", general);
+  add_shortcuts (dialog, _("File"), file);
+  add_shortcuts (dialog, _("Edit"), edit);
+  add_shortcuts (dialog, _("View"), view);
+  add_shortcuts (dialog, _("Image and Colors"), image);
+  add_shortcuts (dialog, _("General"), general);
   adw_dialog_present (ADW_DIALOG (dialog), GTK_WIDGET (gtk_application_get_active_window (app)));
 }
 
@@ -96,7 +97,7 @@ action_help (GSimpleAction *action, GVariant *parameter, gpointer user_data)
 
   if (!g_file_test (path, G_FILE_TEST_EXISTS))
     {
-      AdwDialog *dialog = adw_alert_dialog_new ("Help Not Found", "The help file is not installed.");
+      AdwDialog *dialog = adw_alert_dialog_new (_("Help Not Found"), _("The help file is not installed."));
 
       adw_alert_dialog_add_response (ADW_ALERT_DIALOG (dialog), "ok", "_OK");
       adw_dialog_present (dialog, GTK_WIDGET (parent));
@@ -212,6 +213,14 @@ on_open (GApplication *app, GFile **files, int n_files, const char *hint)
 int
 main (int argc, char *argv[])
 {
+  /* EASEL_LOCALEDIR lets a build tree or test install use its own catalogs. */
+  const char *localedir = g_getenv ("EASEL_LOCALEDIR");
+
+  setlocale (LC_ALL, "");
+  bindtextdomain (GETTEXT_PACKAGE, localedir != NULL ? localedir : LOCALEDIR);
+  bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
+  textdomain (GETTEXT_PACKAGE);
+
   g_autoptr (AdwApplication) app = adw_application_new (EASEL_APP_ID, G_APPLICATION_HANDLES_OPEN);
 
   g_signal_connect (app, "startup", G_CALLBACK (on_startup), NULL);
