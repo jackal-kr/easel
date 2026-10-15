@@ -13,7 +13,7 @@ The last pass made the code smaller, a little faster and safer, and easier to re
 | Committing text uses the shared snapshot instead of copying the picture | `canvas_text_commit()` in `canvas-text.c` | Clicking away from a text box on a big picture no longer copies tens of MB |
 | Reference count declared `_Atomic int` instead of casting a plain `int` | `core/syncbuf.h` | Removes undefined behaviour in the buffers GTK renders from on another thread |
 | Canvas struct regrouped by feature with a comment per group | `canvas-private.h` | You can find the selection, text or gradient state at a glance |
-| Comments rewritten to explain why, and `REVIEW:` notes added | everywhere | A new reader learns the design from the code itself |
+| Comments rewritten to explain why, added | everywhere | A new reader learns the design from the code itself |
 | Help is an HTML page opened in the browser | `docs/help.html`, `tools/build-help.py`, `main.c` | Readable help on any desktop without a Markdown viewer |
 
 The feature releases around it:
@@ -24,4 +24,4 @@ The feature releases around it:
 | 1.1.1 | Right-click outside a selection with a select tool opens the Paste menu | You can paste after copying without switching tool |
 | 1.1.2 | The speed, safety and Help changes in the first table | See above |
 
-Two things we considered and did not do: splitting the three big input functions in `canvas.c` into one handler per tool, and cutting the memory use on huge pictures. Both are marked with `REVIEW:` comments in the code and are good first projects once you know the codebase (see `docs/HOW-IT-WORKS.md`).
+The three big input functions in `canvas.c` are now small dispatchers with one handler per tool, the polygon/curve array moved off the canvas struct (4920 to 856 bytes), and a large idle picture gives back its undo and spare texture copies (about 4x down to 2x its size). Old undo steps (beyond the newest 64 MB) now live in a temporary file, so the default history grew from 512 MB to 2 GB. One thing is still open: while you draw on a huge picture it costs about four times its size. Fixing that needs tile-based undo (see `docs/HOW-IT-WORKS.md`).

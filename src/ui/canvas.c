@@ -55,6 +55,24 @@ canvas_snapshot_drop (EaselCanvas *self, uint32_t **snapshot)
   *snapshot = NULL;
 }
 
+/* Timer: once a big picture has not changed for a while, free the pixel
+ * copies that are only kept for speed. The texture the screen is showing is
+ * still held by GTK, so easel_syncbuf_trim leaves it alone. */
+static gboolean
+trim_tick (gpointer data)
+{
+  EaselCanvas *self = data;
+
+  if (g_get_monotonic_time () - self->last_change_us < TRIM_IDLE_US)
+    return G_SOURCE_CONTINUE;
+  if (!self->shadow_taken)
+    easel_syncbuf_trim (self->shadow);
+  for (int i = 0; i < TEXTURE_BUFFERS; i++)
+    easel_syncbuf_trim (self->tex_bufs[i]);
+  self->trim_source = 0;
+  return G_SOURCE_REMOVE;
+}
+
 /* Call this after every change to the pixels. It remembers the changed area
  * for the GPU upload (see build_texture), tells the pixel copies they are out
  * of date there, and schedules a redraw. */
@@ -64,6 +82,9 @@ canvas_mark_dirty (EaselCanvas *self, EaselRect r)
   if (r.width > 0 && r.height > 0)
     {
       self->change_count++;
+      self->last_change_us = g_get_monotonic_time ();
+      if (self->trim_source == 0 && (gsize) self->doc->width * self->doc->height * 4 >= TRIM_MIN_BYTES)
+        self->trim_source = g_timeout_add_seconds (2, trim_tick, self);
       self->edit_rect = easel_rect_union (self->edit_rect, r);
       cairo_rectangle_int_t cr = { r.x, r.y, r.width, r.height };
       easel_syncbuf_mark_stale (self->shadow, r);
@@ -90,10 +111,13 @@ release_texture_buffer (gpointer data)
   easel_syncbuf_unref (data);
 }
 
-/* REVIEW: memory. A picture needs the document, the undo shadow copy and up
- * to TEXTURE_BUFFERS texture copies, so about five times its size. Fine for
- * normal pictures, heavy near the 2^28 pixel limit. Sharing buffers or a
- * lower limit would fix it.
+/* Memory. While you draw, a picture needs the document, the undo shadow copy
+ * and two texture copies (the one on screen and the one being built), so about
+ * four times its size. Near the 2^28 pixel limit that is over 4 GB. To stay
+ * out of the way afterwards, a picture of 64 MB or more gives the shadow and
+ * the spare texture copy back after three idle seconds (see trim_tick), so it
+ * rests at about twice its size. The first edit after that makes one full
+ * copy again.
  *
  * The memory a new texture will read its pixels from. It can't be doc->pixels
  * itself: we keep drawing into that while GTK may still be rendering the
@@ -480,68 +504,277 @@ canvas_finish_edit (EaselCanvas *self)
   canvas_snapshot_drop (self, &self->edit_base);
 }
 
-/* REVIEW: canvas_press, canvas_drag and canvas_release are each one big switch
- * over the tool, hundreds of lines apiece. One handler struct per tool would
- * be easier to read and to test. Left as is for now because it works and the
- * canvas test covers it.
+/* ---- Mouse input ----
  *
- * ---- Mouse input ----
- *
- * One gesture is: press -> drag (many times) -> release. These three
- * functions are the heart of the editor and each one is basically a big
- * switch on the current tool:
+ * One gesture is: press -> drag (many times) -> release. The three functions
+ * below, canvas_press, canvas_drag and canvas_release, do what every tool
+ * shares: the picture's resize handles, the right-click menus, panning, and
+ * turning the pointer position into a picture pixel. Everything that depends
+ * on the tool is handed to that tool's CanvasToolInput (see canvas-private.h):
  *   press   decides what the click means and sets up the state it needs
  *   drag    keeps updating that (extend the stroke, redraw the shape preview,
  *           move the selection, ...)
  *   release finishes it and commits it as a single undo step
  *
- * They take plain numbers instead of a GTK gesture so the tests can call them
- * directly. The on_drag_* handlers further down only translate. */
+ * The handlers sit next to the code of their feature: text in canvas-text.c,
+ * selections in canvas-selection.c, shapes, polygon, curve and gradient in
+ * canvas-shapes.c. The simple ones are in this file.
+ *
+ * The three functions take plain numbers instead of a GTK gesture so the tests
+ * can call them directly. The on_drag_* handlers further down only translate. */
+
+/* Pan: drag the picture around inside the scrolled window. */
+static void
+pan_press (EaselCanvas *self, double x, double y, gboolean ctrl)
+{
+  GtkWidget *sw = gtk_widget_get_ancestor (GTK_WIDGET (self), GTK_TYPE_SCROLLED_WINDOW);
+  graphene_point_t in = GRAPHENE_POINT_INIT ((float) x, (float) y), out;
+
+  if (sw == NULL || !gtk_widget_compute_point (GTK_WIDGET (self), sw, &in, &out))
+    return;
+  self->panning = TRUE;
+  self->drawing = TRUE;
+  self->pan_x0 = out.x;
+  self->pan_y0 = out.y;
+  self->pan_h0 = gtk_adjustment_get_value (gtk_scrolled_window_get_hadjustment (GTK_SCROLLED_WINDOW (sw)));
+  self->pan_v0 = gtk_adjustment_get_value (gtk_scrolled_window_get_vadjustment (GTK_SCROLLED_WINDOW (sw)));
+  gtk_widget_set_cursor_from_name (GTK_WIDGET (self), "grabbing");
+}
+
+static void
+pan_drag (EaselCanvas *self, double offset_x, double offset_y)
+{
+  /* Measured against the scrolled window, which stays put while the
+   * picture inside it scrolls. Using the canvas itself would make the
+   * pan jitter. */
+  GtkWidget *sw = gtk_widget_get_ancestor (GTK_WIDGET (self), GTK_TYPE_SCROLLED_WINDOW);
+  graphene_point_t in = GRAPHENE_POINT_INIT ((float) (self->start_x + offset_x), (float) (self->start_y + offset_y)), out;
+
+  if (sw != NULL && gtk_widget_compute_point (GTK_WIDGET (self), sw, &in, &out))
+    {
+      gtk_adjustment_set_value (gtk_scrolled_window_get_hadjustment (GTK_SCROLLED_WINDOW (sw)),
+                                self->pan_h0 - (out.x - self->pan_x0));
+      gtk_adjustment_set_value (gtk_scrolled_window_get_vadjustment (GTK_SCROLLED_WINDOW (sw)),
+                                self->pan_v0 - (out.y - self->pan_y0));
+    }
+}
+
+static void
+magnifier_press (EaselCanvas *self, double x, double y, gboolean ctrl)
+{
+  easel_canvas_set_zoom (self, self->zoom == 100 ? self->zoom_level * 100 : 100,
+                         self->last_x, self->last_y);
+}
+
+static void
+fill_press (EaselCanvas *self, double x, double y, gboolean ctrl)
+{
+  canvas_begin_edit (self);
+  canvas_mark_dirty (self, easel_raster_flood_fill (self->doc, self->last_x, self->last_y,
+                                                    self->stroke_color));
+  canvas_finish_edit (self);
+}
+
+static void
+pick_press (EaselCanvas *self, double x, double y, gboolean ctrl)
+{
+  self->picked = sample (self, self->last_x, self->last_y);
+  self->drawing = TRUE; /* resolved on release */
+}
+
+static void
+pick_drag (EaselCanvas *self, int x, int y, gboolean shift)
+{
+  self->picked = sample (self, x, y);
+}
+
+static void
+pick_release (EaselCanvas *self, int x, int y, gboolean shift)
+{
+  self->picked = sample (self, x, y);
+  g_signal_emit (self, canvas_signals[SIGNAL_COLOR_PICKED], 0,
+                 (guint) self->picked, self->button == GDK_BUTTON_PRIMARY);
+}
+
+static void
+airbrush_press (EaselCanvas *self, double x, double y, gboolean ctrl)
+{
+  self->drawing = TRUE;
+  canvas_begin_edit (self);
+  canvas_spray_tick (self);
+  g_clear_handle_id (&self->spray_source, g_source_remove);
+  self->spray_source = g_timeout_add (EASEL_SPRAY_INTERVAL_MS, canvas_spray_tick, self);
+}
+
+static void
+airbrush_release (EaselCanvas *self, int x, int y, gboolean shift)
+{
+  g_clear_handle_id (&self->spray_source, g_source_remove);
+  canvas_finish_edit (self);
+}
+
+/* Pencil, brush and eraser: one stamp on press, then a line from the last
+ * point to the new one on every drag. */
+static void
+freehand_press (EaselCanvas *self, double x, double y, gboolean ctrl)
+{
+  self->drawing = TRUE;
+  canvas_begin_edit (self);
+  canvas_mark_dirty (self, canvas_apply_stroke (self, self->last_x, self->last_y,
+                                                self->last_x, self->last_y));
+}
+
+static void
+freehand_drag (EaselCanvas *self, int x, int y, gboolean shift)
+{
+  /* The mouse only reports now and then, so a fast stroke would be dotted.
+   * Join the last point to this one with a line. */
+  canvas_mark_dirty (self, canvas_apply_stroke (self, self->last_x, self->last_y, x, y));
+}
+
+static void
+freehand_release (EaselCanvas *self, int x, int y, gboolean shift)
+{
+  canvas_finish_edit (self);
+}
+
+static const CanvasToolInput input_pan = { pan_press, NULL, NULL };
+static const CanvasToolInput input_magnifier = { magnifier_press, NULL, NULL };
+static const CanvasToolInput input_fill = { fill_press, NULL, NULL };
+static const CanvasToolInput input_pick = { pick_press, pick_drag, pick_release };
+static const CanvasToolInput input_airbrush = { airbrush_press, NULL, airbrush_release };
+static const CanvasToolInput input_freehand = { freehand_press, freehand_drag, freehand_release };
+
+static const CanvasToolInput *
+input_for_tool (EaselTool tool)
+{
+  switch (tool)
+    {
+    case EASEL_TOOL_PAN:                return &input_pan;
+    case EASEL_TOOL_MAGNIFIER:          return &input_magnifier;
+    case EASEL_TOOL_FILL:               return &input_fill;
+    case EASEL_TOOL_PICK_COLOR:         return &input_pick;
+    case EASEL_TOOL_AIRBRUSH:           return &input_airbrush;
+    case EASEL_TOOL_PENCIL:
+    case EASEL_TOOL_BRUSH:
+    case EASEL_TOOL_ERASER:             return &input_freehand;
+    case EASEL_TOOL_TEXT:               return &canvas_input_text;
+    case EASEL_TOOL_SELECT:
+    case EASEL_TOOL_FREE_FORM_SELECT:   return &canvas_input_selection;
+    case EASEL_TOOL_GRADIENT:           return &canvas_input_gradient;
+    case EASEL_TOOL_LINE:
+    case EASEL_TOOL_RECTANGLE:
+    case EASEL_TOOL_ELLIPSE:
+    case EASEL_TOOL_ROUNDED_RECTANGLE:  return &canvas_input_shape;
+    case EASEL_TOOL_POLYGON:            return &canvas_input_polygon;
+    case EASEL_TOOL_CURVE:              return &canvas_input_curve;
+    default:                            return NULL;
+    }
+}
+
+/* A press on one of the picture's resize handles starts a resize, whatever
+ * the tool. Returns TRUE if it did. */
+static gboolean
+resize_press (EaselCanvas *self, double x, double y)
+{
+  int handle = handle_at (self, x, y);
+
+  if (handle == 0)
+    return FALSE;
+  canvas_commit_seq (self, FALSE);
+  self->resize_handle = handle;
+  if (self->handle_hover != handle)
+    {
+      static const char *const names[] = { NULL, "ew-resize", "ns-resize", "nwse-resize" };
+      self->handle_hover = handle;
+      gtk_widget_set_cursor_from_name (GTK_WIDGET (self), names[handle]);
+    }
+  self->resize_w = self->doc->width;
+  self->resize_h = self->doc->height;
+  return TRUE;
+}
+
+static void
+resize_drag (EaselCanvas *self, double offset_x, double offset_y)
+{
+  double s = canvas_logical_per_pixel (self);
+  int nx = (int) lround ((self->start_x + offset_x) / s);
+  int ny = (int) lround ((self->start_y + offset_y) / s);
+
+  /* The handle sits a little outside the picture, so work out the new size
+   * from how far the pointer moved since the press, not from its absolute
+   * position. */
+  nx = self->doc->width + (nx - (int) lround (self->start_x / s));
+  ny = self->doc->height + (ny - (int) lround (self->start_y / s));
+  if (self->resize_handle != 2)
+    self->resize_w = CLAMP (nx, 1, EASEL_MAX_DIMENSION);
+  if (self->resize_handle != 1)
+    self->resize_h = CLAMP (ny, 1, EASEL_MAX_DIMENSION);
+  g_signal_emit (self, canvas_signals[SIGNAL_RESIZE_PREVIEW], 0, self->resize_w, self->resize_h);
+  gtk_widget_queue_draw (GTK_WIDGET (self));
+}
+
+static void
+resize_release (EaselCanvas *self)
+{
+  self->resize_handle = 0;
+  self->handle_hover = -1; /* forces the next mouse move to pick the right cursor again */
+  gtk_widget_set_cursor (GTK_WIDGET (self), easel_cursor_for_tool (self->tool));
+  g_signal_emit (self, canvas_signals[SIGNAL_RESIZE_PREVIEW], 0, -1, -1);
+  if (self->resize_w != self->doc->width || self->resize_h != self->doc->height)
+    easel_canvas_resize (self, self->resize_w, self->resize_h);
+  gtk_widget_queue_draw (GTK_WIDGET (self));
+}
+
+/* Right button on a selection or text box doesn't draw, it opens a context
+ * menu. It is opened on release (see ctx_pending), so the click that asks
+ * for it isn't also delivered to the popup. Returns TRUE if one is pending. */
+static gboolean
+context_menu_press (EaselCanvas *self, double x, double y)
+{
+  int ix, iy, kind = -1;
+
+  to_image (self, x, y, &ix, &iy);
+  if ((easel_tool_info (self->tool)->flags & EASEL_TOOL_SELECTION) && canvas_sel_contains (self, ix, iy))
+    kind = 0;
+  else if (self->tool == EASEL_TOOL_TEXT && self->text_active
+           && canvas_text_hit (self, x, y) != TEXT_HIT_NONE)
+    kind = 1;
+  else if (self->tool == EASEL_TOOL_PAN || (easel_tool_info (self->tool)->flags & EASEL_TOOL_SELECTION))
+    kind = 2; /* Pan, or a selection tool outside the selection: Paste and friends */
+  if (kind < 0 || self->ctx_model[kind] == NULL)
+    return FALSE;
+  self->ctx_pending = kind;
+  self->ctx_x = x;
+  self->ctx_y = y;
+  return TRUE;
+}
+
+static void
+context_menu_release (EaselCanvas *self)
+{
+  int kind = self->ctx_pending;
+  GdkRectangle at = { (int) self->ctx_x, (int) self->ctx_y, 1, 1 };
+
+  self->ctx_pending = -1;
+  if (self->ctx_popover[kind] == NULL)
+    {
+      self->ctx_popover[kind] = gtk_popover_menu_new_from_model (self->ctx_model[kind]);
+      gtk_widget_set_parent (self->ctx_popover[kind], GTK_WIDGET (self));
+      gtk_popover_set_has_arrow (GTK_POPOVER (self->ctx_popover[kind]), FALSE);
+      gtk_widget_set_halign (self->ctx_popover[kind], GTK_ALIGN_START);
+    }
+  gtk_popover_set_pointing_to (GTK_POPOVER (self->ctx_popover[kind]), &at);
+  gtk_popover_popup (GTK_POPOVER (self->ctx_popover[kind]));
+}
+
 void
 canvas_press (EaselCanvas *self, guint button, double x, double y, gboolean ctrl)
 {
-  if (button == GDK_BUTTON_PRIMARY)
-    {
-      int handle = handle_at (self, x, y);
-      if (handle != 0)
-        {
-          canvas_commit_seq (self, FALSE);
-          self->resize_handle = handle;
-          if (self->handle_hover != handle)
-            {
-              static const char *const names[] = { NULL, "ew-resize", "ns-resize", "nwse-resize" };
-              self->handle_hover = handle;
-              gtk_widget_set_cursor_from_name (GTK_WIDGET (self), names[handle]);
-            }
-          self->resize_w = self->doc->width;
-          self->resize_h = self->doc->height;
-          return;
-        }
-    }
-
-  /* Right button on a selection or text box doesn't draw, it opens a context
-   * menu. It is opened on release (see ctx_pending), so the click that asks
-   * for it isn't also delivered to the popup. */
-  if (button == GDK_BUTTON_SECONDARY)
-    {
-      int ix, iy, kind = -1;
-
-      to_image (self, x, y, &ix, &iy);
-      if ((easel_tool_info (self->tool)->flags & EASEL_TOOL_SELECTION) && canvas_sel_contains (self, ix, iy))
-        kind = 0;
-      else if (self->tool == EASEL_TOOL_TEXT && self->text_active
-               && canvas_text_hit (self, x, y) != TEXT_HIT_NONE)
-        kind = 1;
-      else if (self->tool == EASEL_TOOL_PAN || (easel_tool_info (self->tool)->flags & EASEL_TOOL_SELECTION))
-        kind = 2; /* Pan, or a selection tool outside the selection: Paste and friends */
-      if (kind >= 0 && self->ctx_model[kind] != NULL)
-        {
-          self->ctx_pending = kind;
-          self->ctx_x = x;
-          self->ctx_y = y;
-          return;
-        }
-    }
+  if (button == GDK_BUTTON_PRIMARY && resize_press (self, x, y))
+    return;
+  if (button == GDK_BUTTON_SECONDARY && context_menu_press (self, x, y))
+    return;
 
   /* Same as the original: left button draws in the foreground colour, right
    * button in the background colour. */
@@ -553,232 +786,10 @@ canvas_press (EaselCanvas *self, guint button, double x, double y, gboolean ctrl
   self->start_ix = self->last_x;
   self->start_iy = self->last_y;
 
-  switch (self->tool)
-    {
-    case EASEL_TOOL_PAN:
-      {
-        GtkWidget *sw = gtk_widget_get_ancestor (GTK_WIDGET (self), GTK_TYPE_SCROLLED_WINDOW);
-        graphene_point_t in = GRAPHENE_POINT_INIT ((float) x, (float) y), out;
+  const CanvasToolInput *input = input_for_tool (self->tool);
 
-        if (sw != NULL && gtk_widget_compute_point (GTK_WIDGET (self), sw, &in, &out))
-          {
-            self->panning = TRUE;
-            self->drawing = TRUE;
-            self->pan_x0 = out.x;
-            self->pan_y0 = out.y;
-            self->pan_h0 = gtk_adjustment_get_value (gtk_scrolled_window_get_hadjustment (GTK_SCROLLED_WINDOW (sw)));
-            self->pan_v0 = gtk_adjustment_get_value (gtk_scrolled_window_get_vadjustment (GTK_SCROLLED_WINDOW (sw)));
-            gtk_widget_set_cursor_from_name (GTK_WIDGET (self), "grabbing");
-          }
-      }
-      break;
-
-    case EASEL_TOOL_TEXT:
-      gtk_widget_grab_focus (GTK_WIDGET (self));
-      self->drawing = TRUE;
-      if (canvas_text_hit (self, x, y) >= 1 && canvas_text_hit (self, x, y) <= TEXT_HIT_BORDER)
-        {
-          int hit = canvas_text_hit (self, x, y);
-
-          self->text_orig = self->text_rect;
-          if (hit == TEXT_HIT_BORDER)
-            {
-              self->text_drag = TEXT_DRAG_MOVE;
-              self->text_grab_x = self->last_x - self->text_rect.x;
-              self->text_grab_y = self->last_y - self->text_rect.y;
-            }
-          else
-            {
-              self->text_drag = TEXT_DRAG_RESIZE;
-              self->text_handle = hit;
-            }
-        }
-      else if (canvas_text_hit (self, x, y) == TEXT_HIT_INSIDE)
-        {
-          /* Click inside the box places the caret; dragging selects. */
-          canvas_text_move_cursor (self, canvas_text_index_at (self, self->last_x, self->last_y), FALSE);
-          self->text_drag = TEXT_DRAG_SELECT;
-        }
-      else
-        canvas_text_begin_drag (self, self->last_x, self->last_y);
-      break;
-
-    case EASEL_TOOL_SELECT:
-    case EASEL_TOOL_FREE_FORM_SELECT:
-      self->drawing = TRUE;
-      if ((self->sel_stretch = canvas_sel_handle_at (self, x, y)) != 0)
-        {
-          canvas_sel_lift (self, FALSE);
-          if (self->sel_clip == NULL)
-            self->sel_stretch = 0;
-          else
-            {
-              g_clear_pointer (&self->sel_src, easel_clip_free);
-              self->sel_src = easel_clip_scaled (self->sel_clip, self->sel_clip->width, self->sel_clip->height);
-              self->sel_src_rect = self->sel_rect;
-              if (self->sel_src == NULL)
-                self->sel_stretch = 0;
-            }
-        }
-      else if (canvas_sel_contains (self, self->last_x, self->last_y))
-        {
-          canvas_sel_lift (self, ctrl);
-          self->sel_moving = TRUE;
-          self->sel_grab_x = self->last_x - self->sel_rect.x;
-          self->sel_grab_y = self->last_y - self->sel_rect.y;
-        }
-      else
-        {
-          canvas_sel_commit (self);
-          self->sel_creating = TRUE;
-          self->sel_rect = canvas_sel_rect_between (self, self->last_x, self->last_y, self->last_x, self->last_y);
-          if (self->tool == EASEL_TOOL_FREE_FORM_SELECT)
-            {
-              EaselPoint p = { self->sel_rect.x, self->sel_rect.y };
-              self->sel_path = g_array_new (FALSE, FALSE, sizeof (EaselPoint));
-              g_array_append_val (self->sel_path, p);
-              self->sel_path_x = self->sel_path_y = 0;
-            }
-        }
-      gtk_widget_queue_draw (GTK_WIDGET (self));
-      break;
-
-    case EASEL_TOOL_MAGNIFIER:
-      easel_canvas_set_zoom (self, self->zoom == 100 ? self->zoom_level * 100 : 100,
-                             self->last_x, self->last_y);
-      break;
-
-    case EASEL_TOOL_AIRBRUSH:
-      self->drawing = TRUE;
-      canvas_begin_edit (self);
-      canvas_spray_tick (self);
-      g_clear_handle_id (&self->spray_source, g_source_remove);
-      self->spray_source = g_timeout_add (EASEL_SPRAY_INTERVAL_MS, canvas_spray_tick, self);
-      break;
-
-    case EASEL_TOOL_POLYGON:
-      {
-        gint64 now = g_get_monotonic_time ();
-
-        gtk_widget_grab_focus (GTK_WIDGET (self));
-        if (!self->seq_active)
-          {
-            canvas_snapshot_drop (self, &self->backup);
-            self->backup = canvas_snapshot_take (self);
-            self->shape_prev = (EaselRect) { 0, 0, 0, 0 };
-            self->seq_active = TRUE;
-            self->edit_rect = (EaselRect) { 0, 0, 0, 0 };
-            self->seq[0] = self->seq[1] = (EaselPoint) { self->last_x, self->last_y };
-            self->seq_n = 2;
-          }
-        else
-          {
-            EaselPoint first = self->seq[0], tail = self->seq[self->seq_n - 1];
-            gboolean dbl = now - self->last_press_us < 400000
-                           && self->last_x == tail.x && self->last_y == tail.y;
-            gboolean near_start = self->seq_n >= 3 && abs (self->last_x - first.x) <= 3
-                                  && abs (self->last_y - first.y) <= 3;
-
-            if (dbl || near_start)
-              {
-                canvas_commit_seq (self, TRUE); /* closes and fills */
-                break;
-              }
-            if (self->seq_n < MAX_SEQ)
-              self->seq[self->seq_n++] = (EaselPoint) { self->last_x, self->last_y };
-          }
-        self->last_press_us = now;
-        self->drawing = TRUE;
-        canvas_seq_render (self, FALSE, FALSE, 0, 0);
-        break;
-      }
-
-    case EASEL_TOOL_CURVE:
-      {
-        EaselPoint here = { self->last_x, self->last_y };
-
-        gtk_widget_grab_focus (GTK_WIDGET (self));
-        if (!self->seq_active)
-          {
-            canvas_snapshot_drop (self, &self->backup);
-            self->backup = canvas_snapshot_take (self);
-            self->shape_prev = (EaselRect) { 0, 0, 0, 0 };
-            self->seq_active = TRUE;
-            self->edit_rect = (EaselRect) { 0, 0, 0, 0 };
-            self->seq_stage = 0;
-            self->seq[0] = self->seq[1] = here;
-          }
-        else if (self->seq_stage == 1)
-          self->seq[2] = self->seq[3] = here;
-        else
-          self->seq[3] = here;
-        self->seq_moved = FALSE;
-        self->drawing = TRUE;
-        canvas_seq_render (self, FALSE, FALSE, 0, 0);
-        break;
-      }
-
-    case EASEL_TOOL_FILL:
-      canvas_begin_edit (self);
-      canvas_mark_dirty (self, easel_raster_flood_fill (self->doc, self->last_x, self->last_y,
-                                                 self->stroke_color));
-      canvas_finish_edit (self);
-      break;
-
-    case EASEL_TOOL_PICK_COLOR:
-      self->picked = sample (self, self->last_x, self->last_y);
-      self->drawing = TRUE; /* resolved on release */
-      break;
-
-    case EASEL_TOOL_GRADIENT:
-      gtk_widget_grab_focus (GTK_WIDGET (self));
-      if (self->grad_pending)
-        {
-          double s = canvas_logical_per_pixel (self);
-          int hit = 0;
-
-          if (fabs (x - (self->grad_x0 + 0.5) * s) <= 7 && fabs (y - (self->grad_y0 + 0.5) * s) <= 7)
-            hit = 1;
-          else if (fabs (x - (self->grad_x1 + 0.5) * s) <= 7 && fabs (y - (self->grad_y1 + 0.5) * s) <= 7)
-            hit = 2;
-          if (hit != 0)
-            {
-              self->grad_drag = hit;
-              self->drawing = TRUE;
-              break;
-            }
-          canvas_grad_commit (self); /* a press elsewhere accepts it and starts a new one */
-        }
-      /* Fills the selection if there is one, otherwise the whole picture. */
-      if (self->sel_active && self->sel_clip != NULL)
-        canvas_sel_commit (self);
-      self->grad_region = self->sel_active ? self->sel_rect
-                                           : (EaselRect) { 0, 0, self->doc->width, self->doc->height };
-      self->grad_masked = self->sel_active && self->sel_mask != NULL;
-      /* fall through */
-    case EASEL_TOOL_LINE:
-    case EASEL_TOOL_RECTANGLE:
-    case EASEL_TOOL_ELLIPSE:
-    case EASEL_TOOL_ROUNDED_RECTANGLE:
-      self->drawing = TRUE;
-      self->edit_rect = (EaselRect) { 0, 0, 0, 0 };
-      canvas_snapshot_drop (self, &self->backup);
-      self->backup = canvas_snapshot_take (self);
-      self->shape_prev = (EaselRect) { 0, 0, 0, 0 };
-      break;
-
-    case EASEL_TOOL_PENCIL:
-    case EASEL_TOOL_BRUSH:
-    case EASEL_TOOL_ERASER:
-      self->drawing = TRUE;
-      canvas_begin_edit (self);
-      canvas_mark_dirty (self, canvas_apply_stroke (self, self->last_x, self->last_y,
-                                      self->last_x, self->last_y));
-      break;
-
-    default:
-      break;
-    }
+  if (input != NULL && input->press != NULL)
+    input->press (self, x, y, ctrl);
 }
 
 void
@@ -788,136 +799,30 @@ canvas_drag (EaselCanvas *self, double offset_x, double offset_y, gboolean shift
 
   if (self->resize_handle != 0)
     {
-      double s = canvas_logical_per_pixel (self);
-      int nx = (int) lround ((self->start_x + offset_x) / s);
-      int ny = (int) lround ((self->start_y + offset_y) / s);
-
-      /* The handle sits a little outside the picture, so work out the new size
-       * from how far the pointer moved since the press, not from its absolute
-       * position. */
-      nx = self->doc->width + (nx - (int) lround (self->start_x / s));
-      ny = self->doc->height + (ny - (int) lround (self->start_y / s));
-      if (self->resize_handle != 2)
-        self->resize_w = CLAMP (nx, 1, EASEL_MAX_DIMENSION);
-      if (self->resize_handle != 1)
-        self->resize_h = CLAMP (ny, 1, EASEL_MAX_DIMENSION);
-      g_signal_emit (self, canvas_signals[SIGNAL_RESIZE_PREVIEW], 0, self->resize_w, self->resize_h);
-      gtk_widget_queue_draw (GTK_WIDGET (self));
+      resize_drag (self, offset_x, offset_y);
       return;
     }
-
   if (!self->drawing)
     return;
-
   if (self->panning)
     {
-      /* Measured against the scrolled window, which stays put while the
-       * picture inside it scrolls. Using the canvas itself would make the
-       * pan jitter. */
-      GtkWidget *sw = gtk_widget_get_ancestor (GTK_WIDGET (self), GTK_TYPE_SCROLLED_WINDOW);
-      graphene_point_t in = GRAPHENE_POINT_INIT ((float) (self->start_x + offset_x), (float) (self->start_y + offset_y)), out;
-
-      if (sw != NULL && gtk_widget_compute_point (GTK_WIDGET (self), sw, &in, &out))
-        {
-          gtk_adjustment_set_value (gtk_scrolled_window_get_hadjustment (GTK_SCROLLED_WINDOW (sw)),
-                                    self->pan_h0 - (out.x - self->pan_x0));
-          gtk_adjustment_set_value (gtk_scrolled_window_get_vadjustment (GTK_SCROLLED_WINDOW (sw)),
-                                    self->pan_v0 - (out.y - self->pan_y0));
-        }
+      pan_drag (self, offset_x, offset_y);
       return;
     }
 
   to_image (self, self->start_x + offset_x, self->start_y + offset_y, &x, &y);
   if (self->grad_drag != 0)
     {
-      if (self->grad_drag == 1)
-        {
-          self->grad_x0 = x;
-          self->grad_y0 = y;
-        }
-      else
-        {
-          self->grad_x1 = x;
-          self->grad_y1 = y;
-        }
-      canvas_grad_render (self);
+      canvas_grad_drag_to (self, x, y);
       return;
     }
   if (x == self->last_x && y == self->last_y)
     return;
 
-  if (self->tool == EASEL_TOOL_PICK_COLOR)
-    self->picked = sample (self, x, y);
-  else if ((easel_tool_info (self->tool)->flags & EASEL_TOOL_SHAPE))
-    canvas_update_shape (self, x, y, shift);
-  else if (self->tool == EASEL_TOOL_POLYGON)
-    {
-      self->seq[self->seq_n - 1] = (EaselPoint) { x, y };
-      canvas_seq_render (self, FALSE, FALSE, 0, 0);
-    }
-  else if (self->tool == EASEL_TOOL_CURVE)
-    {
-      EaselPoint here = { x, y };
+  const CanvasToolInput *input = input_for_tool (self->tool);
 
-      if (self->seq_stage == 0)
-        self->seq[1] = here;
-      else if (self->seq_stage == 1)
-        self->seq[2] = self->seq[3] = here;
-      else
-        self->seq[3] = here;
-      self->seq_moved = TRUE;
-      canvas_seq_render (self, FALSE, FALSE, 0, 0);
-    }
-  else if (self->tool == EASEL_TOOL_TEXT)
-    {
-      if (self->text_drag == TEXT_DRAG_MOVE)
-        {
-          self->text_rect.x = x - self->text_grab_x;
-          self->text_rect.y = y - self->text_grab_y;
-          gtk_widget_queue_draw (GTK_WIDGET (self));
-        }
-      else if (self->text_drag == TEXT_DRAG_RESIZE)
-        canvas_text_resize_to (self, x, y);
-      else if (self->text_drag == TEXT_DRAG_SELECT)
-        canvas_text_move_cursor (self, canvas_text_index_at (self, x, y), TRUE);
-      else if (self->text_creating)
-        canvas_text_drag_to (self, self->start_ix, self->start_iy, x, y);
-    }
-  else if ((easel_tool_info (self->tool)->flags & EASEL_TOOL_SELECTION))
-    {
-      if (self->sel_stretch != 0)
-        canvas_sel_stretch_to (self, x, y);
-      else if (self->sel_moving)
-        {
-          self->sel_rect.x = x - self->sel_grab_x;
-          self->sel_rect.y = y - self->sel_grab_y;
-        }
-      else if (self->sel_creating && self->sel_path != NULL)
-        {
-          EaselPoint p = { CLAMP (x, 0, self->doc->width - 1), CLAMP (y, 0, self->doc->height - 1) };
-          EaselPoint last = g_array_index (self->sel_path, EaselPoint, self->sel_path->len - 1);
-
-          if (p.x != last.x || p.y != last.y)
-            g_array_append_val (self->sel_path, p);
-          int x0 = p.x, y0 = p.y, x1 = p.x, y1 = p.y;
-          for (guint i = 0; i < self->sel_path->len; i++)
-            {
-              EaselPoint q = g_array_index (self->sel_path, EaselPoint, i);
-              x0 = MIN (x0, q.x); y0 = MIN (y0, q.y); x1 = MAX (x1, q.x); y1 = MAX (y1, q.y);
-            }
-          self->sel_rect = (EaselRect) { x0, y0, x1 - x0 + 1, y1 - y0 + 1 };
-        }
-      else if (self->sel_creating)
-        self->sel_rect = canvas_sel_rect_between (self, self->start_ix, self->start_iy, x, y);
-      gtk_widget_queue_draw (GTK_WIDGET (self));
-    }
-  else if (self->tool == EASEL_TOOL_AIRBRUSH)
-    ; /* the timer sprays at last_x/last_y */
-  else
-    /* The mouse only reports now and then, so a fast stroke would be dotted.
-     * Join the last point to this one with a line. */
-    canvas_mark_dirty (self, canvas_apply_stroke (self, self->last_x, self->last_y, x, y));
-
+  if (input != NULL && input->drag != NULL)
+    input->drag (self, x, y, shift);
   self->last_x = x;
   self->last_y = y;
 }
@@ -925,36 +830,18 @@ canvas_drag (EaselCanvas *self, double offset_x, double offset_y, gboolean shift
 void
 canvas_release (EaselCanvas *self, double offset_x, double offset_y, gboolean shift)
 {
+  int x, y;
+
   if (self->ctx_pending >= 0)
     {
-      int kind = self->ctx_pending;
-      GdkRectangle at = { (int) self->ctx_x, (int) self->ctx_y, 1, 1 };
-
-      self->ctx_pending = -1;
-      if (self->ctx_popover[kind] == NULL)
-        {
-          self->ctx_popover[kind] = gtk_popover_menu_new_from_model (self->ctx_model[kind]);
-          gtk_widget_set_parent (self->ctx_popover[kind], GTK_WIDGET (self));
-          gtk_popover_set_has_arrow (GTK_POPOVER (self->ctx_popover[kind]), FALSE);
-          gtk_widget_set_halign (self->ctx_popover[kind], GTK_ALIGN_START);
-        }
-      gtk_popover_set_pointing_to (GTK_POPOVER (self->ctx_popover[kind]), &at);
-      gtk_popover_popup (GTK_POPOVER (self->ctx_popover[kind]));
+      context_menu_release (self);
       return;
     }
-
   if (self->resize_handle != 0)
     {
-      self->resize_handle = 0;
-      self->handle_hover = -1; /* forces the next mouse move to pick the right cursor again */
-      gtk_widget_set_cursor (GTK_WIDGET (self), easel_cursor_for_tool (self->tool));
-      g_signal_emit (self, canvas_signals[SIGNAL_RESIZE_PREVIEW], 0, -1, -1);
-      if (self->resize_w != self->doc->width || self->resize_h != self->doc->height)
-        easel_canvas_resize (self, self->resize_w, self->resize_h);
-      gtk_widget_queue_draw (GTK_WIDGET (self));
+      resize_release (self);
       return;
     }
-
   if (!self->drawing)
     return;
   self->drawing = FALSE;
@@ -967,136 +854,12 @@ canvas_release (EaselCanvas *self, double offset_x, double offset_y, gboolean sh
       return;
     }
 
-  if (self->tool == EASEL_TOOL_TEXT)
-    {
-      if (self->text_creating)
-        canvas_text_end_drag (self);
-      self->text_drag = TEXT_DRAG_NONE;
-      return;
-    }
+  to_image (self, self->start_x + offset_x, self->start_y + offset_y, &x, &y);
 
-  if ((easel_tool_info (self->tool)->flags & EASEL_TOOL_SELECTION))
-    {
-      if (self->sel_creating && self->sel_path != NULL)
-        {
-          self->sel_creating = FALSE;
-          if (self->sel_path->len >= 3)
-            {
-              self->sel_mask = easel_raster_polygon_mask ((EaselPoint *) (void *) self->sel_path->data,
-                                                          (int) self->sel_path->len, self->sel_rect);
-              self->sel_path_x = self->sel_rect.x;
-              self->sel_path_y = self->sel_rect.y;
-              self->sel_active = self->sel_mask != NULL;
-            }
-          if (!self->sel_active)
-            {
-              g_clear_pointer (&self->sel_path, g_array_unref);
-              gtk_widget_queue_draw (GTK_WIDGET (self));
-            }
-          canvas_sel_notify (self);
-        }
-      else if (self->sel_creating)
-        {
-          int x, y;
-          to_image (self, self->start_x + offset_x, self->start_y + offset_y, &x, &y);
-          self->sel_creating = FALSE;
-          /* A click without dragging is "select nothing". */
-          self->sel_active = !(x == self->start_ix && y == self->start_iy);
-          if (!self->sel_active)
-            gtk_widget_queue_draw (GTK_WIDGET (self));
-          canvas_sel_notify (self);
-        }
-      self->sel_moving = FALSE;
-      self->sel_stretch = 0;
-      g_clear_pointer (&self->sel_src, easel_clip_free);
-      return;
-    }
+  const CanvasToolInput *input = input_for_tool (self->tool);
 
-  if (self->tool == EASEL_TOOL_AIRBRUSH)
-    {
-      g_clear_handle_id (&self->spray_source, g_source_remove);
-      canvas_finish_edit (self);
-      return;
-    }
-
-  if (self->tool == EASEL_TOOL_POLYGON)
-    {
-      int x, y;
-      to_image (self, self->start_x + offset_x, self->start_y + offset_y, &x, &y);
-      if (self->seq_active)
-        {
-          self->seq[self->seq_n - 1] = (EaselPoint) { x, y };
-          if (self->seq_n == 2 && x == self->seq[0].x && y == self->seq[0].y)
-            self->seq_n = 1; /* no drag on the first click: the next click gives the end of the first edge */
-          canvas_seq_render (self, FALSE, FALSE, 0, 0);
-        }
-      return;
-    }
-
-  if (self->tool == EASEL_TOOL_CURVE)
-    {
-      if (self->seq_stage == 0)
-        {
-          if (self->seq[1].x == self->seq[0].x && self->seq[1].y == self->seq[0].y)
-            canvas_cancel_seq (self);
-          else
-            self->seq_stage = 1;
-        }
-      else if (self->seq_stage == 1)
-        {
-          if (self->seq_moved)
-            self->seq_stage = 2;
-          else
-            {
-              self->seq[2] = self->seq[0];
-              self->seq[3] = self->seq[1];
-              canvas_commit_seq (self, FALSE);
-            }
-        }
-      else
-        {
-          if (!self->seq_moved)
-            self->seq[3] = self->seq[2];
-          canvas_commit_seq (self, FALSE);
-        }
-      return;
-    }
-
-  if ((easel_tool_info (self->tool)->flags & EASEL_TOOL_SHAPE))
-    {
-      int x, y;
-      to_image (self, self->start_x + offset_x, self->start_y + offset_y, &x, &y);
-      /* A click with no movement doesn't make a gradient. */
-      if (self->grad_drag != 0)
-        {
-          self->grad_drag = 0; /* still adjustable */
-          return;
-        }
-      if (x == self->start_ix && y == self->start_iy)
-        canvas_end_shape_drag (self, FALSE);
-      else if (self->tool == EASEL_TOOL_GRADIENT)
-        {
-          canvas_update_shape (self, x, y, shift);
-          self->grad_pending = TRUE; /* stays editable until Enter, another click elsewhere, or a tool change */
-        }
-      else
-        {
-          canvas_update_shape (self, x, y, shift);
-          canvas_end_shape_drag (self, TRUE);
-        }
-      return;
-    }
-
-  if (self->tool == EASEL_TOOL_PICK_COLOR)
-    {
-      int x, y;
-      to_image (self, self->start_x + offset_x, self->start_y + offset_y, &x, &y);
-      self->picked = sample (self, x, y);
-      g_signal_emit (self, canvas_signals[SIGNAL_COLOR_PICKED], 0,
-                     (guint) self->picked, self->button == GDK_BUTTON_PRIMARY);
-    }
-
-  canvas_finish_edit (self); /* pencil, brush, eraser */
+  if (input != NULL && input->release != NULL)
+    input->release (self, x, y, shift);
 }
 
 static gboolean
@@ -1262,6 +1025,8 @@ easel_canvas_dispose (GObject *object)
   g_clear_pointer (&self->dirty, cairo_region_destroy);
   canvas_snapshot_drop (self, &self->backup);
   g_clear_handle_id (&self->spray_source, g_source_remove);
+  g_clear_handle_id (&self->trim_source, g_source_remove);
+  g_clear_pointer (&self->seq, g_free);
   canvas_snapshot_drop (self, &self->edit_base);
   g_clear_pointer (&self->history, easel_history_free);
   g_clear_pointer (&self->shadow, easel_syncbuf_unref);
@@ -1382,7 +1147,16 @@ easel_canvas_init (EaselCanvas *self)
   self->ctx_pending = -1;
   self->grid_w = self->grid_h = 1;
   self->axo_w = 64;
-  self->history = easel_history_new ((size_t) CLAMP (easel_pref_int ("undo-limit-mb", EASEL_UNDO_LIMIT_MB), 16, 8192) << 20);
+  self->history = easel_history_new ((size_t) CLAMP (easel_pref_int ("undo-limit-mb", EASEL_UNDO_LIMIT_MB), 16, 32768) << 20);
+  {
+    /* Old undo steps go to a temporary file in the cache folder. */
+    char *dir = g_build_filename (g_get_user_cache_dir (), "easel", NULL);
+
+    if (g_mkdir_with_parents (dir, 0700) != 0)
+      g_clear_pointer (&dir, g_free); /* fall back to $TMPDIR */
+    easel_history_set_spill (self->history, dir, (size_t) EASEL_UNDO_RAM_MB << 20);
+    g_free (dir);
+  }
   self->spray_rng = 2463534242u;
   self->fill_style = EASEL_FILL_OUTLINE;
   self->hover_x = self->hover_y = -1;

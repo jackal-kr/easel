@@ -4,6 +4,7 @@
 #pragma once
 
 #include <stddef.h>
+#include <stdint.h>
 
 #include "core/document.h"
 
@@ -11,6 +12,10 @@ typedef struct _EaselHistory EaselHistory;
 
 /* Oldest steps are dropped once the stored pixels exceed `max_bytes`. */
 EaselHistory *easel_history_new (size_t max_bytes);
+/* Lets old steps live in a temporary file in `dir` (NULL: $TMPDIR or /tmp)
+ * once the steps held in memory pass `ram_limit` bytes. `max_bytes` from
+ * easel_history_new then counts memory and disk together. */
+void          easel_history_set_spill (EaselHistory *history, const char *dir, size_t ram_limit);
 void          easel_history_free (EaselHistory *history);
 void          easel_history_clear (EaselHistory *history);
 

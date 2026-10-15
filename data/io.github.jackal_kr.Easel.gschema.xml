@@ -76,10 +76,10 @@
     </key>
 
     <key name="undo-limit-mb" type="i">
-      <range min="16" max="8192"/>
-      <default>512</default>
-      <summary>Memory the undo history may use, in megabytes</summary>
-      <description>Older steps are forgotten once the history grows past this.</description>
+      <range min="16" max="32768"/>
+      <default>2048</default>
+      <summary>Size of the undo history, in megabytes</summary>
+      <description>The newest 64 MB stay in memory and older steps are kept in a temporary file. Past this size the oldest steps are forgotten.</description>
     </key>
 
     <!-- Palette -->

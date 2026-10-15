@@ -1,31 +1,60 @@
-# Easel: how it works (humble guide for readers of the code)
+# Easel: how it works
 
-> **Why this file exists.** Easel was written with AI assistance (Claude), and the author is open about it. In open source, everyone who reads, packages or reuses the code should be able to understand how it is built, not just trust that it works. This document is a humble attempt to explain it: the stack, the architecture, the flow of a click into pixels, the key structures and every source file. It is written for a C programmer new to GNOME. It may contain mistakes; the code and the `REVIEW:` comments in it are the source of truth. The list of changes in the latest releases is in `IMPROVEMENTS.md`.
+Oct 14, 2026 · @Oleksiy
 
 A guided tour of the Easel source for a C programmer who is new to GNOME: what the pieces are, how a click becomes pixels, and where to look in each file, sized to read in about four hours.
 
-## How to read this in an hour
+## How to read this in four hours
 
 Read the parts in order, with the matching source file open beside the doc. Never read all the code line by line: the doc says which functions carry the idea and which are bulk you can skip.
 
 | Part | What you get | Minutes |
 | --- | --- | --- |
-| 1. Tech stack | Every layer from the kernel to your code | 20 |
-| 2. Architecture | The two-layer design and why | 15 |
-| 3. Flow | A mouse click to pixels, then undo, paste, save | 25 |
-| 4. Key structures | The ten structs that matter | 20 |
-| 5. Libraries | GLib, GObject, GTK, Adwaita, Cairo, Pango, Pixbuf | 20 |
-| 6. Code tour: core/ | Six small files, pure C | 35 |
-| 7. Code tour: canvas | The big widget, split in five files | 40 |
-| 8. Code tour: rest of ui/ | Window, toolbox, colour box, dialogs, files | 25 |
-| 9. Build and packaging | Meson, resources, i18n, tests, Flatpak, deb, AppImage | 15 |
-| 10-11. Tips and glossary | Habits, traps, vocabulary | 15 |
+| 1. What we improved | The change list with the gain of each | 10 |
+| 2. Tech stack | Every layer from the kernel to your code | 20 |
+| 3. Architecture | The two-layer design and why | 15 |
+| 4. Flow | A mouse click to pixels, then undo, paste, save | 25 |
+| 5. Key structures | The ten structs that matter | 20 |
+| 6. Libraries | GLib, GObject, GTK, Adwaita, Cairo, Pango, Pixbuf | 20 |
+| 7. Code tour: core/ | Six small files, pure C | 35 |
+| 8. Code tour: canvas | The big widget, split in five files | 40 |
+| 9. Code tour: rest of ui/ | Window, toolbox, colour box, dialogs, files | 25 |
+| 10. Build and packaging | Meson, resources, i18n, tests, Flatpak, deb | 15 |
+| 11-12. Tips and glossary | Habits, traps, vocabulary | 15 |
 
-That is about 230 minutes. If you only have two hours, read parts 1 to 4 and the first half of part 7, then use parts 5, 6 and 8 as a reference when you open a file.
+That is 240 minutes. If you only have two hours, read parts 1 to 5 and the first half of part 8, then use parts 6, 7 and 9 as a reference when you open a file.
 
 Three habits make the reading faster. First, keep a terminal in the repo and run `grep -n function_name src -r` whenever a name appears; the doc uses real function names. Second, read the header (`.h`) of a file before its `.c`; headers hold most of the explanations. Third, ignore anything about translations (`_("...")`) while you read; it is just a text lookup that returns the same string in English.
 
-## 1. Tech stack
+## 1. What we improved and what you gain
+
+The last pass made the code smaller, a little faster and safer, and easier to read; it added no features. None of the speed gains were benchmarked: they remove obvious waste (per-pixel function calls, whole-picture copies), so treat the gain column as "what it saves", not as measured numbers.
+
+| Change | Where | What you gain |
+| --- | --- | --- |
+| One `easel_rect_clip()` replaces four copies of the same clipping code | `core/document.c`, used by history, syncbuf, clip, raster | Less code to get wrong; one place to fix a bug in rectangle clipping |
+| One `EASEL_MAX_PIXELS` constant instead of a magic `1 << 28` in two files | `core/document.h`, `clip.c` | The size limit cannot drift apart between files |
+| Resize and paste copy whole rows with `memcpy` | `easel_document_resize`, `easel_document_replace` | Large pictures resize and paste faster (memcpy is vectorised, a per-pixel loop is not) |
+| Flip, rotate, scale, skew copy 4-byte pixels and 1-byte masks on a fast path | `copy_cell()` in `core/transform.c` | No function call per pixel; an Image menu operation on a big picture is quicker |
+| One Bresenham line walker used by pencil, eraser, shapes and free-form selection | `bresenham()` in `core/raster.c` | Three copies of the same algorithm became one |
+| One scanline routine for polygon fill and for the free-form selection mask | `scan_crossings()` in `core/raster.c` | The fill and the selection can no longer disagree about what is "inside" |
+| Committing text uses the shared snapshot instead of copying the picture | `canvas_text_commit()` in `canvas-text.c` | Clicking away from a text box on a big picture no longer copies tens of MB |
+| Reference count declared `_Atomic int` instead of casting a plain `int` | `core/syncbuf.h` | Removes undefined behaviour in the buffers GTK renders from on another thread |
+| Canvas struct regrouped by feature with a comment per group | `canvas-private.h` | You can find the selection, text or gradient state at a glance |
+| Comments rewritten to explain why | everywhere | A new reader learns the design from the code itself |
+| Help is an HTML page opened in the browser | `docs/help.html`, `tools/build-help.py`, `main.c` | Readable help on any desktop without a Markdown viewer |
+
+The features added earlier today are in the same releases:
+
+| Release | Change | What you gain |
+| --- | --- | --- |
+| 1.1.0 | Fit to Window, Grid dialog (cell size and axonometric grid), Stretch and Skew by percent or pixels | Fewer clicks to see the whole picture; precise grids and resizing |
+| 1.1.1 | Right-click outside a selection with a select tool opens the Paste menu | You can paste after copying without switching tool |
+| 1.1.2 | The speed, safety and Help changes in the first table | See above |
+
+Since then the three big input functions in `canvas.c` became small dispatchers, with one press/drag/release handler per tool (a `CanvasToolInput` table, handlers live next to each tool's code). A picture of 64 MB or more now gives back its undo shadow and spare texture copy after three idle seconds. Undo steps beyond the newest 64 MB are written to a temporary file in the cache folder (`history.c`, `easel_history_set_spill`; the file is deleted at once and disappears with the process), so the history can be 2 GB by default without filling memory. While you draw, a huge picture still costs about four times its size; cutting that further needs tile-based undo and is a good project once you know the codebase.
+
+## 2. Tech stack
 
 A GNOME app is a normal C program that sits on a tall stack of libraries. Knowing the layers tells you where to look when something breaks.
 
@@ -42,7 +71,7 @@ A GNOME app is a normal C program that sits on a tall stack of libraries. Knowin
 | Cairo | A 2D drawing library on the CPU | Cursors, tool previews, thumbnail, resizing pasted images |
 | Pango | Text layout and fonts | The Text tool's layout and rendering |
 | gdk-pixbuf | Loads and saves image files | PNG, JPEG, BMP, TIFF, WebP, GIF import |
-| gettext | Translation lookup | The `_("text")` calls; Czech, German, Italian, Spanish, Portuguese, Polish, Russian and Ukrainian catalogs |
+| gettext | Translation lookup | The `_("text")` calls; Polish and Ukrainian catalogs |
 
 The build tools matter just as much as the libraries:
 
@@ -54,28 +83,15 @@ The build tools matter just as much as the libraries:
 
 A good picture of the whole thing: your code calls GTK; GTK calls GDK and GSK; GSK calls the GPU driver (or Cairo); everything uses GLib. Easel keeps its own picture in plain memory and hands it to GTK as a texture, so most of the interesting logic (drawing, undo, selections) does not depend on GTK at all.
 
-## 2. Architecture
+## 3. Architecture
 
 Easel has two layers with a one-way dependency. `core/` is plain C that stores the picture and implements every drawing, undo and selection algorithm. `ui/` is GTK code that shows that picture and turns input into calls on `core/`. Nothing in `core/` includes GTK, so it is tested on its own (`tests/test_raster.c`) and could be reused in a command-line tool.
 
-```
- Libraries (GNOME platform): GLib/GIO | GTK 4 + GSK | libadwaita | Cairo + Pango | gdk-pixbuf
-                                   |  ui/ calls these
- ui/  (GTK 4 + libadwaita widgets)
-   EaselWindow (window.c): actions, files, unsaved-changes question, status bar
-      ^ signals up, settings down
-   EaselToolbox      EaselCanvas                          EaselColorBox
-   toolbox.c         canvas.c + canvas-selection/-text/   colorbox.c
-   tool.c            -shapes/-transform; holds the        palette, fg/bg swatches
-                     document and gesture state
-                                   |  calls the engine, gets back the touched rectangle
- core/ (plain C: no GTK, GLib or Cairo; tested without a display)
-   document | raster | history | syncbuf | clip | transform
-```
+&#91;embedded content: layers: libraries, ui/, core/ · who calls whom\]
 
 Read the picture top to bottom: the platform libraries support `ui/`, `ui/` calls `core/`, and `core/` calls none of the libraries. Inside `ui/` the window owns the toolbox, the canvas and the colour box, and they talk to it only through signals. Three design records in `docs/decisions/` explain the choices that shape this: a pure-C core (0001), premultiplied pixels (0002), and rectangle-based undo with a shadow copy (0003).
 
-## 3. Flow: from a click to pixels
+## 4. Flow: from a click to pixels
 
 GTK programs are **event driven**. `main()` does not loop over your logic; it hands control to GTK, which waits for events (mouse, keys, timers) and calls your functions. Everything below is a chain of such callbacks.
 
@@ -89,7 +105,7 @@ GTK programs are **event driven**. `main()` does not loop over your logic; it ha
 ### One pencil stroke (the core loop)
 
 1. The canvas has a `GtkGestureDrag` (set up in `easel_canvas_init`). When the left button goes down, GTK calls `on_drag_begin`, which calls `canvas_press(self, button, x, y, ctrl)`.
-2. `canvas_press` converts the widget position to a picture pixel (`to_image`, which divides by the zoom) and switches on the tool. For Pencil it sets `drawing = TRUE`, calls `canvas_begin_edit()` (takes the "before" snapshot for undo) and stamps one dot with `canvas_apply_stroke()`.
+2. `canvas_press` converts the widget position to a picture pixel (`to_image`, which divides by the zoom) and calls the tool's press handler. For Pencil it sets `drawing = TRUE`, calls `canvas_begin_edit()` (takes the "before" snapshot for undo) and stamps one dot with `canvas_apply_stroke()`.
 3. `canvas_apply_stroke` (in `canvas-shapes.c`) calls the pure engine: `easel_raster_stroke()` in `core/raster.c`. This writes pixels straight into `doc->pixels` and returns the rectangle it touched.
 4. `canvas_mark_dirty(rect)` records that rectangle in four places: the undo edit rectangle, the dirty region for the GPU texture, and the "stale" rectangles of the undo shadow and the texture buffers. Then it calls `gtk_widget_queue_draw`.
 5. As the mouse moves, GTK calls `on_drag_update` then `canvas_drag`, which joins the last point to the new one with a line, so fast strokes have no gaps.
@@ -127,7 +143,7 @@ Every menu item in `data/menus.ui` names an action such as `win.undo`. The windo
 
 Open shows a `GtkFileDialog`; `ui/fileio.c` decodes with gdk-pixbuf and converts to premultiplied ARGB; `easel_canvas_set_document` swaps it in and clears undo. Save first calls `easel_canvas_flush` (so floating text or a selection are really in the picture), converts back to straight alpha (or flattens onto white for JPEG), and writes through `g_file_replace` so a failed save never destroys the old file.
 
-## 4. Key structures
+## 5. Key structures
 
 Learn these eleven and the rest of the code reads easily. The first six live in `core/` and are plain C structs; the last five are in `ui/`.
 
@@ -169,7 +185,7 @@ The four `ui/` classes use a few GObject conventions that look odd to a C progra
 - `dispose` drops references to other objects and may run more than once; `finalize` frees plain memory and runs exactly once. Easel releases textures and timers in `dispose` and the document in `finalize`.
 - **Signals** are named events: the canvas emits `history-changed` or `pointer-moved`, the window connects a callback with `g_signal_connect`. This is how the canvas tells the window things without knowing the window exists.
 
-## 5. Libraries and what Easel uses from each
+## 6. Libraries and what Easel uses from each
 
 ### GLib: memory habits you will see everywhere
 
@@ -213,9 +229,9 @@ The image file loader. `fileio.c` loads any supported format into a `GdkPixbuf`,
 
 ### gettext
 
-`_("Text")` looks the string up in a `.mo` catalog for the user's language and returns the English text when none exists. `N_("Text")` only marks a string for extraction without translating it (used in static tables). The `po/` directory holds the template (`easel.pot`) and the translations (Czech, German, Italian, Spanish, Portuguese, Polish, Russian and Ukrainian).
+`_("Text")` looks the string up in a `.mo` catalog for the user's language and returns the English text when none exists. `N_("Text")` only marks a string for extraction without translating it (used in static tables). The `po/` directory holds the template (`easel.pot`) and the Polish and Ukrainian translations.
 
-## 6. Code tour, part 1: `src/core/`
+## 7. Code tour, part 1: `src/core/`
 
 The engine. About 1,700 lines of plain C with no GTK, GLib or Cairo, so it can be tested without a display (`tests/test_raster.c`). Read it in this order; each file builds on the one before. Rule of the house: every drawing function returns the rectangle it touched, so the UI redraws and records undo for only that area.
 
@@ -264,7 +280,7 @@ A rectangle of pixels plus an optional mask: what you hold when a selection is l
 
 Flip, rotate, scale, skew, invert, black and white. The first four work on any cell size (4-byte pixels or 1-byte masks) through the `copy_cell()` helper, so one routine transforms a selection's pixels and its mask the same way. Invert and black-and-white are written for premultiplied pixels.
 
-## 7. Code tour, part 2: the canvas
+## 8. Code tour, part 2: the canvas
 
 The canvas is the heart of the app: about 3,700 lines in five files, all working on one struct. It is long because Paint has many tools, not because any one idea is hard. Read `canvas.h` (the public API) and the struct in `canvas-private.h` first, then the files below.
 
@@ -309,7 +325,7 @@ The Image menu. A small `Transform` struct (stretch, skew, flips, quarter turns,
 
 `cursors.c` draws every mouse cursor with Cairo at start-up (crosshair, pencil, bucket, dropper, magnifier, airbrush) so no image files are needed. `tool.c` is the table of tools: name, icon, two-letter fallback label, status-bar hint and flags. Adding a tool means adding a row, an enum value in `tool.h`, an icon, and a `case` in `canvas_press`.
 
-## 8. Code tour, part 3: the rest of `src/`
+## 9. Code tour, part 3: the rest of `src/`
 
 This is the "ordinary GNOME app" half. It is the part to study if you want to learn how GTK programs are put together, since it uses actions, menus, dialogs and settings the way most GNOME apps do.
 
@@ -325,7 +341,7 @@ This is the "ordinary GNOME app" half. It is the part to study if you want to le
 | `ui/preferences.c` | 310 | The Preferences window, one row per setting bound to GSettings | `AdwPreferencesGroup` rows, `g_settings_bind` |
 | `ui/settings.c` | 150 | `easel_settings()` finds the compiled schema, even when run from the build folder; helper getters `easel_pref_int/bool/string`; applies the colour scheme | `GSettingsSchemaSource` |
 | `ui/config.h` | 56 | Constants in one place: zoom steps, timer intervals, limits, default font, colour helpers |  |
-| `ui/tool.c`, `cursors.c` | 68, 227 | See part 7 |  |
+| `ui/tool.c`, `cursors.c` | 68, 227 | See part 8 |  |
 
 ### How the window wires the parts together
 
@@ -350,7 +366,7 @@ Asking "Save changes?" is an *asynchronous* dialog: the function returns immedia
 2. `settings.c` returns the `GSettings` object, and `easel_pref_int ("line-width", 1)` reads a key.
 3. `preferences.c` shows a row per key and writes changes back. The schema must be compiled (`glib-compile-schemas`) for GSettings to find it; Meson does this at build time and again at install.
 
-## 9. Build, data files, packaging, translations, tests
+## 10. Build, data files, packaging, translations, tests
 
 ### Everyday commands
 
@@ -380,12 +396,11 @@ The root `meson.build` states the dependencies (GTK 4.14, libadwaita 1.8, gdk-pi
 
 - **Debian package**: `tools/build-deb.sh` runs `dpkg-buildpackage`; the recipe is in `debian/` (`control`, `rules`, `changelog`). The package version comes from `debian/changelog`.
 - **Flatpak**: `tools/build-flatpak.sh [--install]` builds against the GNOME runtime. The manifest for Flathub (the public store) is `build-aux/flathub/io.github.jackal_kr.Easel.yml`; it points at a git tag. A Flatpak app is sandboxed, so file access goes through *portals*; that is why a missing documents portal once made the Flatpak crash at launch even though the app was fine.
-- **AppImage**: `tools/build-appimage.sh` installs into a staging folder, lets *linuxdeploy* (with its GTK plugin) copy the libraries the app needs next to it, and packs everything into one file that runs on most distributions without installing. A small hook script points the app at its own translations, help and settings schema inside the image.
-- **A release** is: bump `version` in `meson.build`, add an entry to `debian/changelog` and `<release>` in the metainfo, commit, tag `vX.Y.Z`, push, then build the deb, Flatpak and AppImage and attach them to a GitHub release.
+- **A release** is: bump `version` in `meson.build`, add an entry to `debian/changelog` and `<release>` in the metainfo, commit, tag `vX.Y.Z`, push, then build the deb and Flatpak and attach them to a GitHub release.
 
 ### Translations
 
-`po/` holds `easel.pot` (the template of every translatable string), `pl.po`, `ru.po` and `uk.po`. `POTFILES.in` lists the source files to scan. After adding or changing a `_("...")` string run `ninja -C build easel-update-po`, translate the new entries, and run `tools/check-i18n.sh`. The app picks the language from the environment through `setlocale` and `bindtextdomain` in `main()`.
+`po/` holds `easel.pot` (the template of every translatable string), `pl.po` and `uk.po`. `POTFILES.in` lists the source files to scan. After adding or changing a `_("...")` string run `ninja -C build easel-update-po`, translate the new entries, and run `tools/check-i18n.sh`. The app picks the language from the environment through `setlocale` and `bindtextdomain` in `main()`.
 
 ### Accessibility
 
@@ -404,7 +419,7 @@ Screen readers read widgets through the accessibility tree. Easel gives the canv
 
 `architecture.md` is the short version of this guide. `decisions/` has four numbered design records (pure-C core, premultiplied pixels, rectangle undo with a shadow, GSettings preferences): read them for the *why*. `specs/` has a numbered specification for each feature. `help.md` is the user manual, turned into `help.html` by `tools/build-help.py`.
 
-## 10. Tips and tricks
+## 11. Tips and tricks
 
 ### Debugging a GTK app
 
@@ -434,19 +449,11 @@ Screen readers read widgets through the accessibility tree. Easel gives the canv
 
 **Add a drawing primitive.** Write it in `core/raster.c` returning the touched `EaselRect`, declare it in `raster.h`, and add a test in `tests/test_raster.c` first; the engine is the easiest place to be correct.
 
-### Traps we actually hit
-
-- `.gitignore` had a pattern `/build-*/` that silently ignored `build-aux/`, so the Flatpak manifests were never committed. Check `git status --ignored` when a file seems to vanish.
-- Running the Flatpak failed at launch because the documents portal folder was empty after a session problem. The app was fine; a restart fixed it. When only the packaged build fails, suspect the sandbox first.
-- `AdwSpinRow` rows showed blanks because a numeric row rejects text like "100%". Set `numeric` to FALSE and format the text yourself in the `output` and `input` handlers.
-- Screenshot automation forwarded to an already running instance because GApplication is single-instance. Run it under `dbus-run-session` to get a private session.
-- A Flathub pull request was closed automatically because the submission checklist was replaced. Declarations about AI use and human review must be made by the author, in the form the template asks.
-
 ### Reading unfamiliar GNOME code
 
 Start from the signals and the action table, not from `main()`. Search for `g_signal_connect` to see who reacts to what, and for the action name from the menu (`grep -rn "zoom-fit" src data`) to find the one function behind a menu item. GNOME's own docs live at `docs.gtk.org` (GTK, GLib, GObject, GIO) and `gnome.pages.gitlab.gnome.org/libadwaita` (Adwaita); the GNOME Human Interface Guidelines at `developer.gnome.org/hig` explain *why* GNOME apps look the way they do.
 
-## 11. More: glossary and what to read next
+## 12. More: glossary and what to read next
 
 ### Glossary
 
@@ -471,22 +478,12 @@ Start from the signals and the action table, not from `main()`. Search for `g_si
 | Flathub | The public Flatpak app store |
 | Metainfo / AppStream | The XML that describes the app to software stores |
 
-### What is still open
-
-Three places in the code are marked `REVIEW:` and are the best candidates for a closer look:
-
-- the three long input functions `canvas_press`, `canvas_drag`, `canvas_release` in `canvas.c`;
-- the memory cost of a very large picture (the document, the undo shadow and up to three texture copies);
-- the size of the canvas struct in `canvas-private.h`.
-
-Also still open: testing with the Orca screen reader, and the Flathub submission, which the author has to complete personally (the checklist asks for personal declarations).
-
 ### A suggested order for hands-on learning
 
 1. Build and run it. Press `Ctrl+Shift+I` and click around the widget tree.
 2. Draw one line with a debugger breakpoint in `canvas_press`; step to `easel_raster_stroke`, then to `canvas_mark_dirty`, then to `easel_canvas_snapshot`. This one trace teaches the whole architecture.
 3. Make a small change in `core/raster.c` (for example, make the SLASH brush thicker), run `meson test`, and see the test catch it.
-4. Add a trivial menu command (a recipe in part 10). This teaches actions, menus and signals.
+4. Add a trivial menu command (a recipe in part 11). This teaches actions, menus and signals.
 5. Read the four design records in `docs/decisions/`. They are one page each.
 
 ### Where to read more

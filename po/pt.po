@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: easel\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-14 22:09+0200\n"
+"POT-Creation-Date: 2026-10-15 08:55+0200\n"
 "PO-Revision-Date: 2026-10-14 22:01+0200\n"
 "Last-Translator: JOD (Oleksiy Degtyar)\n"
 "Language-Team: Portuguese\n"
@@ -85,7 +85,11 @@ msgid ""
 "A new Font dialog, with a different font, size and color inside one text "
 "box. New languages: Czech, German, Italian, Spanish, Portuguese and Russian. "
 "Also available as an AppImage."
-msgstr "Uma nova caixa de diálogo de tipos de letra, com tipo de letra, tamanho e cor diferentes dentro de uma só caixa de texto. Novos idiomas: checo, alemão, italiano, espanhol, português e russo. Também disponível como AppImage."
+msgstr ""
+"Uma nova caixa de diálogo de tipos de letra, com tipo de letra, tamanho e "
+"cor diferentes dentro de uma só caixa de texto. Novos idiomas: checo, "
+"alemão, italiano, espanhol, português e russo. Também disponível como "
+"AppImage."
 
 #: data/io.github.jackal_kr.Easel.metainfo.xml.in:55
 msgid "The Font dialog shows the current font almost at once in the Flatpak."
@@ -832,14 +836,14 @@ msgid "Magnifier click"
 msgstr "Clique da lupa"
 
 #: src/ui/preferences.c:241
-msgid "Undo memory"
-msgstr "Memória para anular"
+msgid "Undo history size"
+msgstr "Tamanho do histórico de anular"
 
 #: src/ui/preferences.c:241
-msgid "Megabytes of history kept; older steps are forgotten first"
-msgstr ""
-"Megabytes de histórico mantidos; os passos mais antigos são esquecidos "
-"primeiro"
+msgid ""
+"Megabytes of history kept (the newest 64 MB in memory, the rest on disk); "
+"older steps are forgotten first"
+msgstr "Megabytes de histórico mantidos (os 64 MB mais recentes na memória, o resto no disco); os passos mais antigos são esquecidos primeiro"
 
 #: src/ui/preferences.c:243 src/ui/tool.c:41
 msgid "Text"
@@ -1331,3 +1335,6 @@ msgstr "Anular (Ctrl+Z)"
 #: src/ui/window.c:1315
 msgid "Redo (Ctrl+Y)"
 msgstr "Refazer (Ctrl+Y)"
+
+#~ msgid "Undo memory"
+#~ msgstr "Memória para anular"

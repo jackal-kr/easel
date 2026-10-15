@@ -79,6 +79,15 @@ canvas_seq_render (EaselCanvas *self, gboolean closed, gboolean rubber, int rx, 
   self->shape_prev = now;
 }
 
+/* Starts a polygon or curve; allocates the point array the first time. */
+void
+canvas_seq_begin (EaselCanvas *self)
+{
+  if (self->seq == NULL)
+    self->seq = g_new0 (EaselPoint, MAX_SEQ);
+  self->seq_active = TRUE;
+}
+
 void
 canvas_cancel_seq (EaselCanvas *self)
 {
@@ -286,3 +295,229 @@ easel_canvas_set_gradient_style (EaselCanvas *self, int style)
   g_return_if_fail (EASEL_IS_CANVAS (self));
   self->gradient_style = style;
 }
+
+/* ---- Mouse input for the shape tools ----------------------------------- */
+
+/* Line, Rectangle, Ellipse, Rounded Rectangle and Gradient: the picture is
+ * saved on press, the shape is redrawn over it on every drag, and the release
+ * keeps it. */
+static void
+shape_press (EaselCanvas *self, double x, double y, gboolean ctrl)
+{
+  self->drawing = TRUE;
+  self->edit_rect = (EaselRect) { 0, 0, 0, 0 };
+  canvas_snapshot_drop (self, &self->backup);
+  self->backup = canvas_snapshot_take (self);
+  self->shape_prev = (EaselRect) { 0, 0, 0, 0 };
+}
+
+static void
+shape_drag (EaselCanvas *self, int x, int y, gboolean shift)
+{
+  canvas_update_shape (self, x, y, shift);
+}
+
+static void
+shape_release (EaselCanvas *self, int x, int y, gboolean shift)
+{
+  /* A click with no movement doesn't make a gradient. */
+  if (self->grad_drag != 0)
+    {
+      self->grad_drag = 0; /* still adjustable */
+      return;
+    }
+  if (x == self->start_ix && y == self->start_iy)
+    canvas_end_shape_drag (self, FALSE);
+  else if (self->tool == EASEL_TOOL_GRADIENT)
+    {
+      canvas_update_shape (self, x, y, shift);
+      self->grad_pending = TRUE; /* stays editable until Enter, another click elsewhere, or a tool change */
+    }
+  else
+    {
+      canvas_update_shape (self, x, y, shift);
+      canvas_end_shape_drag (self, TRUE);
+    }
+}
+
+/* The gradient stays adjustable after it is drawn: a press on one of its two
+ * end points drags that point, a press anywhere else accepts it and starts
+ * a new one. */
+static void
+gradient_press (EaselCanvas *self, double x, double y, gboolean ctrl)
+{
+  gtk_widget_grab_focus (GTK_WIDGET (self));
+  if (self->grad_pending)
+    {
+      double s = canvas_logical_per_pixel (self);
+      int hit = 0;
+
+      if (fabs (x - (self->grad_x0 + 0.5) * s) <= 7 && fabs (y - (self->grad_y0 + 0.5) * s) <= 7)
+        hit = 1;
+      else if (fabs (x - (self->grad_x1 + 0.5) * s) <= 7 && fabs (y - (self->grad_y1 + 0.5) * s) <= 7)
+        hit = 2;
+      if (hit != 0)
+        {
+          self->grad_drag = hit;
+          self->drawing = TRUE;
+          return;
+        }
+      canvas_grad_commit (self); /* a press elsewhere accepts it and starts a new one */
+    }
+  /* Fills the selection if there is one, otherwise the whole picture. */
+  if (self->sel_active && self->sel_clip != NULL)
+    canvas_sel_commit (self);
+  self->grad_region = self->sel_active ? self->sel_rect
+                                       : (EaselRect) { 0, 0, self->doc->width, self->doc->height };
+  self->grad_masked = self->sel_active && self->sel_mask != NULL;
+  shape_press (self, x, y, ctrl);
+}
+
+/* Dragging one of the gradient's end points. */
+void
+canvas_grad_drag_to (EaselCanvas *self, int x, int y)
+{
+  if (self->grad_drag == 1)
+    {
+      self->grad_x0 = x;
+      self->grad_y0 = y;
+    }
+  else
+    {
+      self->grad_x1 = x;
+      self->grad_y1 = y;
+    }
+  canvas_grad_render (self);
+}
+
+/* Polygon: every click adds a corner. Double-click, or a click near the first
+ * corner, closes and fills it. */
+static void
+polygon_press (EaselCanvas *self, double x, double y, gboolean ctrl)
+{
+  gint64 now = g_get_monotonic_time ();
+
+  gtk_widget_grab_focus (GTK_WIDGET (self));
+  if (!self->seq_active)
+    {
+      canvas_snapshot_drop (self, &self->backup);
+      self->backup = canvas_snapshot_take (self);
+      self->shape_prev = (EaselRect) { 0, 0, 0, 0 };
+      canvas_seq_begin (self);
+      self->edit_rect = (EaselRect) { 0, 0, 0, 0 };
+      self->seq[0] = self->seq[1] = (EaselPoint) { self->last_x, self->last_y };
+      self->seq_n = 2;
+    }
+  else
+    {
+      EaselPoint first = self->seq[0], tail = self->seq[self->seq_n - 1];
+      gboolean dbl = now - self->last_press_us < 400000
+                     && self->last_x == tail.x && self->last_y == tail.y;
+      gboolean near_start = self->seq_n >= 3 && abs (self->last_x - first.x) <= 3
+                            && abs (self->last_y - first.y) <= 3;
+
+      if (dbl || near_start)
+        {
+          canvas_commit_seq (self, TRUE); /* closes and fills */
+          return;
+        }
+      if (self->seq_n < MAX_SEQ)
+        self->seq[self->seq_n++] = (EaselPoint) { self->last_x, self->last_y };
+    }
+  self->last_press_us = now;
+  self->drawing = TRUE;
+  canvas_seq_render (self, FALSE, FALSE, 0, 0);
+}
+
+static void
+polygon_drag (EaselCanvas *self, int x, int y, gboolean shift)
+{
+  self->seq[self->seq_n - 1] = (EaselPoint) { x, y };
+  canvas_seq_render (self, FALSE, FALSE, 0, 0);
+}
+
+static void
+polygon_release (EaselCanvas *self, int x, int y, gboolean shift)
+{
+  if (!self->seq_active)
+    return;
+  self->seq[self->seq_n - 1] = (EaselPoint) { x, y };
+  if (self->seq_n == 2 && x == self->seq[0].x && y == self->seq[0].y)
+    self->seq_n = 1; /* no drag on the first click: the next click gives the end of the first edge */
+  canvas_seq_render (self, FALSE, FALSE, 0, 0);
+}
+
+/* Curve: drag a line, then drag out one or two bends (stages 0, 1, 2). */
+static void
+curve_press (EaselCanvas *self, double x, double y, gboolean ctrl)
+{
+  EaselPoint here = { self->last_x, self->last_y };
+
+  gtk_widget_grab_focus (GTK_WIDGET (self));
+  if (!self->seq_active)
+    {
+      canvas_snapshot_drop (self, &self->backup);
+      self->backup = canvas_snapshot_take (self);
+      self->shape_prev = (EaselRect) { 0, 0, 0, 0 };
+      canvas_seq_begin (self);
+      self->edit_rect = (EaselRect) { 0, 0, 0, 0 };
+      self->seq_stage = 0;
+      self->seq[0] = self->seq[1] = here;
+    }
+  else if (self->seq_stage == 1)
+    self->seq[2] = self->seq[3] = here;
+  else
+    self->seq[3] = here;
+  self->seq_moved = FALSE;
+  self->drawing = TRUE;
+  canvas_seq_render (self, FALSE, FALSE, 0, 0);
+}
+
+static void
+curve_drag (EaselCanvas *self, int x, int y, gboolean shift)
+{
+  EaselPoint here = { x, y };
+
+  if (self->seq_stage == 0)
+    self->seq[1] = here;
+  else if (self->seq_stage == 1)
+    self->seq[2] = self->seq[3] = here;
+  else
+    self->seq[3] = here;
+  self->seq_moved = TRUE;
+  canvas_seq_render (self, FALSE, FALSE, 0, 0);
+}
+
+static void
+curve_release (EaselCanvas *self, int x, int y, gboolean shift)
+{
+  if (self->seq_stage == 0)
+    {
+      if (self->seq[1].x == self->seq[0].x && self->seq[1].y == self->seq[0].y)
+        canvas_cancel_seq (self);
+      else
+        self->seq_stage = 1;
+    }
+  else if (self->seq_stage == 1)
+    {
+      if (self->seq_moved)
+        self->seq_stage = 2;
+      else
+        {
+          self->seq[2] = self->seq[0];
+          self->seq[3] = self->seq[1];
+          canvas_commit_seq (self, FALSE);
+        }
+    }
+  else
+    {
+      if (!self->seq_moved)
+        self->seq[3] = self->seq[2];
+      canvas_commit_seq (self, FALSE);
+    }
+}
+
+const CanvasToolInput canvas_input_shape = { shape_press, shape_drag, shape_release };
+const CanvasToolInput canvas_input_gradient = { gradient_press, shape_drag, shape_release };
+const CanvasToolInput canvas_input_polygon = { polygon_press, polygon_drag, polygon_release };
+const CanvasToolInput canvas_input_curve = { curve_press, curve_drag, curve_release };

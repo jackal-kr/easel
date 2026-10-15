@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: easel\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-14 22:09+0200\n"
+"POT-Creation-Date: 2026-10-15 08:55+0200\n"
 "PO-Revision-Date: 2026-10-14 22:01+0200\n"
 "Last-Translator: JOD (Oleksiy Degtyar)\n"
 "Language-Team: German\n"
@@ -86,7 +86,10 @@ msgid ""
 "A new Font dialog, with a different font, size and color inside one text "
 "box. New languages: Czech, German, Italian, Spanish, Portuguese and Russian. "
 "Also available as an AppImage."
-msgstr "Ein neuer Schriftdialog, mit unterschiedlicher Schrift, Größe und Farbe in einem Textfeld. Neue Sprachen: Tschechisch, Deutsch, Italienisch, Spanisch, Portugiesisch und Russisch. Auch als AppImage erhältlich."
+msgstr ""
+"Ein neuer Schriftdialog, mit unterschiedlicher Schrift, Größe und Farbe in "
+"einem Textfeld. Neue Sprachen: Tschechisch, Deutsch, Italienisch, Spanisch, "
+"Portugiesisch und Russisch. Auch als AppImage erhältlich."
 
 #: data/io.github.jackal_kr.Easel.metainfo.xml.in:55
 msgid "The Font dialog shows the current font almost at once in the Flatpak."
@@ -839,14 +842,14 @@ msgid "Magnifier click"
 msgstr "Lupenklick"
 
 #: src/ui/preferences.c:241
-msgid "Undo memory"
-msgstr "Speicher für Rückgängig"
+msgid "Undo history size"
+msgstr "Größe des Rückgängig-Verlaufs"
 
 #: src/ui/preferences.c:241
-msgid "Megabytes of history kept; older steps are forgotten first"
-msgstr ""
-"Megabyte an Verlauf, der behalten wird; ältere Schritte werden zuerst "
-"vergessen"
+msgid ""
+"Megabytes of history kept (the newest 64 MB in memory, the rest on disk); "
+"older steps are forgotten first"
+msgstr "Megabyte an gespeichertem Verlauf (die neuesten 64 MB im Speicher, der Rest auf der Festplatte); die ältesten Schritte werden zuerst verworfen"
 
 #: src/ui/preferences.c:243 src/ui/tool.c:41
 msgid "Text"
@@ -1343,3 +1346,6 @@ msgstr "Rückgängig (Strg+Z)"
 #: src/ui/window.c:1315
 msgid "Redo (Ctrl+Y)"
 msgstr "Wiederholen (Strg+Y)"
+
+#~ msgid "Undo memory"
+#~ msgstr "Speicher für Rückgängig"

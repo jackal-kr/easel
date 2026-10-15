@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: easel\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-14 22:09+0200\n"
+"POT-Creation-Date: 2026-10-15 08:55+0200\n"
 "PO-Revision-Date: 2026-10-14 22:01+0200\n"
 "Last-Translator: JOD (Oleksiy Degtyar)\n"
 "Language-Team: Spanish\n"
@@ -86,7 +86,10 @@ msgid ""
 "A new Font dialog, with a different font, size and color inside one text "
 "box. New languages: Czech, German, Italian, Spanish, Portuguese and Russian. "
 "Also available as an AppImage."
-msgstr "Un nuevo diálogo de fuentes, con distinta fuente, tamaño y color dentro de un mismo cuadro de texto. Nuevos idiomas: checo, alemán, italiano, español, portugués y ruso. También disponible como AppImage."
+msgstr ""
+"Un nuevo diálogo de fuentes, con distinta fuente, tamaño y color dentro de "
+"un mismo cuadro de texto. Nuevos idiomas: checo, alemán, italiano, español, "
+"portugués y ruso. También disponible como AppImage."
 
 #: data/io.github.jackal_kr.Easel.metainfo.xml.in:55
 msgid "The Font dialog shows the current font almost at once in the Flatpak."
@@ -836,14 +839,14 @@ msgid "Magnifier click"
 msgstr "Clic de la lupa"
 
 #: src/ui/preferences.c:241
-msgid "Undo memory"
-msgstr "Memoria para deshacer"
+msgid "Undo history size"
+msgstr "Tamaño del historial de deshacer"
 
 #: src/ui/preferences.c:241
-msgid "Megabytes of history kept; older steps are forgotten first"
-msgstr ""
-"Megabytes de historial que se conservan; los pasos más antiguos se olvidan "
-"primero"
+msgid ""
+"Megabytes of history kept (the newest 64 MB in memory, the rest on disk); "
+"older steps are forgotten first"
+msgstr "Megabytes de historial conservados (los 64 MB más recientes en memoria, el resto en disco); los pasos más antiguos se descartan primero"
 
 #: src/ui/preferences.c:243 src/ui/tool.c:41
 msgid "Text"
@@ -1339,3 +1342,6 @@ msgstr "Deshacer (Ctrl+Z)"
 #: src/ui/window.c:1315
 msgid "Redo (Ctrl+Y)"
 msgstr "Rehacer (Ctrl+Y)"
+
+#~ msgid "Undo memory"
+#~ msgstr "Memoria para deshacer"

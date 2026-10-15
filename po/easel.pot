@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: easel\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-14 22:09+0200\n"
+"POT-Creation-Date: 2026-10-15 08:55+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -801,11 +801,13 @@ msgid "Magnifier click"
 msgstr ""
 
 #: src/ui/preferences.c:241
-msgid "Undo memory"
+msgid "Undo history size"
 msgstr ""
 
 #: src/ui/preferences.c:241
-msgid "Megabytes of history kept; older steps are forgotten first"
+msgid ""
+"Megabytes of history kept (the newest 64 MB in memory, the rest on disk); "
+"older steps are forgotten first"
 msgstr ""
 
 #: src/ui/preferences.c:243 src/ui/tool.c:41

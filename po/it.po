@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: easel\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-14 22:09+0200\n"
+"POT-Creation-Date: 2026-10-15 08:55+0200\n"
 "PO-Revision-Date: 2026-10-14 22:01+0200\n"
 "Last-Translator: JOD (Oleksiy Degtyar)\n"
 "Language-Team: Italian\n"
@@ -84,7 +84,10 @@ msgid ""
 "A new Font dialog, with a different font, size and color inside one text "
 "box. New languages: Czech, German, Italian, Spanish, Portuguese and Russian. "
 "Also available as an AppImage."
-msgstr "Una nuova finestra dei caratteri, con carattere, dimensione e colore diversi in un’unica casella di testo. Nuove lingue: ceco, tedesco, italiano, spagnolo, portoghese e russo. Disponibile anche come AppImage."
+msgstr ""
+"Una nuova finestra dei caratteri, con carattere, dimensione e colore diversi "
+"in un’unica casella di testo. Nuove lingue: ceco, tedesco, italiano, "
+"spagnolo, portoghese e russo. Disponibile anche come AppImage."
 
 #: data/io.github.jackal_kr.Easel.metainfo.xml.in:55
 msgid "The Font dialog shows the current font almost at once in the Flatpak."
@@ -836,14 +839,14 @@ msgid "Magnifier click"
 msgstr "Clic della lente"
 
 #: src/ui/preferences.c:241
-msgid "Undo memory"
-msgstr "Memoria per Annulla"
+msgid "Undo history size"
+msgstr "Dimensione della cronologia annulla"
 
 #: src/ui/preferences.c:241
-msgid "Megabytes of history kept; older steps are forgotten first"
-msgstr ""
-"Megabyte di cronologia conservati; i passaggi più vecchi vengono dimenticati "
-"per primi"
+msgid ""
+"Megabytes of history kept (the newest 64 MB in memory, the rest on disk); "
+"older steps are forgotten first"
+msgstr "Megabyte di cronologia conservati (gli ultimi 64 MB in memoria, il resto su disco); i passi più vecchi vengono eliminati per primi"
 
 #: src/ui/preferences.c:243 src/ui/tool.c:41
 msgid "Text"
@@ -1342,3 +1345,6 @@ msgstr "Annulla (Ctrl+Z)"
 #: src/ui/window.c:1315
 msgid "Redo (Ctrl+Y)"
 msgstr "Ripeti (Ctrl+Y)"
+
+#~ msgid "Undo memory"
+#~ msgstr "Memoria per Annulla"

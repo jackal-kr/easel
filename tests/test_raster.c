@@ -402,6 +402,53 @@ test_polygon_curve_spray (void)
 }
 
 static void
+test_history_spill (void)
+{
+  /* A tiny memory window forces almost every step out to the file. */
+  EaselDocument *doc = easel_document_new (40, 40, WHITE);
+  EaselHistory *h = easel_history_new ((size_t) 1 << 24);
+  uint32_t *base = malloc ((size_t) 40 * 40 * 4);
+  uint32_t *start = malloc ((size_t) 40 * 40 * 4);
+  uint32_t *final = NULL;
+  EaselRect r;
+
+  easel_history_set_spill (h, NULL, 1);
+  memcpy (start, doc->pixels, (size_t) 40 * 40 * 4);
+  for (int i = 0; i < 30; i++)
+    {
+      memcpy (base, doc->pixels, (size_t) 40 * 40 * 4);
+      easel_raster_shape (doc, EASEL_SHAPE_RECT, i % 30, i % 20, i % 30 + 8, i % 20 + 8, 1,
+                          EASEL_FILL_SOLID, i % 2 ? BLACK : RED, i % 3 ? RED : BLACK);
+      CHECK (easel_history_push (h, doc, base, (EaselRect) { 0, 0, 40, 40 }));
+    }
+  final = malloc ((size_t) 40 * 40 * 4);
+  memcpy (final, doc->pixels, (size_t) 40 * 40 * 4);
+
+  while (easel_history_undo (h, doc, &r))
+    ;
+  CHECK (memcmp (doc->pixels, start, (size_t) 40 * 40 * 4) == 0);
+  while (easel_history_redo (h, doc, &r))
+    ;
+  CHECK (memcmp (doc->pixels, final, (size_t) 40 * 40 * 4) == 0);
+
+  /* Dropping the redo tail frees file space that the next steps reuse. */
+  for (int i = 0; i < 10; i++)
+    easel_history_undo (h, doc, &r);
+  memcpy (base, doc->pixels, (size_t) 40 * 40 * 4);
+  easel_raster_shape (doc, EASEL_SHAPE_RECT, 0, 0, 39, 39, 1, EASEL_FILL_SOLID, RED, RED);
+  CHECK (easel_history_push (h, doc, base, (EaselRect) { 0, 0, 40, 40 }));
+  CHECK (!easel_history_can_redo (h));
+  CHECK (easel_history_undo (h, doc, &r));
+  CHECK (memcmp (doc->pixels, base, (size_t) 40 * 40 * 4) == 0);
+
+  free (final);
+  free (start);
+  free (base);
+  easel_history_free (h);
+  easel_document_free (doc);
+}
+
+static void
 test_history (void)
 {
   EaselDocument *doc = easel_document_new (50, 50, WHITE);
@@ -736,8 +783,17 @@ test_syncbuf (void)
   CHECK (!easel_syncbuf_busy (b));
   easel_syncbuf_ref (b);
   CHECK (easel_syncbuf_busy (b));
+
+  /* Trimming frees the memory, but not while somebody else holds the buffer;
+   * the next update copies everything again. */
+  easel_syncbuf_trim (b);
+  CHECK (b->data != NULL);
   easel_syncbuf_unref (b);
   CHECK (!easel_syncbuf_busy (b));
+  easel_syncbuf_trim (b);
+  CHECK (b->data == NULL);
+  CHECK (easel_syncbuf_update (b, d));
+  CHECK (memcmp (b->data, d->pixels, 12 * 6 * 4) == 0);
 
   easel_syncbuf_unref (b);
   easel_document_free (d);
@@ -755,6 +811,7 @@ main (void)
   test_shapes ();
   test_polygon_curve_spray ();
   test_history ();
+  test_history_spill ();
   test_resize ();
   test_clip ();
   test_polygon_mask ();

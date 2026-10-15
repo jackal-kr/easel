@@ -38,6 +38,16 @@ easel_syncbuf_busy (EaselSyncBuf *buf)
 }
 
 void
+easel_syncbuf_trim (EaselSyncBuf *buf)
+{
+  if (buf == NULL || buf->data == NULL || easel_syncbuf_busy (buf))
+    return;
+  free (buf->data);
+  buf->data = NULL;
+  buf->stale = (EaselRect) { 0, 0, 0, 0 };
+}
+
+void
 easel_syncbuf_mark_stale (EaselSyncBuf *buf, EaselRect r)
 {
   if (buf == NULL || buf->data == NULL || r.width <= 0 || r.height <= 0)

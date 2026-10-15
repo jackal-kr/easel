@@ -27,6 +27,12 @@
  * we nearly always find a free one without allocating. */
 #define TEXTURE_BUFFERS 3
 
+/* A picture of at least this many bytes gives its spare pixel copies (the undo
+ * shadow and unused texture buffers) back after it has been left alone for a
+ * while; they are rebuilt, with one full copy, when editing continues. */
+#define TRIM_MIN_BYTES (64u << 20)
+#define TRIM_IDLE_US   (3 * G_USEC_PER_SEC)
+
 /* What the pointer is over on the text box. 1..8 are the resize handles, numbered
  * like the selection handles (see canvas_sel_handle_pos). */
 enum { TEXT_HIT_NONE = 0, TEXT_HIT_BORDER = 9, TEXT_HIT_INSIDE = 10 };
@@ -34,8 +40,9 @@ enum { TEXT_HIT_NONE = 0, TEXT_HIT_BORDER = 9, TEXT_HIT_INSIDE = 10 };
 /* What a drag that started on the text box is doing. */
 enum { TEXT_DRAG_NONE = 0, TEXT_DRAG_MOVE, TEXT_DRAG_RESIZE, TEXT_DRAG_SELECT };
 
-/* REVIEW: this struct has grown big. Selection, text and gradient state
- * could each move into their own sub-struct. */
+/* The fields are grouped by feature in the comments below. The one large
+ * array (the polygon/curve points, 4 KB) lives on the heap and is allocated
+ * on first use, so the struct itself stays small. */
 struct _EaselCanvas
 {
   GtkWidget parent_instance;
@@ -50,6 +57,8 @@ struct _EaselCanvas
   EaselSyncBuf   *shadow;      /* picture as of the last finished edit: the undo base */
   gboolean        shadow_taken;
   EaselSyncBuf   *tex_bufs[TEXTURE_BUFFERS]; /* pixel memory handed to textures, recycled */
+  gint64          last_change_us; /* when the pixels last changed (monotonic) */
+  guint           trim_source;    /* timer that frees the spare copies; 0 when not running */
   guint64         change_count; /* grows with every pixel change, so others can skip redraws */
   gint64          paint_us;     /* how long the last snapshot took (shown by Frame Time) */
   int             zoom;         /* percent, 100 = one picture pixel per device pixel */
@@ -88,7 +97,7 @@ struct _EaselCanvas
   gboolean   seq_active;
   int        seq_stage;     /* curve: 0 drawing the line, 1 waiting for 1st bend, 2 for 2nd */
   int        seq_n;
-  EaselPoint seq[MAX_SEQ];
+  EaselPoint *seq;          /* MAX_SEQ points, allocated by canvas_seq_begin */
   gboolean   seq_moved;
   gint64     last_press_us; /* for spotting a double click */
 
@@ -193,6 +202,7 @@ int canvas_text_hit (EaselCanvas *self, double wx, double wy);
 int canvas_text_index_at (EaselCanvas *self, int ix, int iy);
 uint32_t * canvas_snapshot_take (EaselCanvas *self);
 void canvas_begin_edit (EaselCanvas *self);
+void canvas_seq_begin (EaselCanvas *self);
 void canvas_cancel_seq (EaselCanvas *self);
 void canvas_commit_seq (EaselCanvas *self, gboolean closed);
 void canvas_draw_gradient_guide (EaselCanvas *self, GtkSnapshot *snapshot, double s);
@@ -227,6 +237,25 @@ void canvas_text_move_cursor (EaselCanvas *self, int index, gboolean extend);
 void canvas_text_render (EaselCanvas *self);
 void canvas_text_resize_to (EaselCanvas *self, int x, int y);
 void canvas_update_shape (EaselCanvas *self, int x, int y, gboolean constrain);
+
+/* What one tool does with a mouse gesture. press gets the widget position,
+ * drag and release get the picture pixel under the pointer. Any of them may
+ * be NULL for "nothing". canvas_press/drag/release call these after the
+ * work every tool shares; see canvas.c. */
+typedef struct
+{
+  void (*press)   (EaselCanvas *self, double wx, double wy, gboolean ctrl);
+  void (*drag)    (EaselCanvas *self, int x, int y, gboolean shift);
+  void (*release) (EaselCanvas *self, int x, int y, gboolean shift);
+} CanvasToolInput;
+
+extern const CanvasToolInput canvas_input_text;      /* canvas-text.c */
+extern const CanvasToolInput canvas_input_selection; /* canvas-selection.c: Select, Free-Form Select */
+extern const CanvasToolInput canvas_input_shape;     /* canvas-shapes.c: Line, Rectangle, Ellipse, Rounded Rectangle */
+extern const CanvasToolInput canvas_input_gradient;
+extern const CanvasToolInput canvas_input_polygon;
+extern const CanvasToolInput canvas_input_curve;
+void canvas_grad_drag_to (EaselCanvas *self, int x, int y);
 
 /* Mouse input, with plain numbers instead of GTK events so the tests can fake
  * it. (x, y) are widget coordinates in logical pixels, the offsets are

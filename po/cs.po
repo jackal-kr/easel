@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: easel\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-14 22:09+0200\n"
+"POT-Creation-Date: 2026-10-15 08:55+0200\n"
 "PO-Revision-Date: 2026-10-14 22:01+0200\n"
 "Last-Translator: JOD (Oleksiy Degtyar)\n"
 "Language-Team: Czech\n"
@@ -83,7 +83,10 @@ msgid ""
 "A new Font dialog, with a different font, size and color inside one text "
 "box. New languages: Czech, German, Italian, Spanish, Portuguese and Russian. "
 "Also available as an AppImage."
-msgstr "Nový dialog písma s různým písmem, velikostí a barvou v jednom textovém poli. Nové jazyky: čeština, němčina, italština, španělština, portugalština a ruština. K dispozici také jako AppImage."
+msgstr ""
+"Nový dialog písma s různým písmem, velikostí a barvou v jednom textovém "
+"poli. Nové jazyky: čeština, němčina, italština, španělština, portugalština a "
+"ruština. K dispozici také jako AppImage."
 
 #: data/io.github.jackal_kr.Easel.metainfo.xml.in:55
 msgid "The Font dialog shows the current font almost at once in the Flatpak."
@@ -822,12 +825,14 @@ msgid "Magnifier click"
 msgstr "Kliknutí lupy"
 
 #: src/ui/preferences.c:241
-msgid "Undo memory"
-msgstr "Paměť pro Zpět"
+msgid "Undo history size"
+msgstr "Velikost historie zpět"
 
 #: src/ui/preferences.c:241
-msgid "Megabytes of history kept; older steps are forgotten first"
-msgstr "Megabajty uchovávané historie; starší kroky se zapomínají jako první"
+msgid ""
+"Megabytes of history kept (the newest 64 MB in memory, the rest on disk); "
+"older steps are forgotten first"
+msgstr "Megabajty uložené historie (nejnovějších 64 MB v paměti, zbytek na disku); nejstarší kroky se zapomínají jako první"
 
 #: src/ui/preferences.c:243 src/ui/tool.c:41
 msgid "Text"
@@ -1316,3 +1321,6 @@ msgstr "Zpět (Ctrl+Z)"
 #: src/ui/window.c:1315
 msgid "Redo (Ctrl+Y)"
 msgstr "Znovu (Ctrl+Y)"
+
+#~ msgid "Undo memory"
+#~ msgstr "Paměť pro Zpět"

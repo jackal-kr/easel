@@ -34,6 +34,11 @@ void          easel_syncbuf_unref (EaselSyncBuf *buf);
 /* True while anyone besides the owner holds a reference. */
 bool easel_syncbuf_busy (EaselSyncBuf *buf);
 
+/* Gives the pixel memory back to the system if nobody else holds the buffer.
+ * The next easel_syncbuf_update() makes a full copy again. For big pictures
+ * that sit unused, so the spare copies do not cost memory for nothing. */
+void easel_syncbuf_trim (EaselSyncBuf *buf);
+
 /* Tells the buffer the picture changed in `r`. */
 void easel_syncbuf_mark_stale (EaselSyncBuf *buf, EaselRect r);
 

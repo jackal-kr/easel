@@ -9,8 +9,11 @@
 
 #define EASEL_DEFAULT_FONT "Arial 12"
 
-/* Pixels kept for undo before the oldest steps are dropped. */
-#define EASEL_UNDO_LIMIT_MB 512 /* default; Preferences can change it */
+/* Undo history: the newest steps stay in memory up to EASEL_UNDO_RAM_MB, older
+ * ones go to a temporary file. The limit counts both; past it the oldest
+ * steps are dropped. */
+#define EASEL_UNDO_LIMIT_MB 2048 /* default; Preferences can change it */
+#define EASEL_UNDO_RAM_MB   64
 
 /* Timers, in milliseconds. */
 #define EASEL_CARET_BLINK_MS    530

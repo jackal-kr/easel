@@ -238,7 +238,7 @@ build_drawing (AdwPreferencesDialog *dialog, GSettings *s)
   adw_preferences_group_add (tools, zoom);
 
   AdwPreferencesGroup *undo = add_group (page, _("Undo"), _("Applied the next time Easel starts."));
-  add_spin (undo, s, "undo-limit-mb", _("Undo memory"), _("Megabytes of history kept; older steps are forgotten first"), 16, 8192);
+  add_spin (undo, s, "undo-limit-mb", _("Undo history size"), _("Megabytes of history kept (the newest 64 MB in memory, the rest on disk); older steps are forgotten first"), 16, 32768);
 
   AdwPreferencesGroup *text = add_group (page, _("Text"), _("Applied the next time Easel starts."));
   GtkWidget *row = adw_action_row_new ();

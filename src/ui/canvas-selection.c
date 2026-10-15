@@ -553,3 +553,114 @@ easel_canvas_paste_clip_as (EaselCanvas *self, EaselClip *clip, gboolean fit)
   canvas_sel_refresh_texture (self);
   canvas_sel_notify (self);
 }
+
+/* ---- Mouse input for Select and Free-Form Select ---------------------- */
+
+static void
+selection_press (EaselCanvas *self, double x, double y, gboolean ctrl)
+{
+  self->drawing = TRUE;
+  if ((self->sel_stretch = canvas_sel_handle_at (self, x, y)) != 0)
+    {
+      canvas_sel_lift (self, FALSE);
+      if (self->sel_clip == NULL)
+        self->sel_stretch = 0;
+      else
+        {
+          g_clear_pointer (&self->sel_src, easel_clip_free);
+          self->sel_src = easel_clip_scaled (self->sel_clip, self->sel_clip->width, self->sel_clip->height);
+          self->sel_src_rect = self->sel_rect;
+          if (self->sel_src == NULL)
+            self->sel_stretch = 0;
+        }
+    }
+  else if (canvas_sel_contains (self, self->last_x, self->last_y))
+    {
+      canvas_sel_lift (self, ctrl);
+      self->sel_moving = TRUE;
+      self->sel_grab_x = self->last_x - self->sel_rect.x;
+      self->sel_grab_y = self->last_y - self->sel_rect.y;
+    }
+  else
+    {
+      canvas_sel_commit (self);
+      self->sel_creating = TRUE;
+      self->sel_rect = canvas_sel_rect_between (self, self->last_x, self->last_y, self->last_x, self->last_y);
+      if (self->tool == EASEL_TOOL_FREE_FORM_SELECT)
+        {
+          EaselPoint p = { self->sel_rect.x, self->sel_rect.y };
+          self->sel_path = g_array_new (FALSE, FALSE, sizeof (EaselPoint));
+          g_array_append_val (self->sel_path, p);
+          self->sel_path_x = self->sel_path_y = 0;
+        }
+    }
+  gtk_widget_queue_draw (GTK_WIDGET (self));
+}
+
+static void
+selection_drag (EaselCanvas *self, int x, int y, gboolean shift)
+{
+  if (self->sel_stretch != 0)
+    canvas_sel_stretch_to (self, x, y);
+  else if (self->sel_moving)
+    {
+      self->sel_rect.x = x - self->sel_grab_x;
+      self->sel_rect.y = y - self->sel_grab_y;
+    }
+  else if (self->sel_creating && self->sel_path != NULL)
+    {
+      /* Free-form: add the point to the outline and grow the bounding box. */
+      EaselPoint p = { CLAMP (x, 0, self->doc->width - 1), CLAMP (y, 0, self->doc->height - 1) };
+      EaselPoint last = g_array_index (self->sel_path, EaselPoint, self->sel_path->len - 1);
+
+      if (p.x != last.x || p.y != last.y)
+        g_array_append_val (self->sel_path, p);
+      int x0 = p.x, y0 = p.y, x1 = p.x, y1 = p.y;
+      for (guint i = 0; i < self->sel_path->len; i++)
+        {
+          EaselPoint q = g_array_index (self->sel_path, EaselPoint, i);
+          x0 = MIN (x0, q.x); y0 = MIN (y0, q.y); x1 = MAX (x1, q.x); y1 = MAX (y1, q.y);
+        }
+      self->sel_rect = (EaselRect) { x0, y0, x1 - x0 + 1, y1 - y0 + 1 };
+    }
+  else if (self->sel_creating)
+    self->sel_rect = canvas_sel_rect_between (self, self->start_ix, self->start_iy, x, y);
+  gtk_widget_queue_draw (GTK_WIDGET (self));
+}
+
+static void
+selection_release (EaselCanvas *self, int x, int y, gboolean shift)
+{
+  if (self->sel_creating && self->sel_path != NULL)
+    {
+      self->sel_creating = FALSE;
+      if (self->sel_path->len >= 3)
+        {
+          self->sel_mask = easel_raster_polygon_mask ((EaselPoint *) (void *) self->sel_path->data,
+                                                      (int) self->sel_path->len, self->sel_rect);
+          self->sel_path_x = self->sel_rect.x;
+          self->sel_path_y = self->sel_rect.y;
+          self->sel_active = self->sel_mask != NULL;
+        }
+      if (!self->sel_active)
+        {
+          g_clear_pointer (&self->sel_path, g_array_unref);
+          gtk_widget_queue_draw (GTK_WIDGET (self));
+        }
+      canvas_sel_notify (self);
+    }
+  else if (self->sel_creating)
+    {
+      self->sel_creating = FALSE;
+      /* A click without dragging is "select nothing". */
+      self->sel_active = !(x == self->start_ix && y == self->start_iy);
+      if (!self->sel_active)
+        gtk_widget_queue_draw (GTK_WIDGET (self));
+      canvas_sel_notify (self);
+    }
+  self->sel_moving = FALSE;
+  self->sel_stretch = 0;
+  g_clear_pointer (&self->sel_src, easel_clip_free);
+}
+
+const CanvasToolInput canvas_input_selection = { selection_press, selection_drag, selection_release };

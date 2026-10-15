@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: easel\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-14 22:09+0200\n"
+"POT-Creation-Date: 2026-10-15 08:55+0200\n"
 "PO-Revision-Date: 2026-10-14 22:00+0200\n"
 "Last-Translator: JOD (Oleksiy Degtyar)\n"
 "Language-Team: none\n"
@@ -87,7 +87,10 @@ msgid ""
 "A new Font dialog, with a different font, size and color inside one text "
 "box. New languages: Czech, German, Italian, Spanish, Portuguese and Russian. "
 "Also available as an AppImage."
-msgstr "Новое окно выбора шрифта, с разным шрифтом, размером и цветом в одном текстовом поле. Новые языки: чешский, немецкий, итальянский, испанский, португальский и русский. Также доступно в виде AppImage."
+msgstr ""
+"Новое окно выбора шрифта, с разным шрифтом, размером и цветом в одном "
+"текстовом поле. Новые языки: чешский, немецкий, итальянский, испанский, "
+"португальский и русский. Также доступно в виде AppImage."
 
 #: data/io.github.jackal_kr.Easel.metainfo.xml.in:55
 msgid "The Font dialog shows the current font almost at once in the Flatpak."
@@ -833,12 +836,14 @@ msgid "Magnifier click"
 msgstr "Щелчок лупой"
 
 #: src/ui/preferences.c:241
-msgid "Undo memory"
-msgstr "Память для отмены"
+msgid "Undo history size"
+msgstr "Размер истории отмены"
 
 #: src/ui/preferences.c:241
-msgid "Megabytes of history kept; older steps are forgotten first"
-msgstr "Мегабайт хранимой истории; сначала забываются самые старые шаги"
+msgid ""
+"Megabytes of history kept (the newest 64 MB in memory, the rest on disk); "
+"older steps are forgotten first"
+msgstr "Мегабайты хранимой истории (новейшие 64 МБ в памяти, остальное на диске); самые старые шаги удаляются первыми"
 
 #: src/ui/preferences.c:243 src/ui/tool.c:41
 msgid "Text"
@@ -1327,3 +1332,6 @@ msgstr "Отменить (Ctrl+Z)"
 #: src/ui/window.c:1315
 msgid "Redo (Ctrl+Y)"
 msgstr "Повторить (Ctrl+Y)"
+
+#~ msgid "Undo memory"
+#~ msgstr "Память для отмены"

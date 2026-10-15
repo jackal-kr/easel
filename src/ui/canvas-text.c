@@ -819,3 +819,64 @@ easel_canvas_text_has_selection (EaselCanvas *self)
   g_return_val_if_fail (EASEL_IS_CANVAS (self), FALSE);
   return self->text_active && canvas_text_sel_range (self, &a, &b);
 }
+
+/* ---- Mouse input for the Text tool ------------------------------------ */
+
+static void
+text_press (EaselCanvas *self, double x, double y, gboolean ctrl)
+{
+  int hit = canvas_text_hit (self, x, y);
+
+  gtk_widget_grab_focus (GTK_WIDGET (self));
+  self->drawing = TRUE;
+  if (hit >= 1 && hit <= TEXT_HIT_BORDER)
+    {
+      self->text_orig = self->text_rect;
+      if (hit == TEXT_HIT_BORDER)
+        {
+          self->text_drag = TEXT_DRAG_MOVE;
+          self->text_grab_x = self->last_x - self->text_rect.x;
+          self->text_grab_y = self->last_y - self->text_rect.y;
+        }
+      else
+        {
+          self->text_drag = TEXT_DRAG_RESIZE;
+          self->text_handle = hit;
+        }
+    }
+  else if (hit == TEXT_HIT_INSIDE)
+    {
+      /* Click inside the box places the caret; dragging selects. */
+      canvas_text_move_cursor (self, canvas_text_index_at (self, self->last_x, self->last_y), FALSE);
+      self->text_drag = TEXT_DRAG_SELECT;
+    }
+  else
+    canvas_text_begin_drag (self, self->last_x, self->last_y);
+}
+
+static void
+text_drag (EaselCanvas *self, int x, int y, gboolean shift)
+{
+  if (self->text_drag == TEXT_DRAG_MOVE)
+    {
+      self->text_rect.x = x - self->text_grab_x;
+      self->text_rect.y = y - self->text_grab_y;
+      gtk_widget_queue_draw (GTK_WIDGET (self));
+    }
+  else if (self->text_drag == TEXT_DRAG_RESIZE)
+    canvas_text_resize_to (self, x, y);
+  else if (self->text_drag == TEXT_DRAG_SELECT)
+    canvas_text_move_cursor (self, canvas_text_index_at (self, x, y), TRUE);
+  else if (self->text_creating)
+    canvas_text_drag_to (self, self->start_ix, self->start_iy, x, y);
+}
+
+static void
+text_release (EaselCanvas *self, int x, int y, gboolean shift)
+{
+  if (self->text_creating)
+    canvas_text_end_drag (self);
+  self->text_drag = TEXT_DRAG_NONE;
+}
+
+const CanvasToolInput canvas_input_text = { text_press, text_drag, text_release };
