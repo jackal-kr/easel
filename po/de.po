@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: easel\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-15 08:55+0200\n"
+"POT-Creation-Date: 2026-10-16 18:55+0200\n"
 "PO-Revision-Date: 2026-10-14 22:01+0200\n"
 "Last-Translator: JOD (Oleksiy Degtyar)\n"
 "Language-Team: German\n"
@@ -83,6 +83,13 @@ msgstr "Das dunkle Design"
 
 #: data/io.github.jackal_kr.Easel.metainfo.xml.in:50
 msgid ""
+"Undo history is now kept on disk, so you get far more undo steps on large "
+"pictures (up to 2 GB by default, adjustable in Preferences). A large picture "
+"uses less memory while it sits idle."
+msgstr "Der Rückgängig-Verlauf wird jetzt auf der Festplatte gehalten, sodass bei großen Bildern viel mehr Schritte möglich sind (standardmäßig bis zu 2 GB, in den Einstellungen änderbar). Ein großes Bild braucht weniger Speicher, wenn es unbenutzt ist."
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:55
+msgid ""
 "A new Font dialog, with a different font, size and color inside one text "
 "box. New languages: Czech, German, Italian, Spanish, Portuguese and Russian. "
 "Also available as an AppImage."
@@ -91,33 +98,33 @@ msgstr ""
 "einem Textfeld. Neue Sprachen: Tschechisch, Deutsch, Italienisch, Spanisch, "
 "Portugiesisch und Russisch. Auch als AppImage erhältlich."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:55
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:60
 msgid "The Font dialog shows the current font almost at once in the Flatpak."
 msgstr ""
 "Der Schriftdialog zeigt die aktuelle Schrift im Flatpak fast sofort an."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:60
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:65
 msgid ""
 "The Font dialog now shows its font list and highlights the current font."
 msgstr ""
 "Der Schriftdialog zeigt jetzt seine Schriftliste und hebt die aktuelle "
 "Schrift hervor."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:65
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:70
 msgid ""
 "Gradients fade to transparent, so a second gradient lays over the first."
 msgstr ""
 "Verläufe blenden zu Transparent aus, sodass ein zweiter Verlauf über dem "
 "ersten liegt."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:70
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:75
 msgid ""
 "Help opens in the web browser. Faster resize, paste and image transforms."
 msgstr ""
 "Die Hilfe öffnet sich im Webbrowser. Schnelleres Ändern der Größe, Einfügen "
 "und Bildtransformationen."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:75
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:80
 msgid ""
 "Right-click outside a selection with Select or Free-Form Select now offers "
 "Paste and the other canvas actions."
@@ -126,7 +133,7 @@ msgstr ""
 "Auswahl“ bietet jetzt „Einfügen“ und die anderen Aktionen der Zeichenfläche "
 "an."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:80
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:85
 msgid ""
 "Fit to Window zoom, a configurable grid (cell size and axonometric grid), "
 "and Stretch and Skew by percent or exact pixels."
@@ -135,11 +142,11 @@ msgstr ""
 "axonometrisches Raster) sowie Strecken und Neigen in Prozent oder exakten "
 "Pixeln."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:85
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:90
 msgid "Adds store screenshots."
 msgstr "Fügt Screenshots für den Store hinzu."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:90
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:95
 msgid ""
 "First stable release: translations (Polish, Ukrainian), screen-reader "
 "labels, a right-click menu in Pan mode, and a choice between fitting a "
@@ -150,7 +157,7 @@ msgstr ""
 "eingefügtes Bild an die Zeichenfläche anzupassen oder die Zeichenfläche zu "
 "vergrößern."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:95
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:100
 msgid "First public version."
 msgstr "Erste öffentliche Version."
 
@@ -849,7 +856,9 @@ msgstr "Größe des Rückgängig-Verlaufs"
 msgid ""
 "Megabytes of history kept (the newest 64 MB in memory, the rest on disk); "
 "older steps are forgotten first"
-msgstr "Megabyte an gespeichertem Verlauf (die neuesten 64 MB im Speicher, der Rest auf der Festplatte); die ältesten Schritte werden zuerst verworfen"
+msgstr ""
+"Megabyte an gespeichertem Verlauf (die neuesten 64 MB im Speicher, der Rest "
+"auf der Festplatte); die ältesten Schritte werden zuerst verworfen"
 
 #: src/ui/preferences.c:243 src/ui/tool.c:41
 msgid "Text"

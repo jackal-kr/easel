@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: easel\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-14 22:09+0200\n"
+"POT-Creation-Date: 2026-10-16 18:55+0200\n"
 "PO-Revision-Date: 2026-10-14 17:06+0200\n"
 "Last-Translator: JOD (Oleksiy Degtyar)\n"
 "Language-Team: none\n"
@@ -83,36 +83,46 @@ msgstr "Ciemny styl"
 
 #: data/io.github.jackal_kr.Easel.metainfo.xml.in:50
 msgid ""
+"Undo history is now kept on disk, so you get far more undo steps on large "
+"pictures (up to 2 GB by default, adjustable in Preferences). A large picture "
+"uses less memory while it sits idle."
+msgstr "Historia cofania jest teraz przechowywana na dysku, więc na dużych obrazach masz znacznie więcej kroków cofania (domyślnie do 2 GB, do zmiany w Preferencjach). Duży obraz zajmuje mniej pamięci, gdy jest nieużywany."
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:55
+msgid ""
 "A new Font dialog, with a different font, size and color inside one text "
 "box. New languages: Czech, German, Italian, Spanish, Portuguese and Russian. "
 "Also available as an AppImage."
-msgstr "Nowe okno wyboru czcionki, z inną czcionką, rozmiarem i kolorem w jednym polu tekstowym. Nowe języki: czeski, niemiecki, włoski, hiszpański, portugalski i rosyjski. Dostępne także jako AppImage."
+msgstr ""
+"Nowe okno wyboru czcionki, z inną czcionką, rozmiarem i kolorem w jednym "
+"polu tekstowym. Nowe języki: czeski, niemiecki, włoski, hiszpański, "
+"portugalski i rosyjski. Dostępne także jako AppImage."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:55
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:60
 msgid "The Font dialog shows the current font almost at once in the Flatpak."
 msgstr ""
 "Okno wyboru czcionki prawie od razu pokazuje bieżącą czcionkę we Flatpaku."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:60
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:65
 msgid ""
 "The Font dialog now shows its font list and highlights the current font."
 msgstr "Okno wyboru czcionki pokazuje teraz listę czcionek i zaznacza bieżącą."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:65
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:70
 msgid ""
 "Gradients fade to transparent, so a second gradient lays over the first."
 msgstr ""
 "Gradienty płynnie przechodzą w przezroczystość, więc drugi gradient układa "
 "się na pierwszym."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:70
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:75
 msgid ""
 "Help opens in the web browser. Faster resize, paste and image transforms."
 msgstr ""
 "Pomoc otwiera się w przeglądarce internetowej. Szybsza zmiana rozmiaru, "
 "wklejanie i przekształcenia obrazu."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:75
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:80
 msgid ""
 "Right-click outside a selection with Select or Free-Form Select now offers "
 "Paste and the other canvas actions."
@@ -121,7 +131,7 @@ msgstr ""
 "Zaznaczanie dowolnego kształtu oferuje teraz Wklej i inne działania na "
 "płótnie."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:80
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:85
 msgid ""
 "Fit to Window zoom, a configurable grid (cell size and axonometric grid), "
 "and Stretch and Skew by percent or exact pixels."
@@ -130,11 +140,11 @@ msgstr ""
 "siatka aksonometryczna) oraz rozciąganie i pochylanie w procentach lub "
 "dokładnych pikselach."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:85
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:90
 msgid "Adds store screenshots."
 msgstr "Dodaje zrzuty ekranu dla sklepów."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:90
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:95
 msgid ""
 "First stable release: translations (Polish, Ukrainian), screen-reader "
 "labels, a right-click menu in Pan mode, and a choice between fitting a "
@@ -144,7 +154,7 @@ msgstr ""
 "czytników ekranu, menu prawego przycisku w trybie Przesuwania oraz wybór "
 "między dopasowaniem wklejonego obrazu do płótna a zmianą rozmiaru płótna."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:95
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:100
 msgid "First public version."
 msgstr "Pierwsza publiczna wersja."
 
@@ -831,13 +841,14 @@ msgid "Magnifier click"
 msgstr "Kliknięcie lupy"
 
 #: src/ui/preferences.c:241
-msgid "Undo memory"
-msgstr "Pamięć cofania"
+msgid "Undo history size"
+msgstr "Rozmiar historii cofania"
 
 #: src/ui/preferences.c:241
-msgid "Megabytes of history kept; older steps are forgotten first"
-msgstr ""
-"Megabajty przechowywanej historii; najstarsze kroki są usuwane jako pierwsze"
+msgid ""
+"Megabytes of history kept (the newest 64 MB in memory, the rest on disk); "
+"older steps are forgotten first"
+msgstr "Megabajty przechowywanej historii (najnowsze 64 MB w pamięci, reszta na dysku); najstarsze kroki są usuwane jako pierwsze"
 
 #: src/ui/preferences.c:243 src/ui/tool.c:41
 msgid "Text"
@@ -1332,6 +1343,9 @@ msgstr "Cofnij (Ctrl+Z)"
 #: src/ui/window.c:1315
 msgid "Redo (Ctrl+Y)"
 msgstr "Ponów (Ctrl+Y)"
+
+#~ msgid "Undo memory"
+#~ msgstr "Pamięć cofania"
 
 #~ msgid "Stretch horizontally"
 #~ msgstr "Rozciągnij w poziomie"

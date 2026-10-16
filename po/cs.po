@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: easel\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-15 08:55+0200\n"
+"POT-Creation-Date: 2026-10-16 18:55+0200\n"
 "PO-Revision-Date: 2026-10-14 22:01+0200\n"
 "Last-Translator: JOD (Oleksiy Degtyar)\n"
 "Language-Team: Czech\n"
@@ -80,6 +80,13 @@ msgstr "Tmavý styl"
 
 #: data/io.github.jackal_kr.Easel.metainfo.xml.in:50
 msgid ""
+"Undo history is now kept on disk, so you get far more undo steps on large "
+"pictures (up to 2 GB by default, adjustable in Preferences). A large picture "
+"uses less memory while it sits idle."
+msgstr "Historie zpět se nyní ukládá na disk, takže u velkých obrázků máte mnohem více kroků zpět (ve výchozím nastavení až 2 GB, lze změnit v Předvolbách). Velký obrázek zabírá méně paměti, když se nepoužívá."
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:55
+msgid ""
 "A new Font dialog, with a different font, size and color inside one text "
 "box. New languages: Czech, German, Italian, Spanish, Portuguese and Russian. "
 "Also available as an AppImage."
@@ -88,28 +95,28 @@ msgstr ""
 "poli. Nové jazyky: čeština, němčina, italština, španělština, portugalština a "
 "ruština. K dispozici také jako AppImage."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:55
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:60
 msgid "The Font dialog shows the current font almost at once in the Flatpak."
 msgstr "Dialog písma ve Flatpaku zobrazí aktuální písmo téměř okamžitě."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:60
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:65
 msgid ""
 "The Font dialog now shows its font list and highlights the current font."
 msgstr "Dialog písma nyní zobrazuje seznam písem a zvýrazňuje aktuální písmo."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:65
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:70
 msgid ""
 "Gradients fade to transparent, so a second gradient lays over the first."
 msgstr "Přechody mizí do průhlednosti, takže druhý přechod leží nad prvním."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:70
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:75
 msgid ""
 "Help opens in the web browser. Faster resize, paste and image transforms."
 msgstr ""
 "Nápověda se otevírá ve webovém prohlížeči. Rychlejší změna velikosti, "
 "vkládání a transformace obrázku."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:75
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:80
 msgid ""
 "Right-click outside a selection with Select or Free-Form Select now offers "
 "Paste and the other canvas actions."
@@ -117,7 +124,7 @@ msgstr ""
 "Kliknutí pravým tlačítkem mimo výběr s nástrojem Výběr nebo Výběr od ruky "
 "nyní nabízí Vložit a další akce plátna."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:80
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:85
 msgid ""
 "Fit to Window zoom, a configurable grid (cell size and axonometric grid), "
 "and Stretch and Skew by percent or exact pixels."
@@ -125,11 +132,11 @@ msgstr ""
 "Lupa Přizpůsobit oknu, nastavitelná mřížka (velikost buňky a axonometrická "
 "mřížka) a roztažení a zkosení v procentech nebo přesných pixelech."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:85
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:90
 msgid "Adds store screenshots."
 msgstr "Přidává snímky obrazovky pro obchod."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:90
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:95
 msgid ""
 "First stable release: translations (Polish, Ukrainian), screen-reader "
 "labels, a right-click menu in Pan mode, and a choice between fitting a "
@@ -139,7 +146,7 @@ msgstr ""
 "obrazovky, kontextová nabídka v režimu posunu a volba mezi přizpůsobením "
 "vloženého obrázku plátnu nebo změnou velikosti plátna."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:95
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:100
 msgid "First public version."
 msgstr "První veřejná verze."
 
@@ -832,7 +839,9 @@ msgstr "Velikost historie zpět"
 msgid ""
 "Megabytes of history kept (the newest 64 MB in memory, the rest on disk); "
 "older steps are forgotten first"
-msgstr "Megabajty uložené historie (nejnovějších 64 MB v paměti, zbytek na disku); nejstarší kroky se zapomínají jako první"
+msgstr ""
+"Megabajty uložené historie (nejnovějších 64 MB v paměti, zbytek na disku); "
+"nejstarší kroky se zapomínají jako první"
 
 #: src/ui/preferences.c:243 src/ui/tool.c:41
 msgid "Text"

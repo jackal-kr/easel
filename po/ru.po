@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: easel\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-15 08:55+0200\n"
+"POT-Creation-Date: 2026-10-16 18:55+0200\n"
 "PO-Revision-Date: 2026-10-14 22:00+0200\n"
 "Last-Translator: JOD (Oleksiy Degtyar)\n"
 "Language-Team: none\n"
@@ -84,6 +84,13 @@ msgstr "Тёмная тема"
 
 #: data/io.github.jackal_kr.Easel.metainfo.xml.in:50
 msgid ""
+"Undo history is now kept on disk, so you get far more undo steps on large "
+"pictures (up to 2 GB by default, adjustable in Preferences). A large picture "
+"uses less memory while it sits idle."
+msgstr "История отмены теперь хранится на диске, поэтому на больших изображениях доступно намного больше шагов отмены (по умолчанию до 2 ГБ, меняется в Настройках). Большое изображение занимает меньше памяти, пока им не пользуются."
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:55
+msgid ""
 "A new Font dialog, with a different font, size and color inside one text "
 "box. New languages: Czech, German, Italian, Spanish, Portuguese and Russian. "
 "Also available as an AppImage."
@@ -92,31 +99,31 @@ msgstr ""
 "текстовом поле. Новые языки: чешский, немецкий, итальянский, испанский, "
 "португальский и русский. Также доступно в виде AppImage."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:55
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:60
 msgid "The Font dialog shows the current font almost at once in the Flatpak."
 msgstr "Диалог выбора шрифта почти сразу показывает текущий шрифт во Flatpak."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:60
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:65
 msgid ""
 "The Font dialog now shows its font list and highlights the current font."
 msgstr ""
 "Диалог выбора шрифта теперь показывает список шрифтов и выделяет текущий."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:65
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:70
 msgid ""
 "Gradients fade to transparent, so a second gradient lays over the first."
 msgstr ""
 "Градиенты плавно переходят в прозрачность, поэтому второй градиент ложится "
 "поверх первого."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:70
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:75
 msgid ""
 "Help opens in the web browser. Faster resize, paste and image transforms."
 msgstr ""
 "Справка открывается в веб-браузере. Быстрее изменение размера, вставка и "
 "преобразования изображения."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:75
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:80
 msgid ""
 "Right-click outside a selection with Select or Free-Form Select now offers "
 "Paste and the other canvas actions."
@@ -125,7 +132,7 @@ msgstr ""
 "или «Выделение произвольной области» теперь предлагает «Вставить» и другие "
 "действия с полотном."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:80
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:85
 msgid ""
 "Fit to Window zoom, a configurable grid (cell size and axonometric grid), "
 "and Stretch and Skew by percent or exact pixels."
@@ -134,11 +141,11 @@ msgstr ""
 "аксонометрическая сетка), а также растяжение и наклон в процентах или точных "
 "пикселях."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:85
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:90
 msgid "Adds store screenshots."
 msgstr "Добавлены снимки экрана для магазина приложений."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:90
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:95
 msgid ""
 "First stable release: translations (Polish, Ukrainian), screen-reader "
 "labels, a right-click menu in Pan mode, and a choice between fitting a "
@@ -149,7 +156,7 @@ msgstr ""
 "между подгонкой вставленной картинки под полотно и изменением размера "
 "полотна."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:95
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:100
 msgid "First public version."
 msgstr "Первая публичная версия."
 
@@ -843,7 +850,9 @@ msgstr "Размер истории отмены"
 msgid ""
 "Megabytes of history kept (the newest 64 MB in memory, the rest on disk); "
 "older steps are forgotten first"
-msgstr "Мегабайты хранимой истории (новейшие 64 МБ в памяти, остальное на диске); самые старые шаги удаляются первыми"
+msgstr ""
+"Мегабайты хранимой истории (новейшие 64 МБ в памяти, остальное на диске); "
+"самые старые шаги удаляются первыми"
 
 #: src/ui/preferences.c:243 src/ui/tool.c:41
 msgid "Text"

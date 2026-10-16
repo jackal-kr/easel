@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: easel\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-15 08:55+0200\n"
+"POT-Creation-Date: 2026-10-16 18:55+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -76,54 +76,61 @@ msgstr ""
 
 #: data/io.github.jackal_kr.Easel.metainfo.xml.in:50
 msgid ""
+"Undo history is now kept on disk, so you get far more undo steps on large "
+"pictures (up to 2 GB by default, adjustable in Preferences). A large picture "
+"uses less memory while it sits idle."
+msgstr ""
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:55
+msgid ""
 "A new Font dialog, with a different font, size and color inside one text "
 "box. New languages: Czech, German, Italian, Spanish, Portuguese and Russian. "
 "Also available as an AppImage."
 msgstr ""
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:55
-msgid "The Font dialog shows the current font almost at once in the Flatpak."
-msgstr ""
-
 #: data/io.github.jackal_kr.Easel.metainfo.xml.in:60
-msgid ""
-"The Font dialog now shows its font list and highlights the current font."
+msgid "The Font dialog shows the current font almost at once in the Flatpak."
 msgstr ""
 
 #: data/io.github.jackal_kr.Easel.metainfo.xml.in:65
 msgid ""
-"Gradients fade to transparent, so a second gradient lays over the first."
+"The Font dialog now shows its font list and highlights the current font."
 msgstr ""
 
 #: data/io.github.jackal_kr.Easel.metainfo.xml.in:70
 msgid ""
-"Help opens in the web browser. Faster resize, paste and image transforms."
+"Gradients fade to transparent, so a second gradient lays over the first."
 msgstr ""
 
 #: data/io.github.jackal_kr.Easel.metainfo.xml.in:75
+msgid ""
+"Help opens in the web browser. Faster resize, paste and image transforms."
+msgstr ""
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:80
 msgid ""
 "Right-click outside a selection with Select or Free-Form Select now offers "
 "Paste and the other canvas actions."
 msgstr ""
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:80
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:85
 msgid ""
 "Fit to Window zoom, a configurable grid (cell size and axonometric grid), "
 "and Stretch and Skew by percent or exact pixels."
 msgstr ""
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:85
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:90
 msgid "Adds store screenshots."
 msgstr ""
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:90
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:95
 msgid ""
 "First stable release: translations (Polish, Ukrainian), screen-reader "
 "labels, a right-click menu in Pan mode, and a choice between fitting a "
 "pasted picture to the canvas or resizing the canvas."
 msgstr ""
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:95
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:100
 msgid "First public version."
 msgstr ""
 

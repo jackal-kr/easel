@@ -2,6 +2,10 @@
 
 All notable user-facing changes to Easel. Newest first. Built from the git history; versions follow the tags.
 
+## 1.3.0
+- Undo history is kept on disk: the newest 64 MB stay in memory and older steps go to a temporary file, so large pictures keep far more undo steps. The default history size is now 2 GB (Preferences → Undo history size).
+- A large picture uses about half the memory while it sits idle.
+
 ## 1.2.0
 - New Font dialog with a font list, a live preview, size, text color and Bold/Italic/Underline/Strikethrough in one place.
 - Font, size, color and styles can differ within one text box: select part of the text and use Font… or right-click → Font for Selection….

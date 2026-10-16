@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: easel\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-15 08:55+0200\n"
+"POT-Creation-Date: 2026-10-16 18:55+0200\n"
 "PO-Revision-Date: 2026-10-14 22:01+0200\n"
 "Last-Translator: JOD (Oleksiy Degtyar)\n"
 "Language-Team: Spanish\n"
@@ -83,6 +83,13 @@ msgstr "El estilo oscuro"
 
 #: data/io.github.jackal_kr.Easel.metainfo.xml.in:50
 msgid ""
+"Undo history is now kept on disk, so you get far more undo steps on large "
+"pictures (up to 2 GB by default, adjustable in Preferences). A large picture "
+"uses less memory while it sits idle."
+msgstr "El historial de deshacer ahora se guarda en disco, así que con imágenes grandes tienes muchos más pasos para deshacer (hasta 2 GB por defecto, ajustable en Preferencias). Una imagen grande usa menos memoria cuando está inactiva."
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:55
+msgid ""
 "A new Font dialog, with a different font, size and color inside one text "
 "box. New languages: Czech, German, Italian, Spanish, Portuguese and Russian. "
 "Also available as an AppImage."
@@ -91,34 +98,34 @@ msgstr ""
 "un mismo cuadro de texto. Nuevos idiomas: checo, alemán, italiano, español, "
 "portugués y ruso. También disponible como AppImage."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:55
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:60
 msgid "The Font dialog shows the current font almost at once in the Flatpak."
 msgstr ""
 "El diálogo de tipografía muestra la fuente actual casi al instante en el "
 "Flatpak."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:60
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:65
 msgid ""
 "The Font dialog now shows its font list and highlights the current font."
 msgstr ""
 "El diálogo de tipografía ahora muestra su lista de fuentes y resalta la "
 "actual."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:65
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:70
 msgid ""
 "Gradients fade to transparent, so a second gradient lays over the first."
 msgstr ""
 "Los degradados se desvanecen hasta la transparencia, así que un segundo "
 "degradado se superpone al primero."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:70
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:75
 msgid ""
 "Help opens in the web browser. Faster resize, paste and image transforms."
 msgstr ""
 "La ayuda se abre en el navegador web. Cambio de tamaño, pegado y "
 "transformaciones de imagen más rápidos."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:75
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:80
 msgid ""
 "Right-click outside a selection with Select or Free-Form Select now offers "
 "Paste and the other canvas actions."
@@ -126,7 +133,7 @@ msgstr ""
 "El clic derecho fuera de una selección con Seleccionar o Selección libre "
 "ahora ofrece Pegar y las demás acciones del lienzo."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:80
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:85
 msgid ""
 "Fit to Window zoom, a configurable grid (cell size and axonometric grid), "
 "and Stretch and Skew by percent or exact pixels."
@@ -135,11 +142,11 @@ msgstr ""
 "cuadrícula axonométrica) y Estirar e inclinar por porcentaje o en píxeles "
 "exactos."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:85
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:90
 msgid "Adds store screenshots."
 msgstr "Añade capturas de pantalla para la tienda."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:90
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:95
 msgid ""
 "First stable release: translations (Polish, Ukrainian), screen-reader "
 "labels, a right-click menu in Pan mode, and a choice between fitting a "
@@ -149,7 +156,7 @@ msgstr ""
 "lectores de pantalla, un menú contextual en el modo de desplazamiento y la "
 "opción de ajustar la imagen pegada al lienzo o cambiar el tamaño del lienzo."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:95
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:100
 msgid "First public version."
 msgstr "Primera versión pública."
 
@@ -846,7 +853,9 @@ msgstr "Tamaño del historial de deshacer"
 msgid ""
 "Megabytes of history kept (the newest 64 MB in memory, the rest on disk); "
 "older steps are forgotten first"
-msgstr "Megabytes de historial conservados (los 64 MB más recientes en memoria, el resto en disco); los pasos más antiguos se descartan primero"
+msgstr ""
+"Megabytes de historial conservados (los 64 MB más recientes en memoria, el "
+"resto en disco); los pasos más antiguos se descartan primero"
 
 #: src/ui/preferences.c:243 src/ui/tool.c:41
 msgid "Text"

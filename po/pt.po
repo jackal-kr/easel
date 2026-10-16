@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: easel\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-15 08:55+0200\n"
+"POT-Creation-Date: 2026-10-16 18:55+0200\n"
 "PO-Revision-Date: 2026-10-14 22:01+0200\n"
 "Last-Translator: JOD (Oleksiy Degtyar)\n"
 "Language-Team: Portuguese\n"
@@ -82,6 +82,13 @@ msgstr "O estilo escuro"
 
 #: data/io.github.jackal_kr.Easel.metainfo.xml.in:50
 msgid ""
+"Undo history is now kept on disk, so you get far more undo steps on large "
+"pictures (up to 2 GB by default, adjustable in Preferences). A large picture "
+"uses less memory while it sits idle."
+msgstr "O histórico de anular agora é guardado em disco, por isso tem muitos mais passos de anulação em imagens grandes (até 2 GB por predefinição, ajustável nas Preferências). Uma imagem grande usa menos memória quando está inativa."
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:55
+msgid ""
 "A new Font dialog, with a different font, size and color inside one text "
 "box. New languages: Czech, German, Italian, Spanish, Portuguese and Russian. "
 "Also available as an AppImage."
@@ -91,34 +98,34 @@ msgstr ""
 "alemão, italiano, espanhol, português e russo. Também disponível como "
 "AppImage."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:55
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:60
 msgid "The Font dialog shows the current font almost at once in the Flatpak."
 msgstr ""
 "A caixa de diálogo de tipos de letra mostra o tipo de letra atual quase de "
 "imediato no Flatpak."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:60
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:65
 msgid ""
 "The Font dialog now shows its font list and highlights the current font."
 msgstr ""
 "A caixa de diálogo de tipos de letra agora mostra a lista de tipos de letra "
 "e destaca o atual."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:65
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:70
 msgid ""
 "Gradients fade to transparent, so a second gradient lays over the first."
 msgstr ""
 "Os gradientes esbatem-se até à transparência, por isso um segundo gradiente "
 "fica sobre o primeiro."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:70
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:75
 msgid ""
 "Help opens in the web browser. Faster resize, paste and image transforms."
 msgstr ""
 "A ajuda abre-se no navegador web. Redimensionamento, colagem e "
 "transformações de imagem mais rápidos."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:75
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:80
 msgid ""
 "Right-click outside a selection with Select or Free-Form Select now offers "
 "Paste and the other canvas actions."
@@ -126,7 +133,7 @@ msgstr ""
 "O clique direito fora de uma seleção com Selecionar ou Seleção livre agora "
 "oferece Colar e as restantes ações da tela."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:80
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:85
 msgid ""
 "Fit to Window zoom, a configurable grid (cell size and axonometric grid), "
 "and Stretch and Skew by percent or exact pixels."
@@ -134,11 +141,11 @@ msgstr ""
 "Zoom Ajustar à janela, uma grelha configurável (tamanho da célula e grelha "
 "axonométrica) e Esticar e inclinar em percentagem ou em píxeis exatos."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:85
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:90
 msgid "Adds store screenshots."
 msgstr "Adiciona capturas de ecrã para a loja."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:90
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:95
 msgid ""
 "First stable release: translations (Polish, Ukrainian), screen-reader "
 "labels, a right-click menu in Pan mode, and a choice between fitting a "
@@ -148,7 +155,7 @@ msgstr ""
 "leitores de ecrã, um menu de contexto no modo de deslocamento e a escolha "
 "entre ajustar a imagem colada à tela ou redimensionar a tela."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:95
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:100
 msgid "First public version."
 msgstr "Primeira versão pública."
 
@@ -843,7 +850,9 @@ msgstr "Tamanho do histórico de anular"
 msgid ""
 "Megabytes of history kept (the newest 64 MB in memory, the rest on disk); "
 "older steps are forgotten first"
-msgstr "Megabytes de histórico mantidos (os 64 MB mais recentes na memória, o resto no disco); os passos mais antigos são esquecidos primeiro"
+msgstr ""
+"Megabytes de histórico mantidos (os 64 MB mais recentes na memória, o resto "
+"no disco); os passos mais antigos são esquecidos primeiro"
 
 #: src/ui/preferences.c:243 src/ui/tool.c:41
 msgid "Text"

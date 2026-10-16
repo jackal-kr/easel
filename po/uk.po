@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: easel\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-14 22:09+0200\n"
+"POT-Creation-Date: 2026-10-16 18:55+0200\n"
 "PO-Revision-Date: 2026-10-14 17:06+0200\n"
 "Last-Translator: JOD (Oleksiy Degtyar)\n"
 "Language-Team: none\n"
@@ -83,35 +83,45 @@ msgstr "Темний стиль"
 
 #: data/io.github.jackal_kr.Easel.metainfo.xml.in:50
 msgid ""
+"Undo history is now kept on disk, so you get far more undo steps on large "
+"pictures (up to 2 GB by default, adjustable in Preferences). A large picture "
+"uses less memory while it sits idle."
+msgstr "Історія скасування тепер зберігається на диску, тож на великих зображеннях доступно значно більше кроків скасування (за замовчуванням до 2 ГБ, змінюється в Параметрах). Велике зображення займає менше пам’яті, коли воно не використовується."
+
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:55
+msgid ""
 "A new Font dialog, with a different font, size and color inside one text "
 "box. New languages: Czech, German, Italian, Spanish, Portuguese and Russian. "
 "Also available as an AppImage."
-msgstr "Нове вікно вибору шрифту, з різним шрифтом, розміром і кольором в одному текстовому полі. Нові мови: чеська, німецька, італійська, іспанська, португальська та російська. Також доступно як AppImage."
+msgstr ""
+"Нове вікно вибору шрифту, з різним шрифтом, розміром і кольором в одному "
+"текстовому полі. Нові мови: чеська, німецька, італійська, іспанська, "
+"португальська та російська. Також доступно як AppImage."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:55
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:60
 msgid "The Font dialog shows the current font almost at once in the Flatpak."
 msgstr "Діалог вибору шрифту майже одразу показує поточний шрифт у Flatpak."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:60
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:65
 msgid ""
 "The Font dialog now shows its font list and highlights the current font."
 msgstr "Діалог вибору шрифту тепер показує список шрифтів і виділяє поточний."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:65
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:70
 msgid ""
 "Gradients fade to transparent, so a second gradient lays over the first."
 msgstr ""
 "Градієнти плавно переходять у прозорість, тому другий градієнт лягає поверх "
 "першого."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:70
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:75
 msgid ""
 "Help opens in the web browser. Faster resize, paste and image transforms."
 msgstr ""
 "Довідка відкривається у веб-браузері. Швидша зміна розміру, вставлення та "
 "перетворення зображення."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:75
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:80
 msgid ""
 "Right-click outside a selection with Select or Free-Form Select now offers "
 "Paste and the other canvas actions."
@@ -120,7 +130,7 @@ msgstr ""
 "«Виділення довільної області» тепер пропонує «Вставити» та інші дії з "
 "полотном."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:80
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:85
 msgid ""
 "Fit to Window zoom, a configurable grid (cell size and axonometric grid), "
 "and Stretch and Skew by percent or exact pixels."
@@ -129,11 +139,11 @@ msgstr ""
 "аксонометрична сітка), а також розтягування й нахил у відсотках або точних "
 "пікселях."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:85
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:90
 msgid "Adds store screenshots."
 msgstr "Додає знімки екрана для магазинів."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:90
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:95
 msgid ""
 "First stable release: translations (Polish, Ukrainian), screen-reader "
 "labels, a right-click menu in Pan mode, and a choice between fitting a "
@@ -143,7 +153,7 @@ msgstr ""
 "зчитувачів з екрана, контекстне меню в режимі Переміщення та вибір між "
 "підгонкою вставленого зображення під полотно і зміною розміру полотна."
 
-#: data/io.github.jackal_kr.Easel.metainfo.xml.in:95
+#: data/io.github.jackal_kr.Easel.metainfo.xml.in:100
 msgid "First public version."
 msgstr "Перша публічна версія."
 
@@ -830,12 +840,14 @@ msgid "Magnifier click"
 msgstr "Клацання лупи"
 
 #: src/ui/preferences.c:241
-msgid "Undo memory"
-msgstr "Пам’ять скасування"
+msgid "Undo history size"
+msgstr "Розмір історії скасування"
 
 #: src/ui/preferences.c:241
-msgid "Megabytes of history kept; older steps are forgotten first"
-msgstr "Мегабайти збереженої історії; найстаріші кроки забуваються першими"
+msgid ""
+"Megabytes of history kept (the newest 64 MB in memory, the rest on disk); "
+"older steps are forgotten first"
+msgstr "Мегабайти збереженої історії (найновіші 64 МБ у пам’яті, решта на диску); найстаріші кроки видаляються першими"
 
 #: src/ui/preferences.c:243 src/ui/tool.c:41
 msgid "Text"
@@ -1326,6 +1338,9 @@ msgstr "Скасувати (Ctrl+Z)"
 #: src/ui/window.c:1315
 msgid "Redo (Ctrl+Y)"
 msgstr "Повторити (Ctrl+Y)"
+
+#~ msgid "Undo memory"
+#~ msgstr "Пам’ять скасування"
 
 #~ msgid "Stretch horizontally"
 #~ msgstr "Розтягнути горизонтально"
